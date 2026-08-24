@@ -18,7 +18,7 @@ button{border:0;border-radius:7px;padding:10px 14px;font-weight:700;cursor:point
 select{height:38px;border-radius:7px;border:0;padding:0 8px;min-width:220px}
 video{display:block;width:100%;max-height:440px;background:#000;border-radius:10px;margin-top:12px}
 .status{margin-top:10px;background:#303134;border-radius:8px;padding:9px;font-size:13px}
-.meta{font-size:12px;color:#c9cacc;margin-top:8px}
+.meta{font-size:12px;color:#c9cacc;margin-top:8px}.recstate{margin-top:10px;background:#3a1f22;color:#ff6b6b;border-radius:8px;padding:9px;font-size:14px;font-weight:700;display:none}.rectimer{float:right;color:#fff}
 </style>
 </head>
 <body>
@@ -36,6 +36,7 @@ video{display:block;width:100%;max-height:440px;background:#000;border-radius:10
 
   <video id="preview" autoplay muted playsinline></video>
   <div id="status" class="status">Starting camera bridge...</div>
+  <div id="recstate" class="recstate">● RECORDING <span id="rectimer" class="rectimer">00:00</span></div>
   <div id="meta" class="meta"></div>
 </div>
 
@@ -51,6 +52,8 @@ const preview=document.getElementById('preview');
 const cameraSelect=document.getElementById('cameraSelect');
 const status=document.getElementById('status');
 const meta=document.getElementById('meta');
+const recState=document.getElementById('recstate');
+const recTimer=document.getElementById('rectimer');
 const startBtn=document.getElementById('start');
 const stopBtn=document.getElementById('stop');
 
@@ -59,6 +62,9 @@ let recorder=null;
 let chunks=[];
 let selectedCameraId='';
 let readySent=false;
+let startedAt=0;
+let uiTimer=null;
+let parentStartReceived=false;
 
 function parentMessage(type,extra){
   if(window.opener&&!window.opener.closed){
@@ -212,6 +218,9 @@ async function startRecording(){
 
       status.textContent='Recording stopped. Sending video...';
       stopBtn.style.display='none';
+      recState.style.display='none';
+      if(uiTimer){clearInterval(uiTimer);uiTimer=null;}
+      recTimer.textContent='00:00';
 
       parentMessage('VIDEO_READY',{
         blob:blob,
@@ -226,6 +235,13 @@ async function startRecording(){
     stopBtn.style.display='inline-block';
     startBtn.style.display='none';
     status.textContent='● RECORDING';
+    recState.style.display='block';
+    startedAt=Date.now();
+    if(uiTimer)clearInterval(uiTimer);
+    uiTimer=setInterval(function(){
+      const sec=Math.floor((Date.now()-startedAt)/1000);
+      recTimer.textContent=String(Math.floor(sec/60)).padStart(2,'0')+':'+String(sec%60).padStart(2,'0');
+    },250);
     parentMessage('RECORDING_STARTED');
 
   }catch(e){
@@ -261,6 +277,7 @@ document.getElementById('close').onclick=function(){
     status.textContent='Stop the recording before closing.';
     return;
   }
+  if(uiTimer){clearInterval(uiTimer);uiTimer=null;}
   if(stream)stream.getTracks().forEach(t=>t.stop());
   parentMessage('BRIDGE_CLOSED');
   window.close();
@@ -271,6 +288,7 @@ window.addEventListener('message',function(event){
   if(!d||d.source!=='DISPATCH_PROOF_PARENT')return;
 
   if(d.type==='START_RECORDING'){
+    parentStartReceived=true;
     const s=d.session||{};
     awb=String(s.awb||'');
     orderId=String(s.orderId||'');
@@ -287,6 +305,7 @@ window.addEventListener('message',function(event){
 });
 
 window.addEventListener('beforeunload',function(){
+  if(uiTimer){clearInterval(uiTimer);uiTimer=null;}
   if(stream)stream.getTracks().forEach(t=>t.stop());
   parentMessage('BRIDGE_CLOSED');
 });
@@ -301,13 +320,19 @@ window.addEventListener('beforeunload',function(){
 
   /*
    * Recording is command-driven by the parent Dispatch Proof window.
-   * This keeps the same camera window alive: first AWB starts recording,
-   * next AWB stops/saves it, and manual STOP & SAVE also works.
+   * If the browser delays the postMessage handshake, use the URL session
+   * as a safety fallback after camera readiness so the first AWB never
+   * remains stuck at camera-open without recording.
    */
   startBtn.style.display='none';
   stopBtn.style.display='none';
   if(mode==='RECORD'){
-    status.textContent='Camera ready ✓ • Waiting for AWB scan';
+    status.textContent='Camera ready ✓ • Waiting for recording command';
+    setTimeout(function(){
+      if(!parentStartReceived && !recorder && stream && stream.getTracks().some(t=>t.readyState==='live')){
+        startRecording();
+      }
+    },1200);
   }
 })();
 </script>
