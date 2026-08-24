@@ -24,7 +24,7 @@ video{display:block;width:100%;max-height:440px;background:#000;border-radius:10
 <body>
 <div class="wrap">
   <h2>🎥 DISPATCH PROOF CAMERA</h2>
-  <div class="sub">External camera bridge • webcam access • recording • DPV4</div>
+  <div class="sub">External camera bridge • webcam access • recording</div>
 
   <div class="bar">
     <select id="cameraSelect"></select>
@@ -37,10 +37,11 @@ video{display:block;width:100%;max-height:440px;background:#000;border-radius:10
   <video id="preview" autoplay muted playsinline></video>
   <div id="status" class="status">Starting camera bridge...</div>
   <div id="recstate" class="recstate">● RECORDING <span id="rectimer" class="rectimer">00:00</span></div>
-  <div id="meta" class="meta"></div><canvas id="frameCanvas" width="480" height="270" style="display:none"></canvas>
+  <div id="meta" class="meta"></div>
 </div>
 
 <script>
+const openerRef=window.opener||null;
 const qs=new URLSearchParams(location.search);
 const mode=(qs.get('mode')||'TEST').toUpperCase();
 let awb=qs.get('awb')||'';
@@ -69,30 +70,21 @@ let starting=false;
 let autoStartAttempted=false;
 let sessionId=qs.get('session')||'';
 
-let parentWindow=null;
-let parentOrigin='*';
-
 function parentMessage(type,extra){
-  const target=parentWindow || window.opener;
-  if(target && !target.closed){
-    try{
-      target.postMessage(
-        Object.assign({
-          source:'DISPATCH_PROOF_CAMERA_BRIDGE',
-          type:type,
-          protocol:'DPV4'
-        },extra||{}),
-        parentOrigin || '*'
-      );
-    }catch(e){
-      try{
-        target.postMessage(
-          Object.assign({source:'DISPATCH_PROOF_CAMERA_BRIDGE',type:type,protocol:'DPV4'},extra||{}),
-          '*'
-        );
-      }catch(ignore){}
-    }
-  }
+  const msg=Object.assign({source:'DISPATCH_PROOF_CAMERA_BRIDGE',type:type},extra||{});
+  try{
+    if(openerRef && !openerRef.closed){ openerRef.postMessage(msg,'*'); return true; }
+  }catch(e){}
+  try{
+    if(window.opener && !window.opener.closed){ window.opener.postMessage(msg,'*'); return true; }
+  }catch(e){}
+  return false;
+}
+
+function parentMessageRetry(type,extra,count){
+  const n=Number(count||0);
+  parentMessage(type,extra);
+  if(n<4) setTimeout(function(){ parentMessageRetry(type,extra,n+1); },250);
 }
 
 function errText(e){
@@ -185,12 +177,11 @@ async function openCamera(){
     await preview.play().catch(()=>{});
 
     status.textContent='Camera ready ✓';
-    parentMessage('CAMERA_READY');
-    startPreviewFrames();
+    parentMessageRetry('CAMERA_READY',{},0);
 
     if(!readySent){
       readySent=true;
-      parentMessage('BRIDGE_READY');
+      parentMessageRetry('BRIDGE_READY',{},0);
     }
 
   }catch(e){
@@ -246,45 +237,43 @@ async function startRecording(sessionOverride){
 
     recorder.onerror=function(e){
       starting=false;
-      if(uiTimer){clearInterval(uiTimer);uiTimer=null;}
-      recState.style.display='none';
-      status.textContent='Recording error: '+errText(e.error||e);
+      status.textContent='Recording error.';
       parentMessage('CAMERA_ERROR',{message:'Recording error: '+errText(e.error||e)});
-    };
-
-    recorder.onstart=function(){
-      // IMPORTANT: only this event is treated as a real recording start.
-      starting=false;
-      stopBtn.style.display='inline-block';
-      startBtn.style.display='none';
-      status.textContent='● RECORDING';
-      recState.style.display='block';
-      startedAt=Date.now();
-      recTimer.textContent='00:00';
-      if(uiTimer)clearInterval(uiTimer);
-      uiTimer=setInterval(function(){
-        const sec=Math.floor((Date.now()-startedAt)/1000);
-        recTimer.textContent=String(Math.floor(sec/60)).padStart(2,'0')+':'+String(sec%60).padStart(2,'0');
-      },250);
-      parentMessage('RECORDING_STARTED');
     };
 
     recorder.onstop=function(){
       const blob=new Blob(chunks,{type:(chunks[0]&&chunks[0].type)||mime||'video/webm'});
       const name=(awb||'VIDEO')+'_'+(videoType||'DISPATCH')+'.webm';
 
-      status.textContent=blob.size ? 'Recording stopped. Sending video...' : 'Recording stopped — no video data.';
+      status.textContent='Recording stopped. Sending video...';
       stopBtn.style.display='none';
       startBtn.style.display='none';
       recState.style.display='none';
       if(uiTimer){clearInterval(uiTimer);uiTimer=null;}
       recTimer.textContent='00:00';
 
-      parentMessage('VIDEO_READY',{blob:blob,fileName:name,size:blob.size});
+      parentMessageRetry('VIDEO_READY',{blob:blob,fileName:name},0);
 
       chunks=[];
       recorder=null;
       starting=false;
+    };
+
+    recorder.onstart=function(){
+      starting=false;
+      stopBtn.style.display='inline-block';
+      startBtn.style.display='none';
+      status.textContent='● RECORDING';
+      recState.style.display='block';
+      startedAt=Date.now();
+      if(uiTimer)clearInterval(uiTimer);
+      uiTimer=setInterval(function(){
+        const sec=Math.floor((Date.now()-startedAt)/1000);
+        recTimer.textContent=String(Math.floor(sec/60)).padStart(2,'0')+':'+String(sec%60).padStart(2,'0');
+      },250);
+      parentMessageRetry('RECORDING_STARTED',{
+        awb:awb,orderId:orderId,videoType:videoType,startedAt:startedAt
+      },0);
     };
 
     recorder.start(1000);
@@ -307,24 +296,6 @@ function stopRecording(){
   }
   status.textContent='No active recording.';
   return false;
-}
-
-let previewTimer=null;
-function startPreviewFrames(){
-  if(previewTimer)clearInterval(previewTimer);
-  const canvas=document.getElementById('frameCanvas');
-  const ctx=canvas.getContext('2d');
-  previewTimer=setInterval(function(){
-    if(!stream || preview.readyState<2) return;
-    try{
-      ctx.drawImage(preview,0,0,canvas.width,canvas.height);
-      const dataUrl=canvas.toDataURL('image/jpeg',0.45);
-      parentMessage('PREVIEW_FRAME',{dataUrl:dataUrl});
-    }catch(e){}
-  },600);
-}
-function stopPreviewFrames(){
-  if(previewTimer){clearInterval(previewTimer);previewTimer=null;}
 }
 
 cameraSelect.onchange=function(){
@@ -350,7 +321,6 @@ document.getElementById('close').onclick=function(){
     return;
   }
   if(uiTimer){clearInterval(uiTimer);uiTimer=null;}
-  stopPreviewFrames();
   if(stream)stream.getTracks().forEach(t=>t.stop());
   parentMessage('BRIDGE_CLOSED');
   window.close();
@@ -359,18 +329,6 @@ document.getElementById('close').onclick=function(){
 window.addEventListener('message',function(event){
   const d=event.data||{};
   if(!d||d.source!=='DISPATCH_PROOF_PARENT')return;
-
-  // Remember the real opener and its origin for all future messages.
-  parentWindow=event.source || window.opener || null;
-  parentOrigin=event.origin || '*';
-
-  if(d.type==='DPV4_HELLO'){
-    parentMessage('DPV4_ACK',{sessionId:d.sessionId||''});
-    parentMessage('BRIDGE_READY');
-    if(stream && stream.getTracks().some(t=>t.readyState==='live'))
-      parentMessage('CAMERA_READY');
-    return;
-  }
 
   if(d.type==='START_RECORDING'){
     parentStartReceived=true;
@@ -391,7 +349,6 @@ window.addEventListener('message',function(event){
 
 window.addEventListener('beforeunload',function(){
   if(uiTimer){clearInterval(uiTimer);uiTimer=null;}
-  stopPreviewFrames();
   if(stream)stream.getTracks().forEach(t=>t.stop());
   parentMessage('BRIDGE_CLOSED');
 });
@@ -403,23 +360,28 @@ window.addEventListener('beforeunload',function(){
 
   await enumerateCameras();
   await openCamera();
-  parentWindow=window.opener||null;
-  if(parentWindow) parentMessage('BRIDGE_READY');
 
   startBtn.style.display='none';
   stopBtn.style.display='none';
-  // Recording mode has a safety fallback. The normal path is:
-  // parent handshake -> START_RECORDING -> recorder.onstart.
-  // If the parent message is missed for any browser reason, the bridge
-  // starts itself after a short delay so one scan still produces a video.
   if(mode==='RECORD' && !autoStartAttempted){
     autoStartAttempted=true;
-    status.textContent='Camera ready ✓ • WAITING FOR MAIN POPUP...';
-    setTimeout(function(){
-      if(!(recorder&&recorder.state==='recording') && !starting){
+    status.textContent='Camera ready ✓ • STARTING RECORDING...';
+    await startRecording({awb:awb,orderId:orderId,status:statusValue,videoType:videoType});
+    if(!(recorder&&recorder.state==='recording')){
+      let tries=0;
+      const retry=function(){
+        if(recorder&&recorder.state==='recording') return;
+        if(tries++>=5){
+          status.textContent='Recording did not start. Click START RECORDING to retry.';
+          startBtn.style.display='inline-block';
+          parentMessageRetry('CAMERA_ERROR',{message:'MediaRecorder did not start automatically.'},0);
+          return;
+        }
         startRecording({awb:awb,orderId:orderId,status:statusValue,videoType:videoType});
-      }
-    },3000);
+        setTimeout(retry,900);
+      };
+      setTimeout(retry,500);
+    }
   }
 })();
 </script>
