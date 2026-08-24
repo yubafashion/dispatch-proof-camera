@@ -67,6 +67,7 @@ let uiTimer=null;
 let parentStartReceived=false;
 let starting=false;
 let autoStartAttempted=false;
+let startRetryTimer=null;
 let sessionId=qs.get('session')||'';
 
 function parentMessage(type,extra){
@@ -260,7 +261,7 @@ async function startRecording(sessionOverride){
     starting=false;
     stopBtn.style.display='inline-block';
     startBtn.style.display='none';
-    status.textContent='● RECORDING';
+    status.textContent='● RECORDING • MediaRecorder ACTIVE';
     recState.style.display='block';
     startedAt=Date.now();
     if(uiTimer)clearInterval(uiTimer);
@@ -268,7 +269,15 @@ async function startRecording(sessionOverride){
       const sec=Math.floor((Date.now()-startedAt)/1000);
       recTimer.textContent=String(Math.floor(sec/60)).padStart(2,'0')+':'+String(sec%60).padStart(2,'0');
     },250);
-    parentMessage('RECORDING_STARTED');
+    parentMessage('RECORDING_STARTED',{state:'recording'});
+    // If the browser silently fails to enter recording state, report it.
+    clearTimeout(startRetryTimer);
+    startRetryTimer=setTimeout(function(){
+      if(!(recorder&&recorder.state==='recording')){
+        status.textContent='Recording did not start.';
+        parentMessage('CAMERA_ERROR',{message:'MediaRecorder did not remain in recording state.'});
+      }
+    },1200);
 
   }catch(e){
     starting=false;
@@ -279,6 +288,7 @@ async function startRecording(sessionOverride){
 }
 
 function stopRecording(){
+  clearTimeout(startRetryTimer);
   if(recorder&&recorder.state==='recording'){
     recorder.stop();
     return true;
