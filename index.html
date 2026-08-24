@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>DISPATCH PROOF CAMERA BRIDGE V6</title>
+<title>DISPATCH PROOF CAMERA BRIDGE V7 RECORD FIX</title>
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:#202124;color:#fff;font-family:Arial,sans-serif}
@@ -24,7 +24,7 @@ video{display:block;width:100%;max-height:440px;background:#000;border-radius:10
 <body>
 <div class="wrap">
   <h2>🎥 DISPATCH PROOF CAMERA</h2>
-  <div class="sub">External camera bridge • webcam access • recording</div>
+  <div class="sub">External camera bridge • webcam access • recording</div><div id="modeBadge" class="meta"></div>
 
   <div class="bar">
     <select id="cameraSelect"></select>
@@ -69,6 +69,8 @@ let parentStartReceived=false;
 let starting=false;
 let autoStartAttempted=false;
 let sessionId=qs.get('session')||'';
+let startConfirmTimer=null;
+let dataSeen=false;
 
 function parentMessage(type,extra){
   const msg=Object.assign({source:'DISPATCH_PROOF_CAMERA_BRIDGE',type:type},extra||{});
@@ -232,7 +234,7 @@ async function startRecording(sessionOverride){
     recorder=mime ? new MediaRecorder(stream,{mimeType:mime}) : new MediaRecorder(stream);
 
     recorder.ondataavailable=function(e){
-      if(e.data&&e.data.size)chunks.push(e.data);
+      if(e.data&&e.data.size){ dataSeen=true; chunks.push(e.data); }
     };
 
     recorder.onerror=function(e){
@@ -242,6 +244,7 @@ async function startRecording(sessionOverride){
     };
 
     recorder.onstop=function(){
+      if(startConfirmTimer){clearTimeout(startConfirmTimer);startConfirmTimer=null;}
       const blob=new Blob(chunks,{type:(chunks[0]&&chunks[0].type)||mime||'video/webm'});
       const name=(awb||'VIDEO')+'_'+(videoType||'DISPATCH')+'.webm';
 
@@ -252,6 +255,10 @@ async function startRecording(sessionOverride){
       if(uiTimer){clearInterval(uiTimer);uiTimer=null;}
       recTimer.textContent='00:00';
 
+      if(!blob.size){
+        parentMessageRetry('CAMERA_ERROR',{message:'Recording stopped but produced an empty video file.'},0);
+        chunks=[]; recorder=null; starting=false; return;
+      }
       parentMessageRetry('VIDEO_READY',{blob:blob,fileName:name},0);
 
       chunks=[];
@@ -259,27 +266,46 @@ async function startRecording(sessionOverride){
       starting=false;
     };
 
-    recorder.onstart=function(){
+    function confirmRecordingStarted(){
+      if(!recorder || recorder.state!=='recording') return false;
       starting=false;
       stopBtn.style.display='inline-block';
       startBtn.style.display='none';
       status.textContent='● RECORDING';
       recState.style.display='block';
-      startedAt=Date.now();
+      startedAt=startedAt||Date.now();
       if(uiTimer)clearInterval(uiTimer);
       uiTimer=setInterval(function(){
+        if(!recorder || recorder.state!=='recording') return;
         const sec=Math.floor((Date.now()-startedAt)/1000);
         recTimer.textContent=String(Math.floor(sec/60)).padStart(2,'0')+':'+String(sec%60).padStart(2,'0');
       },250);
       parentMessageRetry('RECORDING_STARTED',{
         awb:awb,orderId:orderId,videoType:videoType,startedAt:startedAt
       },0);
-    };
+      return true;
+    }
+
+    recorder.onstart=function(){ confirmRecordingStarted(); };
 
     recorder.start(1000);
     if(recorder.state!=='recording'){
       throw new Error('MediaRecorder did not enter recording state.');
     }
+    // Chrome normally fires onstart asynchronously. Do not depend on that
+    // event for the actual UI/message handshake: state=recording is the
+    // authoritative confirmation that MediaRecorder has started.
+    startedAt=Date.now();
+    confirmRecordingStarted();
+    if(startConfirmTimer)clearTimeout(startConfirmTimer);
+    startConfirmTimer=setTimeout(function(){
+      if(recorder&&recorder.state==='recording'&&!dataSeen){
+        // Give the browser more time; a data chunk is expected after the
+        // first timeslice. Do not stop a valid recording just because the
+        // first chunk is delayed.
+        status.textContent='● RECORDING • waiting for video data...';
+      }
+    },2500);
 
   }catch(e){
     starting=false;
@@ -354,6 +380,7 @@ window.addEventListener('beforeunload',function(){
 });
 
 (async function(){
+  document.getElementById('modeBadge').textContent=mode==='RECORD' ? 'RECORD MODE • AUTO RECORD ENABLED' : 'TEST MODE • CAMERA ONLY — NO RECORDING';
   meta.textContent=mode==='RECORD'
     ? 'AWB: '+awb+' • Order ID: '+orderId+' • Type: '+videoType
     : 'CAMERA TEST • No video will be saved';
