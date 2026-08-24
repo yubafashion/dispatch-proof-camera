@@ -65,6 +65,7 @@ let readySent=false;
 let startedAt=0;
 let uiTimer=null;
 let parentStartReceived=false;
+let starting=false;
 
 function parentMessage(type,extra){
   if(window.opener&&!window.opener.closed){
@@ -181,12 +182,23 @@ async function openCamera(){
   }
 }
 
-async function startRecording(){
+async function startRecording(sessionOverride){
+  if(recorder&&recorder.state==='recording') return;
+  if(starting) return;
+  starting=true;
   try{
+    if(sessionOverride){
+      awb=String(sessionOverride.awb||awb||'');
+      orderId=String(sessionOverride.orderId||orderId||'');
+      statusValue=String(sessionOverride.status||statusValue||'');
+      videoType=String(sessionOverride.videoType||videoType||'DISPATCH').toUpperCase();
+      meta.textContent='AWB: '+awb+' • Order ID: '+orderId+' • Type: '+videoType;
+    }
+
     if(!stream||!stream.getTracks().some(t=>t.readyState==='live'))
       await openCamera();
 
-    if(!stream) return;
+    if(!stream) throw new Error('Camera stream is not ready.');
 
     chunks=[];
 
@@ -204,34 +216,40 @@ async function startRecording(){
       }
     }
 
-    recorder=mime
-      ? new MediaRecorder(stream,{mimeType:mime})
-      : new MediaRecorder(stream);
+    if(!window.MediaRecorder) throw new Error('MediaRecorder is not supported in this browser.');
+
+    recorder=mime ? new MediaRecorder(stream,{mimeType:mime}) : new MediaRecorder(stream);
 
     recorder.ondataavailable=function(e){
       if(e.data&&e.data.size)chunks.push(e.data);
     };
 
+    recorder.onerror=function(e){
+      starting=false;
+      status.textContent='Recording error.';
+      parentMessage('CAMERA_ERROR',{message:'Recording error: '+errText(e.error||e)});
+    };
+
     recorder.onstop=function(){
-      const blob=new Blob(chunks,{type:(chunks[0]&&chunks[0].type)||'video/webm'});
+      const blob=new Blob(chunks,{type:(chunks[0]&&chunks[0].type)||mime||'video/webm'});
       const name=(awb||'VIDEO')+'_'+(videoType||'DISPATCH')+'.webm';
 
       status.textContent='Recording stopped. Sending video...';
       stopBtn.style.display='none';
+      startBtn.style.display='none';
       recState.style.display='none';
       if(uiTimer){clearInterval(uiTimer);uiTimer=null;}
       recTimer.textContent='00:00';
 
-      parentMessage('VIDEO_READY',{
-        blob:blob,
-        fileName:name
-      });
+      parentMessage('VIDEO_READY',{blob:blob,fileName:name});
 
       chunks=[];
       recorder=null;
+      starting=false;
     };
 
     recorder.start(1000);
+    starting=false;
     stopBtn.style.display='inline-block';
     startBtn.style.display='none';
     status.textContent='● RECORDING';
@@ -245,6 +263,8 @@ async function startRecording(){
     parentMessage('RECORDING_STARTED');
 
   }catch(e){
+    starting=false;
+    recorder=null;
     status.textContent='Recording error: '+errText(e);
     parentMessage('CAMERA_ERROR',{message:'Recording error: '+errText(e)});
   }
@@ -295,7 +315,7 @@ window.addEventListener('message',function(event){
     statusValue=String(s.status||'');
     videoType=String(s.videoType||'DISPATCH').toUpperCase();
     meta.textContent='AWB: '+awb+' • Order ID: '+orderId+' • Type: '+videoType;
-    startRecording();
+    startRecording({awb:awb,orderId:orderId,status:statusValue,videoType:videoType});
     return;
   }
 
@@ -318,21 +338,13 @@ window.addEventListener('beforeunload',function(){
   await enumerateCameras();
   await openCamera();
 
-  /*
-   * Recording is command-driven by the parent Dispatch Proof window.
-   * If the browser delays the postMessage handshake, use the URL session
-   * as a safety fallback after camera readiness so the first AWB never
-   * remains stuck at camera-open without recording.
-   */
   startBtn.style.display='none';
   stopBtn.style.display='none';
   if(mode==='RECORD'){
-    status.textContent='Camera ready ✓ • Waiting for recording command';
-    setTimeout(function(){
-      if(!parentStartReceived && !recorder && stream && stream.getTracks().some(t=>t.readyState==='live')){
-        startRecording();
-      }
-    },1200);
+    status.textContent='Camera ready ✓ • Starting recording...';
+    // URL-session auto-start is the primary path for the first AWB.
+    // Parent postMessage is only a secondary/duplicate-safe command.
+    await startRecording({awb:awb,orderId:orderId,status:statusValue,videoType:videoType});
   }
 })();
 </script>
