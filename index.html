@@ -42,10 +42,10 @@ video{display:block;width:100%;max-height:440px;background:#000;border-radius:10
 <script>
 const qs=new URLSearchParams(location.search);
 const mode=(qs.get('mode')||'TEST').toUpperCase();
-const awb=qs.get('awb')||'';
-const orderId=qs.get('orderId')||'';
-const statusValue=qs.get('status')||'';
-const videoType=(qs.get('videoType')||'DISPATCH').toUpperCase();
+let awb=qs.get('awb')||'';
+let orderId=qs.get('orderId')||'';
+let statusValue=qs.get('status')||'';
+let videoType=(qs.get('videoType')||'DISPATCH').toUpperCase();
 
 const preview=document.getElementById('preview');
 const cameraSelect=document.getElementById('cameraSelect');
@@ -270,6 +270,17 @@ window.addEventListener('message',function(event){
   const d=event.data||{};
   if(!d||d.source!=='DISPATCH_PROOF_PARENT')return;
 
+  if(d.type==='START_RECORDING'){
+    const s=d.session||{};
+    awb=String(s.awb||'');
+    orderId=String(s.orderId||'');
+    statusValue=String(s.status||'');
+    videoType=String(s.videoType||'DISPATCH').toUpperCase();
+    meta.textContent='AWB: '+awb+' • Order ID: '+orderId+' • Type: '+videoType;
+    startRecording();
+    return;
+  }
+
   if(d.type==='STOP_RECORDING'){
     stopRecording();
   }
@@ -288,15 +299,15 @@ window.addEventListener('beforeunload',function(){
   await enumerateCameras();
   await openCamera();
 
+  /*
+   * Recording is command-driven by the parent Dispatch Proof window.
+   * This keeps the same camera window alive: first AWB starts recording,
+   * next AWB stops/saves it, and manual STOP & SAVE also works.
+   */
+  startBtn.style.display='none';
+  stopBtn.style.display='none';
   if(mode==='RECORD'){
-    /*
-     * Parent requested automatic recording.
-     * Start only after the camera has actually opened.
-     */
-    await startRecording();
-  }else{
-    startBtn.style.display='none';
-    stopBtn.style.display='none';
+    status.textContent='Camera ready ✓ • Waiting for AWB scan';
   }
 })();
 </script>
