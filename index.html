@@ -43,7 +43,7 @@ video{display:block;width:100%;max-height:440px;background:#000;border-radius:10
 <script>
 
 const openerRef=window.opener||null;
-const BRIDGE_VERSION='V26_WINDOW_REUSE_RECORD_START_20260825';
+const BRIDGE_VERSION='V26_BRIDGE_SOURCE_HANDSHAKE_RECHECK_20260825';
 const qs=new URLSearchParams(location.search);
 const mode=(qs.get('mode')||'TEST').toUpperCase();
 let awb=qs.get('awb')||'';
@@ -377,6 +377,11 @@ window.addEventListener('message',function(event){
     videoType=String(s.videoType||'DISPATCH').toUpperCase();
     meta.textContent='AWB: '+awb+' • Order ID: '+orderId+' • Type: '+videoType;
     startRecording({awb:awb,orderId:orderId,status:statusValue,videoType:videoType});
+    return;
+  }
+
+  if(d.type==='PING_BRIDGE'){
+    parentMessage('CAMERA_READY',{mode:mode,recording:!!(recorder&&recorder.state==='recording'),awb:awb});
     return;
   }
 
