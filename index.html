@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>DISPATCH PROOF CAMERA BRIDGE V23</title>
+<title>DISPATCH PROOF CAMERA BRIDGE V24</title>
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:#202124;color:#fff;font-family:Arial,sans-serif}
@@ -24,7 +24,7 @@ video{display:block;width:100%;max-height:440px;background:#000;border-radius:10
 <body>
 <div class="wrap">
   <h2>🎥 DISPATCH PROOF CAMERA</h2>
-  <div class="sub">External camera bridge • webcam access • recording • V23 CLEAN</div><div id="modeBadge" class="meta"></div>
+  <div class="sub">External camera bridge • webcam access • recording • V24 TWO-MODE AUTO-SAVE</div><div id="modeBadge" class="meta"></div>
 
   <div class="bar">
     <select id="cameraSelect"></select>
@@ -367,6 +367,7 @@ window.addEventListener('message',function(event){
     // The bridge may have been opened in TEST/WAIT mode directly from the
     // scan gesture. START_RECORDING upgrades that same window into recording.
     document.getElementById('modeBadge').textContent='RECORD MODE • RECORDING ACTIVE';
+    status.textContent='Camera ready ✓ • STARTING RECORDING...';
     const s=d.session||{};
     awb=String(s.awb||'');
     orderId=String(s.orderId||'');
@@ -389,25 +390,23 @@ window.addEventListener('beforeunload',function(){
 });
 
 (async function(){
-  document.getElementById('modeBadge').textContent=mode==='RECORD' ? 'RECORD MODE • AUTO START AFTER CAMERA READY' : 'TEST MODE • CAMERA ONLY — NO RECORDING';
+  document.getElementById('modeBadge').textContent=mode==='RECORD' ? 'RECORD MODE • AUTO START' : 'READY MODE • CAMERA ONLY UNTIL AWB COMMAND';
   meta.textContent=mode==='RECORD'
     ? 'AWB: '+awb+' • Order ID: '+orderId+' • Type: '+videoType
-    : 'CAMERA TEST • No video will be saved';
+    : 'CAMERA READY • Waiting for AWB recording command';
 
   await enumerateCameras();
   await openCamera();
 
   startBtn.style.display='none';
   stopBtn.style.display='none';
-  if(mode==='RECORD'){
-      // V23: RECORD pages auto-start after camera permission is ready
-      // This page is authoritative: actual MediaRecorder state controls the confirmation.
+  if(mode==='RECORD' && autostart){
       status.textContent='Camera ready ✓ • STARTING RECORDING...';
       startBtn.style.display='none';
       stopBtn.style.display='none';
       await startRecording({awb:awb,orderId:orderId,status:statusValue,videoType:videoType});
     }else{
-      status.textContent='Camera ready ✓ • WAITING FOR RECORD COMMAND';
+      status.textContent='Camera ready ✓ • WAITING FOR AWB RECORD COMMAND';
       startBtn.style.display='none';
       stopBtn.style.display='none';
     }
