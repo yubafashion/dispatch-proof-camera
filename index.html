@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>DISPATCH PROOF CAMERA BRIDGE V7 RECORD FIX</title>
+<title>DISPATCH PROOF CAMERA BRIDGE V8 RECORD FIX</title>
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:#202124;color:#fff;font-family:Arial,sans-serif}
@@ -88,6 +88,10 @@ function parentMessageRetry(type,extra,count){
   parentMessage(type,extra);
   if(n<4) setTimeout(function(){ parentMessageRetry(type,extra,n+1); },250);
 }
+
+// Handshake immediately after page load, before camera permission. This separates
+// 'bridge page is alive' from 'camera permission/device is ready'.
+setTimeout(function(){ parentMessageRetry('BRIDGE_READY',{},0); },0);
 
 function errText(e){
   const n=e&&e.name?e.name:'';
