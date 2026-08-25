@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>DISPATCH PROOF CAMERA BRIDGE V8 RECORD FIX</title>
+<title>DISPATCH PROOF CAMERA BRIDGE V20</title>
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:#202124;color:#fff;font-family:Arial,sans-serif}
@@ -400,10 +400,8 @@ window.addEventListener('beforeunload',function(){
   startBtn.style.display='none';
   stopBtn.style.display='none';
   if(mode==='RECORD'){
-    if(autostart){
-      // V19: the parent navigates this already-open popup to RECORD+autostart
-      // only after it has created the matching bridgeSession. This removes
-      // the unreliable parent->popup START_RECORDING postMessage dependency.
+      // V20: RECORD pages always auto-start after camera permission is ready
+      // This page is authoritative: actual MediaRecorder state controls the confirmation.
       status.textContent='Camera ready ✓ • STARTING RECORDING...';
       startBtn.style.display='none';
       stopBtn.style.display='none';
@@ -413,7 +411,6 @@ window.addEventListener('beforeunload',function(){
       startBtn.style.display='none';
       stopBtn.style.display='none';
     }
-  }
 })();
 </script>
 </body>
