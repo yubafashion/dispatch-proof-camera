@@ -68,6 +68,7 @@ let uiTimer=null;
 let parentStartReceived=false;
 let starting=false;
 let autoStartAttempted=false;
+let autostart=(qs.get('autostart')||'')==='1';
 let sessionId=qs.get('session')||'';
 let startConfirmTimer=null;
 let dataSeen=false;
@@ -399,15 +400,19 @@ window.addEventListener('beforeunload',function(){
   startBtn.style.display='none';
   stopBtn.style.display='none';
   if(mode==='RECORD'){
-    // V18: RECORD mode opens the camera bridge from the user's scan gesture,
-    // but it does NOT start MediaRecorder by itself. The parent first confirms
-    // the AWB/order lookup and then sends START_RECORDING. This removes the
-    // race where the bridge could send RECORDING_STARTED before the parent had
-    // created bridgeSession, which caused false/zero timers and immediate
-    // stop-save failures.
-    status.textContent='Camera ready ✓ • WAITING FOR RECORD COMMAND';
-    startBtn.style.display='none';
-    stopBtn.style.display='none';
+    if(autostart){
+      // V19: the parent navigates this already-open popup to RECORD+autostart
+      // only after it has created the matching bridgeSession. This removes
+      // the unreliable parent->popup START_RECORDING postMessage dependency.
+      status.textContent='Camera ready ✓ • STARTING RECORDING...';
+      startBtn.style.display='none';
+      stopBtn.style.display='none';
+      await startRecording({awb:awb,orderId:orderId,status:statusValue,videoType:videoType});
+    }else{
+      status.textContent='Camera ready ✓ • WAITING FOR RECORD COMMAND';
+      startBtn.style.display='none';
+      stopBtn.style.display='none';
+    }
   }
 })();
 </script>
