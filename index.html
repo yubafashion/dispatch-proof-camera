@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>DISPATCH PROOF CAMERA BRIDGE V22</title>
+<title>DISPATCH PROOF CAMERA BRIDGE V23</title>
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:#202124;color:#fff;font-family:Arial,sans-serif}
@@ -24,7 +24,7 @@ video{display:block;width:100%;max-height:440px;background:#000;border-radius:10
 <body>
 <div class="wrap">
   <h2>🎥 DISPATCH PROOF CAMERA</h2>
-  <div class="sub">External camera bridge • webcam access • recording • V21 CLEAN</div><div id="modeBadge" class="meta"></div>
+  <div class="sub">External camera bridge • webcam access • recording • V23 CLEAN</div><div id="modeBadge" class="meta"></div>
 
   <div class="bar">
     <select id="cameraSelect"></select>
@@ -400,7 +400,7 @@ window.addEventListener('beforeunload',function(){
   startBtn.style.display='none';
   stopBtn.style.display='none';
   if(mode==='RECORD'){
-      // V21: RECORD pages always auto-start after camera permission is ready
+      // V23: RECORD pages auto-start after camera permission is ready
       // This page is authoritative: actual MediaRecorder state controls the confirmation.
       status.textContent='Camera ready ✓ • STARTING RECORDING...';
       startBtn.style.display='none';
