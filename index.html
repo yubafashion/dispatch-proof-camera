@@ -218,6 +218,7 @@ async function startRecording(sessionOverride){
     }
 
     chunks=[];
+    dataSeen=false;
 
     const opts=[
       'video/webm;codecs=vp9,opus',
@@ -277,7 +278,7 @@ async function startRecording(sessionOverride){
       startBtn.style.display='none';
       status.textContent='● RECORDING';
       recState.style.display='block';
-      startedAt=startedAt||Date.now();
+      startedAt=Date.now();
       if(uiTimer)clearInterval(uiTimer);
       uiTimer=setInterval(function(){
         if(!recorder || recorder.state!=='recording') return;
@@ -387,7 +388,7 @@ window.addEventListener('beforeunload',function(){
 });
 
 (async function(){
-  document.getElementById('modeBadge').textContent=mode==='RECORD' ? 'RECORD MODE • AUTO RECORD ENABLED' : 'TEST MODE • CAMERA ONLY — NO RECORDING';
+  document.getElementById('modeBadge').textContent=mode==='RECORD' ? 'RECORD MODE • WAIT FOR RECORD COMMAND' : 'TEST MODE • CAMERA ONLY — NO RECORDING';
   meta.textContent=mode==='RECORD'
     ? 'AWB: '+awb+' • Order ID: '+orderId+' • Type: '+videoType
     : 'CAMERA TEST • No video will be saved';
@@ -397,25 +398,16 @@ window.addEventListener('beforeunload',function(){
 
   startBtn.style.display='none';
   stopBtn.style.display='none';
-  if(mode==='RECORD' && !autoStartAttempted){
-    autoStartAttempted=true;
-    status.textContent='Camera ready ✓ • STARTING RECORDING...';
-    await startRecording({awb:awb,orderId:orderId,status:statusValue,videoType:videoType});
-    if(!(recorder&&recorder.state==='recording')){
-      let tries=0;
-      const retry=function(){
-        if(recorder&&recorder.state==='recording') return;
-        if(tries++>=5){
-          status.textContent='Recording did not start. Click START RECORDING to retry.';
-          startBtn.style.display='inline-block';
-          parentMessageRetry('CAMERA_ERROR',{message:'MediaRecorder did not start automatically.'},0);
-          return;
-        }
-        startRecording({awb:awb,orderId:orderId,status:statusValue,videoType:videoType});
-        setTimeout(retry,900);
-      };
-      setTimeout(retry,500);
-    }
+  if(mode==='RECORD'){
+    // V18: RECORD mode opens the camera bridge from the user's scan gesture,
+    // but it does NOT start MediaRecorder by itself. The parent first confirms
+    // the AWB/order lookup and then sends START_RECORDING. This removes the
+    // race where the bridge could send RECORDING_STARTED before the parent had
+    // created bridgeSession, which caused false/zero timers and immediate
+    // stop-save failures.
+    status.textContent='Camera ready ✓ • WAITING FOR RECORD COMMAND';
+    startBtn.style.display='none';
+    stopBtn.style.display='none';
   }
 })();
 </script>
