@@ -24,7 +24,7 @@ video{display:block;width:100%;max-height:440px;background:#000;border-radius:10
 <body>
 <div class="wrap">
   <h2>🎥 DISPATCH PROOF CAMERA</h2>
-  <div class="sub">External camera bridge • webcam access • recording • V26 WINDOW-REUSE AUTO-START</div><div id="modeBadge" class="meta"></div>
+  <div class="sub">External camera bridge • webcam access • recording • V26.1 WINDOW-REUSE AUTO-START</div><div id="modeBadge" class="meta"></div>
 
   <div class="bar">
     <select id="cameraSelect"></select>
@@ -43,7 +43,7 @@ video{display:block;width:100%;max-height:440px;background:#000;border-radius:10
 <script>
 
 const openerRef=window.opener||null;
-const BRIDGE_VERSION='V26_BRIDGE_SOURCE_HANDSHAKE_RECHECK_20260825';
+const BRIDGE_VERSION='V26_1_NAVIGATION_HARDENED_20260826';
 const qs=new URLSearchParams(location.search);
 const mode=(qs.get('mode')||'TEST').toUpperCase();
 let awb=qs.get('awb')||'';
@@ -363,6 +363,23 @@ document.getElementById('close').onclick=function(){
 window.addEventListener('message',function(event){
   const d=event.data||{};
   if(!d||d.source!=='DISPATCH_PROOF_PARENT')return;
+
+  if(d.type==='NAVIGATE_TO_RECORD'){
+    /*
+     * Parent-side navigation is preferred. This fallback lets the already
+     * loaded bridge navigate itself, which is same-origin from this page and
+     * therefore not subject to the parent's cross-origin Location restriction.
+     */
+    const target=String(d.url||'');
+    if(target){
+      try{
+        location.href=target;
+      }catch(e){
+        parentMessage('CAMERA_ERROR',{message:'Record navigation failed: '+errText(e)});
+      }
+    }
+    return;
+  }
 
   if(d.type==='START_RECORDING' || d.type==='START_RECORDING_NOW'){
     parentStartReceived=true;
