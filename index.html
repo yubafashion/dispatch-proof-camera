@@ -11,7 +11,7 @@
 <body>
 <div class="wrap">
   <h2>🎥 DISPATCH PROOF CAMERA</h2>
-  <div class="sub">External camera bridge • webcam access • recording • V28 CLEAN BRIDGE</div>
+  <div class="sub">External camera bridge • webcam access • recording • V30 DIRECT GESTURE BRIDGE</div>
   <div class="meta" id="modeBadge">READY MODE • ONE CAMERA WINDOW</div>
   <div class="bar">
     <select id="cameraSelect"></select>
@@ -33,7 +33,7 @@
 'use strict';
 
 const qs=new URLSearchParams(location.search);
-const BRIDGE_VERSION='V29_DIRECT_LINK_20260826';
+const BRIDGE_VERSION='V30_DIRECT_GESTURE_20260826';
 const openerRef=window.opener||null;
 const bridgeId=qs.get('session')||('bridge_'+Date.now()+'_'+Math.random().toString(36).slice(2));
 const mode=(qs.get('mode')||'READY').toUpperCase();
