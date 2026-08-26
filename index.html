@@ -33,7 +33,7 @@
 'use strict';
 
 const qs=new URLSearchParams(location.search);
-const BRIDGE_VERSION='V28_CLEAN_BRIDGE_20260826';
+const BRIDGE_VERSION='V29_DIRECT_LINK_20260826';
 const openerRef=window.opener||null;
 const bridgeId=qs.get('session')||('bridge_'+Date.now()+'_'+Math.random().toString(36).slice(2));
 const mode=(qs.get('mode')||'READY').toUpperCase();
