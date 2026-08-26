@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>DISPATCH PROOF CAMERA BRIDGE V32</title>
+<title>DISPATCH PROOF CAMERA BRIDGE V34</title>
 <style>
 *{box-sizing:border-box}body{margin:0;background:#202124;color:#fff;font-family:Arial,sans-serif}.wrap{padding:14px;max-width:760px;margin:auto}h2{margin:0 0 4px;font-size:20px}.sub{font-size:12px;color:#c9cacc;margin-bottom:10px}.bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}button{border:0;border-radius:7px;padding:10px 14px;font-weight:700;cursor:pointer}button:disabled{opacity:.5;cursor:not-allowed}.blue{background:#1a73e8;color:#fff}.red{background:#d93025;color:#fff}.gray{background:#e8eaed;color:#202124}select{height:38px;border-radius:7px;border:0;padding:0 8px;min-width:220px}video{display:block;width:100%;max-height:440px;background:#000;border-radius:10px;margin-top:12px}.status{margin-top:10px;background:#303134;border-radius:8px;padding:9px;font-size:13px}.meta{font-size:12px;color:#c9cacc;margin-top:8px}.recstate{margin-top:10px;background:#3a1f22;color:#ff6b6b;border-radius:8px;padding:9px;font-size:14px;font-weight:700;display:none}.rectimer{float:right;color:#fff}.diag{margin-top:8px;padding:8px;background:#171717;border-radius:7px;font-size:11px;line-height:1.45;color:#c9cacc}.ok{color:#81c995}.bad{color:#f28b82}
 </style>
@@ -11,7 +11,7 @@
 <body>
 <div class="wrap">
   <h2>🎥 DISPATCH PROOF CAMERA</h2>
-  <div class="sub">External camera bridge • webcam access • recording • V33 DIRECT COMMAND</div>
+  <div class="sub">External camera bridge • webcam access • recording • V34 ANCHOR BRIDGE</div>
   <div class="meta" id="modeBadge">READY MODE • ONE CAMERA WINDOW</div>
   <div class="bar">
     <select id="cameraSelect"></select>
@@ -33,7 +33,7 @@
 'use strict';
 
 const qs=new URLSearchParams(location.search);
-const BRIDGE_VERSION='V33_DIRECT_COMMAND_20260826';
+const BRIDGE_VERSION='V34_ANCHOR_BRIDGE_20260826';
 const openerRef=window.opener||null;
 const bridgeId=qs.get('session')||('bridge_'+Date.now()+'_'+Math.random().toString(36).slice(2));
 const mode=(qs.get('mode')||'READY').toUpperCase();
@@ -117,7 +117,7 @@ async function openCamera(){
     preview.srcObject=stream;
     await preview.play().catch(()=>{});
     setCameraState(true,'READY');
-    status.textContent='Camera ready ✓ • READY FOR AWB';
+    status.textContent='Camera ready ✓ • WAITING FOR AWB RECORD COMMAND';
     sendParent('CAMERA_READY',{recording:false});
     return true;
   }catch(e){status.textContent='Camera error: '+errText(e);setCameraState(false,'ERROR');sendParent('CAMERA_ERROR',{message:errText(e)});return false;}
@@ -231,7 +231,7 @@ window.addEventListener('message',function(event){
       videoAcked=true;
       if(videoRetryTimer){clearInterval(videoRetryTimer);videoRetryTimer=null;}
       currentVideoId='';currentSession=null;
-      status.textContent='Camera ready ✓ • READY FOR AWB';
+      status.textContent='Camera ready ✓ • WAITING FOR AWB RECORD COMMAND';
       return;
     }
   }
