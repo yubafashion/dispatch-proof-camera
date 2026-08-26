@@ -11,7 +11,7 @@
 <body>
 <div class="wrap">
   <h2>🎥 DISPATCH PROOF CAMERA</h2>
-  <div class="sub">External camera bridge • webcam access • recording • V32 STABLE BRIDGE</div>
+  <div class="sub">External camera bridge • webcam access • recording • V33 DIRECT COMMAND</div>
   <div class="meta" id="modeBadge">READY MODE • ONE CAMERA WINDOW</div>
   <div class="bar">
     <select id="cameraSelect"></select>
@@ -33,7 +33,7 @@
 'use strict';
 
 const qs=new URLSearchParams(location.search);
-const BRIDGE_VERSION='V32_STABLE_BRIDGE_20260826';
+const BRIDGE_VERSION='V33_DIRECT_COMMAND_20260826';
 const openerRef=window.opener||null;
 const bridgeId=qs.get('session')||('bridge_'+Date.now()+'_'+Math.random().toString(36).slice(2));
 const mode=(qs.get('mode')||'READY').toUpperCase();
@@ -53,11 +53,9 @@ let stream=null;
 let recorder=null;
 let chunks=[];
 let selectedCameraId=localStorage.getItem('DP21_CAMERA_ID')||'';
-let parentConnected=false;
+let parentConnected=!!openerRef;
 let trustedParentOrigin='';
 let readySent=false;
-let heartbeatTimer=null;
-let lastParentPong=Date.now();
 let recordingStartedAt=0;
 let uiTimer=null;
 let starting=false;
@@ -69,56 +67,21 @@ let videoAcked=false;
 let videoRetryTimer=null;
 let orphanTimer=null;
 
-function setParentState(ok,text){parentConnected=!!ok;parentState.textContent=text|| (ok?'CONNECTED':'WAITING');parentState.className=ok?'ok':'bad';}
+function setParentState(ok,text){parentConnected=!!ok;parentState.textContent=text|| (ok?'LINKED':'NO OPENER');parentState.className=ok?'ok':'bad';}
 function setCameraState(ok,text){cameraState.textContent=text||'';cameraState.className=ok?'ok':'bad';}
 function setRecordState(ok,text){recordState.textContent=text|| (ok?'YES':'NO');recordState.className=ok?'ok':'bad';}
 function cleanTracks(){if(stream){stream.getTracks().forEach(t=>{try{t.stop()}catch(e){}});stream=null;}preview.srcObject=null;setCameraState(false,'OFF');}
 function closeSelf(){
   if(uiTimer){clearInterval(uiTimer);uiTimer=null;}
-  if(heartbeatTimer){clearInterval(heartbeatTimer);heartbeatTimer=null;}
-  if(orphanTimer){clearInterval(orphanTimer);orphanTimer=null;}
   if(videoRetryTimer){clearInterval(videoRetryTimer);videoRetryTimer=null;}
   cleanTracks();
   try{window.close()}catch(e){}
 }
-
 function sendParent(type,extra){
   if(!openerRef || openerRef.closed) return false;
   const msg=Object.assign({source:'DISPATCH_PROOF_CAMERA_BRIDGE',type:type,bridgeId:bridgeId,version:BRIDGE_VERSION},extra||{});
-  try{openerRef.postMessage(msg,trustedParentOrigin||'*');return true;}catch(e){return false;}
+  try{openerRef.postMessage(msg,'*');return true;}catch(e){return false;}
 }
-
-function sendReady(){
-  if(!openerRef || openerRef.closed){setParentState(false,'NO OPENER');return false;}
-  return sendParent('BRIDGE_READY',{mode:mode});
-}
-
-function startParentHeartbeat(){
-  if(heartbeatTimer)clearInterval(heartbeatTimer);
-  heartbeatTimer=setInterval(function(){
-    if(!openerRef || openerRef.closed){
-      setParentState(false,'NO PARENT');
-      /* Do not auto-close a never-connected camera window. This is deliberate:
-       * a camera opened for TEST must remain usable even if the parent handshake
-       * is delayed or an older parent version is still deployed. */
-      if(parentConnected){
-        if(recorder&&recorder.state==='recording'){try{recorder.stop()}catch(e){}}
-        setTimeout(closeSelf,500);
-      }
-      return;
-    }
-    if(parentConnected){
-      sendParent('BRIDGE_HEARTBEAT',{recording:!!(recorder&&recorder.state==='recording')});
-      if(Date.now()-lastParentPong>10000){
-        setParentState(false,'PARENT LOST');
-        if(!recorder||recorder.state!=='recording')setTimeout(closeSelf,500);
-      }
-    }else{
-      sendReady();
-    }
-  },1000);
-}
-
 function errText(e){
   const n=e&&e.name?e.name:'';const m=e&&e.message?e.message:String(e||'Unknown error');
   if(n==='NotAllowedError'||n==='PermissionDeniedError')return 'Camera permission denied. Allow camera access for this camera window.';
@@ -154,7 +117,7 @@ async function openCamera(){
     preview.srcObject=stream;
     await preview.play().catch(()=>{});
     setCameraState(true,'READY');
-    status.textContent='Camera ready ✓ • READY FOR AWB RECORD COMMAND';
+    status.textContent='Camera ready ✓ • READY FOR AWB';
     sendParent('CAMERA_READY',{recording:false});
     return true;
   }catch(e){status.textContent='Camera error: '+errText(e);setCameraState(false,'ERROR');sendParent('CAMERA_ERROR',{message:errText(e)});return false;}
@@ -241,33 +204,22 @@ window.addEventListener('message',function(event){
   const d=event.data||{};
   if(!d||d.source!=='DISPATCH_PROOF_PARENT')return;
   if(!openerRef||event.source!==openerRef)return;
-  if(d.bridgeId&&String(d.bridgeId)!==String(bridgeId))return;
-  if(!trustedParentOrigin)trustedParentOrigin=event.origin||'';
-  if(trustedParentOrigin && event.origin!==trustedParentOrigin)return;
-  lastParentPong=Date.now();setParentState(true,'CONNECTED');
-
-  if(d.type==='BRIDGE_ACK'){
-    sendParent('BRIDGE_CONNECTED',{mode:mode});
-    sendParent('CAMERA_READY',{recording:!!(recorder&&recorder.state==='recording')});
-    return;
-  }
-  if(d.type==='PING_BRIDGE'||d.type==='BRIDGE_HEARTBEAT'){
-    sendParent('BRIDGE_PONG',{recording:!!(recorder&&recorder.state==='recording')});
-    return;
-  }
+  if(d.bridgeId && String(d.bridgeId)!==String(bridgeId))return;
+  parentConnected=true;
+  setParentState(true,'CONNECTED');
   if(d.type==='START_RECORDING'){
-    const commandId=String(d.commandId||'');
+    const commandId=String(d.commandId||('start_'+Date.now()));
     const s=d.session||{};
     sendParent('COMMAND_RECEIVED',{command:'START_RECORDING',commandId:commandId});
-    status.textContent='START RECORD COMMAND RECEIVED • STARTING...';
+    status.textContent='● RECORD COMMAND RECEIVED • STARTING...';
     if(recorder&&recorder.state==='recording'){
       sendParent('RECORDING_STARTED',{awb:currentSession&&currentSession.awb||'',orderId:currentSession&&currentSession.orderId||'',videoType:currentSession&&currentSession.videoType||'DISPATCH',startedAt:recordingStartedAt,commandId:commandId});
       return;
     }
-    if(commandId&&commandId===lastStartCommandId&&pendingStart){return;}
-    lastStartCommandId=commandId||('start_'+Date.now());
+    if(commandId===lastStartCommandId && starting)return;
+    lastStartCommandId=commandId;
     pendingStart=s;
-    startRecording(s,lastStartCommandId);
+    startRecording(s,commandId);
     return;
   }
   if(d.type==='STOP_RECORDING'){
@@ -279,30 +231,20 @@ window.addEventListener('message',function(event){
       videoAcked=true;
       if(videoRetryTimer){clearInterval(videoRetryTimer);videoRetryTimer=null;}
       currentVideoId='';currentSession=null;
-      status.textContent='Camera ready ✓ • READY FOR AWB RECORD COMMAND';
+      status.textContent='Camera ready ✓ • READY FOR AWB';
       return;
     }
   }
 });
 
-function cleanup(){
+window.addEventListener('pagehide',function(){
   if(uiTimer){clearInterval(uiTimer);uiTimer=null;}
-  if(heartbeatTimer){clearInterval(heartbeatTimer);heartbeatTimer=null;}
-  if(orphanTimer){clearInterval(orphanTimer);orphanTimer=null;}
   if(videoRetryTimer){clearInterval(videoRetryTimer);videoRetryTimer=null;}
   cleanTracks();
-}
-window.addEventListener('pagehide',cleanup);
+});
 
 (async function init(){
-  setParentState(!!openerRef,openerRef?'HANDSHAKE':'NO OPENER');
-  startParentHeartbeat();
-  let n=0;
-  const hello=setInterval(function(){
-    if(parentConnected||n>=20){clearInterval(hello);return;}
-    sendReady();n++;
-  },300);
-  sendReady();
+  setParentState(!!openerRef,openerRef?'LINKED':'NO OPENER');
   await enumerateCameras();
   await openCamera();
   meta.textContent='Bridge ID: '+bridgeId+' • '+BRIDGE_VERSION;
