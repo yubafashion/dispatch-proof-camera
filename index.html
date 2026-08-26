@@ -43,9 +43,10 @@ video{display:block;width:100%;max-height:440px;background:#000;border-radius:10
 <script>
 
 const openerRef=window.opener||null;
-const BRIDGE_VERSION='V26_1_NAVIGATION_HARDENED_20260826';
+const BRIDGE_VERSION='V27_DIRECT_BRIDGE_COMMAND_20260826';
 const qs=new URLSearchParams(location.search);
 const mode=(qs.get('mode')||'TEST').toUpperCase();
+const parentOrigin=(qs.get('parentOrigin')||'').trim();
 let awb=qs.get('awb')||'';
 let orderId=qs.get('orderId')||'';
 let statusValue=qs.get('status')||'';
@@ -74,14 +75,16 @@ let autostart=(qs.get('autostart')||'')==='1';
 let sessionId=qs.get('session')||'';
 let startConfirmTimer=null;
 let dataSeen=false;
+let recordingStartedSent=false;
 
 function parentMessage(type,extra){
   const msg=Object.assign({source:'DISPATCH_PROOF_CAMERA_BRIDGE',type:type},extra||{});
+  const targetOrigin=parentOrigin||'*';
   try{
-    if(openerRef && !openerRef.closed){ openerRef.postMessage(msg,'*'); return true; }
+    if(openerRef && !openerRef.closed){ openerRef.postMessage(msg,targetOrigin); return true; }
   }catch(e){}
   try{
-    if(window.opener && !window.opener.closed){ window.opener.postMessage(msg,'*'); return true; }
+    if(window.opener && !window.opener.closed){ window.opener.postMessage(msg,targetOrigin); return true; }
   }catch(e){}
   return false;
 }
@@ -222,6 +225,7 @@ async function startRecording(sessionOverride){
 
     chunks=[];
     dataSeen=false;
+    recordingStartedSent=false;
 
     const opts=[
       'video/webm;codecs=vp9,opus',
@@ -288,9 +292,12 @@ async function startRecording(sessionOverride){
         const sec=Math.floor((Date.now()-startedAt)/1000);
         recTimer.textContent=String(Math.floor(sec/60)).padStart(2,'0')+':'+String(sec%60).padStart(2,'0');
       },250);
-      parentMessageRetry('RECORDING_STARTED',{
-        awb:awb,orderId:orderId,videoType:videoType,startedAt:startedAt
-      },0);
+      if(!recordingStartedSent){
+        recordingStartedSent=true;
+        parentMessageRetry('RECORDING_STARTED',{
+          awb:awb,orderId:orderId,videoType:videoType,startedAt:startedAt
+        },0);
+      }
       return true;
     }
 
@@ -362,24 +369,8 @@ document.getElementById('close').onclick=function(){
 
 window.addEventListener('message',function(event){
   const d=event.data||{};
+  if(parentOrigin && event.origin!==parentOrigin)return;
   if(!d||d.source!=='DISPATCH_PROOF_PARENT')return;
-
-  if(d.type==='NAVIGATE_TO_RECORD'){
-    /*
-     * Parent-side navigation is preferred. This fallback lets the already
-     * loaded bridge navigate itself, which is same-origin from this page and
-     * therefore not subject to the parent's cross-origin Location restriction.
-     */
-    const target=String(d.url||'');
-    if(target){
-      try{
-        location.href=target;
-      }catch(e){
-        parentMessage('CAMERA_ERROR',{message:'Record navigation failed: '+errText(e)});
-      }
-    }
-    return;
-  }
 
   if(d.type==='START_RECORDING' || d.type==='START_RECORDING_NOW'){
     parentStartReceived=true;
@@ -407,11 +398,14 @@ window.addEventListener('message',function(event){
   }
 });
 
-window.addEventListener('beforeunload',function(){
+let bridgeClosedSent=false;
+function cleanupBridgePage(){
   if(uiTimer){clearInterval(uiTimer);uiTimer=null;}
   if(stream)stream.getTracks().forEach(t=>t.stop());
-  parentMessage('BRIDGE_CLOSED');
-});
+  if(!bridgeClosedSent){bridgeClosedSent=true;parentMessage('BRIDGE_CLOSED');}
+}
+window.addEventListener('beforeunload',cleanupBridgePage);
+window.addEventListener('pagehide',cleanupBridgePage);
 
 (async function(){
   document.getElementById('modeBadge').textContent=mode==='RECORD' ? 'RECORD MODE • AUTO START' : 'READY MODE • CAMERA ONLY UNTIL AWB COMMAND';
