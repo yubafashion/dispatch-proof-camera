@@ -12,7 +12,7 @@
 <div class="wrap">
   <h2>🎥 DISPATCH PROOF CAMERA</h2>
   <div class="sub">External camera bridge • webcam access • recording • V34 NAVIGATION COMMAND</div>
-  <div class="meta" id="modeBadge">READY MODE • ONE CAMERA WINDOW</div>
+  <div class="meta" id="modeBadge">READY MODE • CAMERA WINDOW OPEN</div>
   <div class="bar">
     <select id="cameraSelect"></select>
     <button class="gray" id="refresh">REFRESH CAMERA</button>
@@ -270,7 +270,7 @@ window.addEventListener('pagehide',function(){
       }
     },150);
   }else{
-    modeBadge.textContent='READY MODE • ONE CAMERA WINDOW';
+    modeBadge.textContent='READY MODE • CAMERA WINDOW OPEN';
     meta.textContent='Bridge ID: '+bridgeId+' • '+BRIDGE_VERSION;
   }
 })();
