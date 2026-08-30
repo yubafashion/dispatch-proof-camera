@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>DISPATCH PROOF CAMERA BRIDGE V44</title>
+<title>DISPATCH PROOF CAMERA BRIDGE V46</title>
 <style>
 *{box-sizing:border-box}body{margin:0;background:#202124;color:#fff;font-family:Arial,sans-serif}.wrap{padding:14px;max-width:760px;margin:auto}h2{margin:0 0 4px;font-size:20px}.sub{font-size:12px;color:#c9cacc;margin-bottom:10px}.bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}button{border:0;border-radius:7px;padding:10px 14px;font-weight:700;cursor:pointer}button:disabled{opacity:.5;cursor:not-allowed}.blue{background:#1a73e8;color:#fff}.red{background:#d93025;color:#fff}.gray{background:#e8eaed;color:#202124}select{height:38px;border-radius:7px;border:0;padding:0 8px;min-width:220px}video{display:block;width:100%;max-height:440px;background:#000;border-radius:10px;margin-top:12px}.status{margin-top:10px;background:#303134;border-radius:8px;padding:9px;font-size:13px}.meta{font-size:12px;color:#c9cacc;margin-top:8px}.recstate{margin-top:10px;background:#3a1f22;color:#ff6b6b;border-radius:8px;padding:9px;font-size:14px;font-weight:700;display:none}.rectimer{float:right;color:#fff}.diag{margin-top:8px;padding:8px;background:#171717;border-radius:7px;font-size:11px;line-height:1.45;color:#c9cacc}.ok{color:#81c995}.bad{color:#f28b82}
 </style>
@@ -34,7 +34,7 @@
 
 const qs=new URLSearchParams(location.search);
 window.name='DISPATCH_PROOF_CAMERA';
-const BRIDGE_VERSION='V45_SINGLE_EXTERNAL_CAMERA_OPENER_20260830';
+const BRIDGE_VERSION='V46_SINGLE_CAMERA_LINK_BRIDGE_20260830';
 const parentRef=window.opener||null; const embeddedMode=false;
 const bridgeId=qs.get('session')||('bridge_'+Date.now()+'_'+Math.random().toString(36).slice(2));
 const mode='READY';
@@ -93,7 +93,11 @@ function closeSelf(){
 function sendParent(type,extra){
   if(!parentRef || parentRef.closed) return false;
   const msg=Object.assign({source:'DISPATCH_PROOF_CAMERA_BRIDGE',type:type,bridgeId:bridgeId,version:BRIDGE_VERSION},extra||{});
-  try{parentRef.postMessage(msg,'*');return true;}catch(e){return false;}
+  try{parentRef.postMessage(msg, trustedParentOrigin || '*');return true;}catch(e){return false;}
+}
+function announceBoot(){
+  const ok=sendParent('BRIDGE_BOOT',{openerPresent:!!parentRef,secureContext:!!window.isSecureContext});
+  if(!ok) status.textContent='OPENER NOT CONNECTED — close this page and open it only with TEST CAMERA.';
 }
 function errText(e){
   const n=e&&e.name?e.name:'';const m=e&&e.message?e.message:String(e||'Unknown error');
@@ -240,6 +244,7 @@ stopBtn.onclick=function(){stopRecording();};
 document.getElementById('close').onclick=function(){if(recorder&&recorder.state==='recording'){status.textContent='Stop the recording before closing.';return;}sendParent('BRIDGE_CLOSED');closeSelf();};
 
 window.addEventListener('message',function(event){
+  if(event.data&&event.data.source==='DISPATCH_PROOF_PARENT'){trustedParentOrigin=event.origin||trustedParentOrigin;} 
   const d=event.data||{};
   if(!d||d.source!=='DISPATCH_PROOF_PARENT')return;
   if(!parentRef||event.source!==parentRef)return;
@@ -251,6 +256,11 @@ window.addEventListener('message',function(event){
     return;
   }
   if(d.type==='REFRESH_CAMERA'){if(!(recorder&&recorder.state==='recording')){cleanTracks();enumerateCameras().then(openCamera);}return;}
+  if(d.type==='PARENT_CONNECTED'){
+    trustedParentOrigin=event.origin||trustedParentOrigin;
+    sendParent('PARENT_ACK',{bridgeId:bridgeId});
+    return;
+  }
   if(d.type==='START_RECORDING'){
     const commandId=String(d.commandId||('start_'+Date.now()));
     const s=d.session||{};
@@ -290,6 +300,7 @@ window.addEventListener('pagehide',function(){
 
 (async function init(){
   setParentState(!!parentRef,parentRef?(embeddedMode?'EMBEDDED • LINKED':'LINKED'):'NO PARENT');
+  setTimeout(announceBoot,50);
   meta.textContent='Bridge ID: '+bridgeId+' • '+BRIDGE_VERSION;
 
   const cams=await enumerateCameras();
