@@ -15,14 +15,14 @@ input{flex:1;height:42px;border:1px solid #b7c0cc;border-radius:7px;padding:0 12
 <div class="scan"><input id="awb" placeholder="SCAN AWB BARCODE..." autocomplete="off"><button class="primary" id="scanBtn">SCAN</button><button class="gray" id="clearBtn">REFRESH</button></div>
 <div id="notice" class="notice">Click TEST CAMERA once, allow camera, and wait for CAMERA READY.</div>
 <div class="main">
-<div class="cameraBox"><div id="prompt" class="cameraPrompt">CLICK TEST CAMERA ONCE<br>THEN ALLOW CAMERA</div><video id="preview" autoplay muted playsinline></video><div id="recBar" class="recBar"><span class="live">● RECORDING</span><span id="timer">00:00</span></div></div>
+<div class="cameraBox"><div id="prompt" class="cameraPrompt">CLICK TEST CAMERA ONCE<br>THEN ALLOW CAMERA</div><video id="preview" autoplay muted playsinline></video><div id="recBar" class="recBar"><span class="live">● RECORDING</span><span id="timer">00:00</span></div></div><div class="controls"><button class="red" id="stopSaveBtn" disabled>STOP &amp; SAVE</button><span id="saveState" class="muted">Emergency/manual save is available while recording.</span></div>
 <div id="info" class="card"><span class="muted">Scan one AWB. Nothing else is loaded.</span></div>
 <div id="result"></div>
 </div>
 <script>
 const BRIDGE_ORIGIN='https://script.google.com';
 const EXPECTED_VERSION=new URLSearchParams(location.search).get('bridgeVersion')||'';
-let bridge=null, mode='DISPATCH', stream=null, recorder=null, chunks=[], current=null, pendingScan=null, req=0, waiting=new Map(), timer=null, startedAt=0;
+let bridge=null, mode='DISPATCH', stream=null, recorder=null, chunks=[], current=null, pendingScan=null, req=0, waiting=new Map(), timer=null, startedAt=0, saving=false;
 const $=id=>document.getElementById(id);
 function msg(text,kind=''){const n=$('notice');n.textContent=text;n.className='notice '+kind}
 function request(type,data={}){return new Promise((resolve,reject)=>{const id='r'+(++req)+'_'+Date.now();waiting.set(id,{resolve,reject});bridge.postMessage(Object.assign({source:'DISPATCH_PROOF_EXTERNAL_MANAGEMENT',type,requestId:id},data),'*');setTimeout(()=>{if(waiting.has(id)){waiting.delete(id);reject(new Error('No response from Sheet bridge.'))}},30000)})}
@@ -52,17 +52,38 @@ async function startCamera(){
 async function stopStream(){if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;$('preview').srcObject=null;$('prompt').style.display='block';setCamState('Camera stopped')}}
 function startTimer(){startedAt=Date.now();$('timer').textContent='00:00';clearInterval(timer);timer=setInterval(()=>{const s=Math.floor((Date.now()-startedAt)/1000);$('timer').textContent=String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0')},250)}
 function stopTimer(){clearInterval(timer);timer=null;$('timer').textContent='00:00'}
+function setSaveUi(active,text){$('stopSaveBtn').disabled=!active;$('saveState').textContent=text||'Emergency/manual save is available while recording.'}
 async function beginRecording(r){
+  if(saving){msg('VIDEO SAVE is still in progress. Please wait.','err');return}
   if(!stream){if(!(await startCamera()))return}
   current=r;chunks=[];
   let options={}; if(MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus'))options.mimeType='video/webm;codecs=vp9,opus'; else if(MediaRecorder.isTypeSupported('video/webm;codecs=vp8,opus'))options.mimeType='video/webm;codecs=vp8,opus';
   try{recorder=new MediaRecorder(stream,options)}catch(e){msg('Recorder error: '+e.message,'err');return}
   recorder.ondataavailable=e=>{if(e.data&&e.data.size)chunks.push(e.data)};
-  recorder.onstop=async()=>{stopTimer();$('recBar').style.display='none';const blob=new Blob(chunks,{type:recorder.mimeType||'video/webm'});const save=current;recorder=null;chunks=[];if(!save)return;msg('VIDEO SAVING — please wait...');try{const r=await request('SAVE_VIDEO',{awb:save.awb,orderId:save.orderId,status:save.status,videoType:save.videoType,fileName:save.awb+'_'+save.videoType+'_'+Date.now()+'.webm',blob});renderSaved(r);msg('✓ VIDEO SAVED • '+save.awb,'ok');if(pendingScan){const n=pendingScan;pendingScan=null;await handleScan(n.awb,n.mode,true)}}catch(e){msg('VIDEO SAVE ERROR: '+e.message,'err')}};
-  recorder.start(250);$('recBar').style.display='flex';startTimer();msg('● RECORDING STARTED — scan next AWB to auto-save.','ok');
+  recorder.onstop=async()=>{
+    stopTimer();$('recBar').style.display='none';setSaveUi(false,'Saving video...');
+    const blob=new Blob(chunks,{type:recorder.mimeType||'video/webm'});const save=current;recorder=null;chunks=[];
+    if(!save){setSaveUi(false);return}
+    saving=true;msg('VIDEO SAVING — please wait...');
+    try{
+      const r=await request('SAVE_VIDEO',{awb:save.awb,orderId:save.orderId,status:save.status,videoType:save.videoType,fileName:save.awb+'_'+save.videoType+'_'+Date.now()+'.webm',blob});
+      renderSaved(r);msg('✓ VIDEO SAVED • '+save.awb,'ok');
+      if(pendingScan){const n=pendingScan;pendingScan=null;await handleScan(n.awb,n.mode,true)}
+    }catch(e){msg('VIDEO SAVE ERROR: '+e.message,'err')}
+    finally{saving=false;setSaveUi(false,'Emergency/manual save is available while recording.');}
+  };
+  recorder.start(250);$('recBar').style.display='flex';setSaveUi(true,'Recording active — STOP & SAVE is available.');startTimer();msg('● RECORDING STARTED — scan next AWB to auto-save, or use STOP & SAVE for emergency/manual save.','ok');
 }
-function stopRecording(){if(recorder&&recorder.state==='recording')recorder.stop()}
-async function scan(){const v=$('awb').value.trim();if(!v){msg('Please scan AWB.');return}const m=mode;if(recorder&&recorder.state==='recording'){pendingScan={awb:v,mode:m};msg('Saving previous AWB before starting the new AWB...');stopRecording();return}await handleScan(v,m,false)}
+function stopRecording(){if(recorder&&recorder.state==='recording'){setSaveUi(false,'Saving video...');recorder.stop()}}
+function emergencySave(){
+  if(!recorder||recorder.state!=='recording'){msg('No active recording to save.');return}
+  if(saving)return;
+  pendingScan=null;
+  msg('EMERGENCY SAVE — stopping current recording and saving it now...','ok');
+  stopRecording();
+}
+async function scan(){const v=$('awb').value.trim();if(!v){msg('Please scan AWB.');return}const m=mode;if(recorder&&recorder.state==='recording'){pendingScan={awb:v,mode:m};msg('Saving previous AWB before starting the new AWB...');stopRecording();return}
+  if(saving){msg('Previous video is still saving. Please wait until VIDEO SAVED.','err');return}await handleScan(v,m,false)}
 async function handleScan(v,m,afterSave){
   $('awb').value='';
   try{const r=await request('SCAN_AWB',{awb:v,mode:m}); if(!r||!r.found){msg(r&&r.message?r.message:'AWB not found.','err');return}
@@ -81,7 +102,7 @@ function renderSaved(r){$('result').innerHTML='<div class="card"><b class="ready
 function renderResult(r){$('result').innerHTML='<div class="card"><b>'+esc(r.message||'No video proof required.')+'</b></div>'}
 function esc(v){return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;')}
 function js(v){return JSON.stringify(String(v==null?'':v))}
-$('testCam').onclick=startCamera;$('refreshCam').onclick=async()=>{if(recorder){msg('Recording is active. Stop & Save first.');return}await stopStream();await refreshCameras()};$('scanBtn').onclick=scan;$('clearBtn').onclick=()=>{$('awb').value='';$('result').innerHTML='';msg('Ready for next AWB.');$('awb').focus()};$('awb').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();scan()}});
+$('testCam').onclick=startCamera;$('refreshCam').onclick=async()=>{if(recorder){msg('Recording is active. Use STOP & SAVE first.');return}await stopStream();await refreshCameras()};$('stopSaveBtn').onclick=emergencySave;$('scanBtn').onclick=scan;$('clearBtn').onclick=()=>{$('awb').value='';$('result').innerHTML='';msg('Ready for next AWB.');$('awb').focus()};$('awb').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();scan()}});
 $('td').onclick=()=>{if(recorder){msg('Recording active.');return}mode='DISPATCH';$('td').classList.add('active');$('tp').classList.remove('active');msg('DISPATCH mode — scan AWB to start recording.')};$('tp').onclick=()=>{if(recorder){msg('Recording active.');return}mode='PROOF';$('tp').classList.add('active');$('td').classList.remove('active');msg('VIDEO PROOF mode — scan AWB to load proof.')};
 connectBridge();refreshCameras();$('awb').focus();
 </script></body></html>
