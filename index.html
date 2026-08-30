@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>DISPATCH PROOF CAMERA BRIDGE V38</title>
+<title>DISPATCH PROOF CAMERA BRIDGE V39</title>
 <style>
 *{box-sizing:border-box}body{margin:0;background:#202124;color:#fff;font-family:Arial,sans-serif}.wrap{padding:14px;max-width:760px;margin:auto}h2{margin:0 0 4px;font-size:20px}.sub{font-size:12px;color:#c9cacc;margin-bottom:10px}.bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}button{border:0;border-radius:7px;padding:10px 14px;font-weight:700;cursor:pointer}button:disabled{opacity:.5;cursor:not-allowed}.blue{background:#1a73e8;color:#fff}.red{background:#d93025;color:#fff}.gray{background:#e8eaed;color:#202124}select{height:38px;border-radius:7px;border:0;padding:0 8px;min-width:220px}video{display:block;width:100%;max-height:440px;background:#000;border-radius:10px;margin-top:12px}.status{margin-top:10px;background:#303134;border-radius:8px;padding:9px;font-size:13px}.meta{font-size:12px;color:#c9cacc;margin-top:8px}.recstate{margin-top:10px;background:#3a1f22;color:#ff6b6b;border-radius:8px;padding:9px;font-size:14px;font-weight:700;display:none}.rectimer{float:right;color:#fff}.diag{margin-top:8px;padding:8px;background:#171717;border-radius:7px;font-size:11px;line-height:1.45;color:#c9cacc}.ok{color:#81c995}.bad{color:#f28b82}
 </style>
@@ -11,7 +11,7 @@
 <body>
 <div class="wrap">
   <h2>🎥 DISPATCH PROOF CAMERA</h2>
-  <div class="sub">Embedded camera bridge • webcam access • recording • V38 SAME WINDOW</div>
+  <div class="sub">External camera bridge • webcam access • recording • V39 SINGLE CAMERA WINDOW</div>
   <div class="meta" id="modeBadge">READY MODE • CAMERA WINDOW OPEN</div>
   <div class="bar">
     <select id="cameraSelect"></select>
@@ -34,11 +34,10 @@
 
 const qs=new URLSearchParams(location.search);
 window.name='DISPATCH_PROOF_CAMERA';
-const BRIDGE_VERSION='V38_SAME_WINDOW_EMBEDDED_20260830';
-const embedded=window.parent!==window;
-const parentRef=embedded?window.parent:(window.opener||null);
+const BRIDGE_VERSION='V39_SINGLE_CAMERA_WINDOW_STATE_MACHINE_20260830';
+const openerRef=window.opener||null;
 const bridgeId=qs.get('session')||('bridge_'+Date.now()+'_'+Math.random().toString(36).slice(2));
-const mode=(qs.get('mode')||'READY').toUpperCase();
+const mode='READY';
 const urlSession={
   awb:qs.get('awb')||'',
   orderId:qs.get('orderId')||'',
@@ -62,7 +61,7 @@ let stream=null;
 let recorder=null;
 let chunks=[];
 let selectedCameraId=localStorage.getItem('DP21_CAMERA_ID')||'';
-let parentConnected=!!parentRef;
+let parentConnected=!!openerRef;
 let trustedParentOrigin='';
 let readySent=false;
 let recordingStartedAt=0;
@@ -76,7 +75,7 @@ let videoAcked=false;
 let videoRetryTimer=null;
 let orphanTimer=null;
 
-function setParentState(ok,text){parentConnected=!!ok;parentState.textContent=text|| (ok?'CONNECTED':'NO PARENT');parentState.className=ok?'ok':'bad';}
+function setParentState(ok,text){parentConnected=!!ok;parentState.textContent=text|| (ok?'LINKED':'NO OPENER');parentState.className=ok?'ok':'bad';}
 function setCameraState(ok,text){cameraState.textContent=text||'';cameraState.className=ok?'ok':'bad';}
 function setRecordState(ok,text){recordState.textContent=text|| (ok?'YES':'NO');recordState.className=ok?'ok':'bad';}
 function cleanTracks(){if(stream){stream.getTracks().forEach(t=>{try{t.stop()}catch(e){}});stream=null;}preview.srcObject=null;setCameraState(false,'OFF');}
@@ -84,12 +83,12 @@ function closeSelf(){
   if(uiTimer){clearInterval(uiTimer);uiTimer=null;}
   if(videoRetryTimer){clearInterval(videoRetryTimer);videoRetryTimer=null;}
   cleanTracks();
-  if(!embedded){try{window.close()}catch(e){}}
+  try{window.close()}catch(e){}
 }
 function sendParent(type,extra){
-  if(!parentRef || (!embedded && parentRef.closed)) return false;
+  if(!openerRef || openerRef.closed) return false;
   const msg=Object.assign({source:'DISPATCH_PROOF_CAMERA_BRIDGE',type:type,bridgeId:bridgeId,version:BRIDGE_VERSION},extra||{});
-  try{parentRef.postMessage(msg,'*');return true;}catch(e){return false;}
+  try{openerRef.postMessage(msg,'*');return true;}catch(e){return false;}
 }
 function errText(e){
   const n=e&&e.name?e.name:'';const m=e&&e.message?e.message:String(e||'Unknown error');
@@ -186,9 +185,9 @@ async function startRecording(s,commandId){
       if(videoRetryTimer)clearInterval(videoRetryTimer);
       function sendVideo(){
         if(videoAcked){clearInterval(videoRetryTimer);videoRetryTimer=null;return;}
-        if(!parentRef||(!embedded&&parentRef.closed)){clearInterval(videoRetryTimer);videoRetryTimer=null;return;}
-        try{parentRef.postMessage(payload,trustedParentOrigin||'*');}catch(e){}
-        attempts++;if(attempts>=12){clearInterval(videoRetryTimer);videoRetryTimer=null;status.textContent='Video delivery acknowledgement timed out.';}
+        if(!openerRef||openerRef.closed){clearInterval(videoRetryTimer);videoRetryTimer=null;return;}
+        try{openerRef.postMessage(payload,trustedParentOrigin||'*');}catch(e){}
+        attempts++;if(attempts>=60){clearInterval(videoRetryTimer);videoRetryTimer=null;status.textContent='Waiting for parent acknowledgement…';}
       }
       sendVideo();videoRetryTimer=setInterval(sendVideo,500);
       recorder=null;chunks=[];
@@ -212,17 +211,13 @@ document.getElementById('close').onclick=function(){if(recorder&&recorder.state=
 window.addEventListener('message',function(event){
   const d=event.data||{};
   if(!d||d.source!=='DISPATCH_PROOF_PARENT')return;
-  if(!parentRef||event.source!==parentRef)return;
+  if(!openerRef||event.source!==openerRef)return;
   if(d.bridgeId && String(d.bridgeId)!==String(bridgeId))return;
   parentConnected=true;
-  trustedParentOrigin=event.origin||'';
   setParentState(true,'CONNECTED');
-  if(d.type==='PING'){sendParent('CAMERA_READY',{recording:!!(recorder&&recorder.state==='recording')});return;}
-  if(d.type==='REFRESH_CAMERA'){enumerateCameras().then(openCamera);return;}
   if(d.type==='START_RECORDING'){
     const commandId=String(d.commandId||('start_'+Date.now()));
     const s=d.session||{};
-    if(videoRetryTimer){sendParent('COMMAND_RECEIVED',{command:'START_RECORDING_IGNORED_SAVING',commandId:commandId});return;}
     sendParent('COMMAND_RECEIVED',{command:'START_RECORDING',commandId:commandId});
     status.textContent='● RECORD COMMAND RECEIVED • STARTING...';
     if(recorder&&recorder.state==='recording'){
@@ -257,7 +252,7 @@ window.addEventListener('pagehide',function(){
 });
 
 (async function init(){
-  setParentState(!!parentRef,parentRef?'CONNECTED':'NO PARENT — open from Dispatch Proof');
+  setParentState(!!openerRef,openerRef?'LINKED':'NO OPENER — reopen from TEST CAMERA');
   meta.textContent='Bridge ID: '+bridgeId+' • '+BRIDGE_VERSION;
 
   const cams=await enumerateCameras();
@@ -266,7 +261,7 @@ window.addEventListener('pagehide',function(){
   const ok=await openCamera();
   if(!ok)return;
 
-  modeBadge.textContent=embedded?'EMBEDDED MODE • CAMERA IN SAME WINDOW':'READY MODE • CAMERA';
+  modeBadge.textContent='READY MODE • ONE CAMERA WINDOW';
   meta.textContent='Bridge ID: '+bridgeId+' • '+BRIDGE_VERSION;
   status.textContent='Camera ready ✓ • READY FOR AWB';
 })();
