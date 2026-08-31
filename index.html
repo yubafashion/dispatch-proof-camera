@@ -35,10 +35,13 @@ button{border:0;border-radius:8px;padding:10px 15px;font-weight:800;cursor:point
 </div>
 <script>
 const SOURCE='DISPATCH_PROOF_CAMERA_BRIDGE';
+const PARAMS=new URLSearchParams(location.search);
+const BRIDGE_VERSION=PARAMS.get('bridgeVersion')||'V38_SAME_PAGE_SAVE_FIX_20260831';
+const BRIDGE_ID=PARAMS.get('session')||('bridge_'+Date.now()+'_'+Math.random().toString(36).slice(2));
 let stream=null, recorder=null, chunks=[], startedAt=0, timerHandle=null, session=null;
 const $=id=>document.getElementById(id);
 function send(type,extra){
-  try{window.parent.postMessage(Object.assign({source:SOURCE,type:type},extra||{}),'*')}catch(e){}
+  try{window.parent.postMessage(Object.assign({source:SOURCE,type:type,version:BRIDGE_VERSION,bridgeId:BRIDGE_ID},extra||{}),'*')}catch(e){}
 }
 function setState(t){$('state').textContent=t}
 function friendlyError(e){
@@ -59,7 +62,7 @@ async function requestCamera(){
     $('allow').textContent='CAMERA READY ✓';
     setState('CAMERA READY ✓');
     send('CAMERA_READY');
-    if(window.parent!==window) window.parent.postMessage({source:SOURCE,type:'DEVICE_LIST_READY'},'*');
+    if(window.parent!==window) window.parent.postMessage({source:SOURCE,type:'DEVICE_LIST_READY',version:BRIDGE_VERSION,bridgeId:BRIDGE_ID},'*');
     return true;
   }catch(e){
     setState('CAMERA ERROR');
