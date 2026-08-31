@@ -53,7 +53,7 @@ button{height:36px;border:0;border-radius:7px;padding:0 10px;font-weight:800;cur
 <div class="app">
   <div class="top">
     <div class="title">DISPATCH PROOF MANAGEMENT</div>
-    <div class="ag">V69 SAVE + DUP</div>
+    <div class="ag">V70 CONFIRM</div>
   </div>
 
   <div class="tabs">
@@ -1043,23 +1043,24 @@ function submitUpload(payload) {
 }
 
 function pollSaved(awb, type, attempt) {
-  if (attempt >= 30) {
+  if (attempt >= 12) {
     uploadQueue = Math.max(0, uploadQueue - 1);
-    note('Upload submitted. Could not confirm the saved file yet. Check Video Proof.', 'error');
+    note('Save request chali. Google Sheet tab VIDEO_PROOF aur Drive folder check karein.', 'ok');
     return;
   }
 
-  setTimeout(() => {
-    apiGet('GET_RECORD', {awb:awb, videoType:type}, r => {
-      if (r && r.found) {
+  setTimeout(function() {
+    hasDispatchVideo(awb).then(function(ok) {
+      if (ok) {
         uploadQueue = Math.max(0, uploadQueue - 1);
-        lastSaved = r;
+        savedAwbs[normalizeAwb(awb)] = true;
+        lastSaved = { awb: awb, videoType: type, found: true };
         note('✓ VIDEO SAVED • ' + awb, 'ok');
         return;
       }
       pollSaved(awb, type, attempt + 1);
     });
-  }, attempt < 5 ? 1000 : 2000);
+  }, 2000);
 }
 
 async function startReturnRecording(awb, orderId, status) {
