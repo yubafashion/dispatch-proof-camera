@@ -53,7 +53,7 @@ button{height:36px;border:0;border-radius:7px;padding:0 10px;font-weight:800;cur
 <div class="app">
   <div class="top">
     <div class="title">DISPATCH PROOF MANAGEMENT</div>
-    <div class="ag">V63 QUICK SCAN</div>
+    <div class="ag">V64 LIVE SCAN</div>
   </div>
 
   <div class="tabs">
@@ -142,6 +142,7 @@ let recorderMime = '';
 let chunks = [];
 let currentSession = null;
 let nextOrder = null;
+let waitingOrder = null;
 let timerHandle = null;
 let recordStartedAt = 0;
 let cameraReady = false;
@@ -172,7 +173,7 @@ function requireApi() {
 function onBridgeMessage(ev) {
   const d = ev.data;
   if (!d || d.dp !== 1) return;
-  if (d.ready && d.worker) {
+  if (d.ready) {
     workerReady = true;
     return;
   }
@@ -203,7 +204,7 @@ function apiGet(action, data, callback) {
       return;
     }
     note(
-      'Drive save did not answer. Paste latest Code.gs, Deploy → New version, then DISPATCH CAMERA → Open camera. Title must show V62 FAST SAVE.',
+      'Drive save did not answer. Latest Code.gs Deploy New version karein. Title V64 LIVE SCAN hona chahiye.',
       'error'
     );
     if (callback) callback({ ok: false, found: false, message: 'timeout' });
@@ -466,6 +467,64 @@ async function lookupAwb(awb, nextMode) {
   return rowToScanResult(row, awb, nextMode);
 }
 
+function jsonpCall(action, data, timeoutMs) {
+  return new Promise(function(resolve, reject) {
+    if (!API_URL) {
+      reject(new Error('No API'));
+      return;
+    }
+    const cb = 'DP50j' + (++bridgeSeq) + '_' + Date.now();
+    const q = new URLSearchParams();
+    q.set('dpAction', action);
+    q.set('callback', cb);
+    q.set('transport', 'jsonp');
+    Object.keys(data || {}).forEach(function(k) {
+      q.set(k, data[k] == null ? '' : String(data[k]));
+    });
+    const s = document.createElement('script');
+    let done = false;
+    const timer = setTimeout(function() {
+      if (done) return;
+      done = true;
+      cleanup();
+      reject(new Error('AWB lookup timeout'));
+    }, timeoutMs || 12000);
+    function cleanup() {
+      clearTimeout(timer);
+      try { delete window[cb]; } catch (e) { window[cb] = function() {}; }
+      if (s.parentNode) s.remove();
+    }
+    window[cb] = function(res) {
+      if (done) return;
+      done = true;
+      cleanup();
+      resolve(res);
+    };
+    s.onerror = function() {
+      if (done) return;
+      done = true;
+      cleanup();
+      reject(new Error('AWB lookup network error'));
+    };
+    s.src = API_URL + '?' + q.toString();
+    document.head.appendChild(s);
+  });
+}
+
+function lookupFast(awb) {
+  if (API_URL) {
+    return jsonpCall('SCAN', {awb: awb, mode: mode}, 12000).catch(function() {
+      return new Promise(function(resolve, reject) {
+        apiGet('SCAN', {awb: awb, mode: mode}, function(r) {
+          if (r) resolve(r);
+          else reject(new Error('AWB lookup failed'));
+        });
+      });
+    });
+  }
+  return lookupAwb(awb, mode);
+}
+
 function scan() {
   const v = $('awb').value.trim();
   if (!v) {
@@ -473,20 +532,23 @@ function scan() {
     return;
   }
 
-  note('AWB check…', 'ok');
-
-  if (API_URL) {
-    workerCall('SCAN', {awb: v, mode: mode}, 20000)
-      .then(handleScan)
-      .catch(function(err) {
-        note(err && err.message ? err.message : 'AWB lookup failed.', 'error');
-      });
-    return;
+  if (mode === 'DISPATCH' && recorder && recorder.state === 'recording') {
+    note('Pehli video save ho rahi hai, naya AWB check…', 'ok');
+    stopRecording();
   }
 
-  lookupAwb(v, mode).then(handleScan).catch(function() {
-    note('Open camera from the sheet: DISPATCH CAMERA → Open camera.', 'error');
+  note('AWB check…', 'ok');
+  lookupFast(v).then(handleScan).catch(function(err) {
+    note(err && err.message ? err.message : 'AWB lookup failed.', 'error');
   });
+}
+
+function kickWaitingOrder() {
+  if (recorder && recorder.state === 'recording') return;
+  if (!waitingOrder) return;
+  const r = waitingOrder;
+  waitingOrder = null;
+  handleScan(r);
 }
 
 function handleScan(r) {
@@ -506,11 +568,10 @@ function handleScan(r) {
 
   if (mode === 'DISPATCH') {
     if (recorder && recorder.state === 'recording') {
-      nextOrder = r;
+      waitingOrder = r;
       stopRecording();
       return;
     }
-
     showDispatch(r);
     startRecording(r);
     return;
@@ -715,11 +776,7 @@ function finishRecording() {
 
   if (!s || !savedChunks.length) {
     note('VIDEO SAVE ERROR: recorded video is empty.', 'error');
-    if (nextOrder) {
-      const n = nextOrder;
-      nextOrder = null;
-      startRecording(n);
-    }
+    kickWaitingOrder();
     return;
   }
 
@@ -728,33 +785,23 @@ function finishRecording() {
 
   if (!blob.size) {
     note('VIDEO SAVE ERROR: recorded video is empty.', 'error');
-    if (nextOrder) {
-      const n = nextOrder;
-      nextOrder = null;
-      startRecording(n);
-    }
+    kickWaitingOrder();
     return;
   }
 
   // Keep enough headroom under Apps Script request limits.
   if (blob.size > 18 * 1024 * 1024) {
     note('VIDEO TOO LARGE. Keep each recording below 18 MB.', 'error');
-    if (nextOrder) {
-      const n = nextOrder;
-      nextOrder = null;
-      startRecording(n);
-    }
+    kickWaitingOrder();
     return;
   }
 
   queueUpload(s, blob);
 
-  // Critical continuous workflow:
-  // next recording starts immediately after the previous recording's
-  // local Blob has been created. Upload is separate.
   const queued = nextOrder;
   nextOrder = null;
   if (queued) startRecording(queued);
+  else kickWaitingOrder();
 }
 
 function queueUpload(s, blob) {
@@ -809,7 +856,7 @@ function ensureWorker() {
     workerFrame = document.createElement('iframe');
     workerFrame.id = 'dpWorker';
     workerFrame.style.cssText = 'position:absolute;width:1px;height:1px;left:-9999px;border:0';
-    workerFrame.src = API_URL + '?bridge=1&worker=1';
+    workerFrame.src = API_URL + '?bridge=1';
     document.body.appendChild(workerFrame);
     let n = 0;
     const t = setInterval(function() {
