@@ -3,7 +3,6 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta http-equiv="Permissions-Policy" content="camera=*; microphone=*">
 <title>DISPATCH PROOF CAMERA</title>
 <style>
 *{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#111;color:#fff;font-family:Arial,sans-serif}
@@ -53,7 +52,7 @@ async function requestCamera(){
   try{
     if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia) throw new Error('Camera API is unavailable in this browser.');
     if(stream) stopTracks();
-    stream=await navigator.mediaDevices.getUserMedia({video:{width:{ideal:1280},height:{ideal:720},facingMode:{ideal:'environment'}},audio:true});
+    stream=await navigator.mediaDevices.getUserMedia({video:{width:{ideal:1280},height:{ideal:720},facingMode:{ideal:'environment'}},audio:false});
     $('preview').srcObject=stream;
     $('empty').style.display='none';
     $('allow').textContent='CAMERA READY ✓';
@@ -64,7 +63,7 @@ async function requestCamera(){
   }catch(e){
     setState('CAMERA ERROR');
     $('empty').style.display='flex';
-    $('empty').innerHTML='<b>'+escapeHtml(friendlyError(e))+'</b>';
+    $('empty').innerHTML='<b>'+escapeHtml(friendlyError(e))+'</b><br><span style="display:block;margin-top:10px;font-size:12px">Use the browser site-settings icon to allow Camera and Microphone, then press ALLOW CAMERA.</span>';
     send('CAMERA_ERROR',{message:friendlyError(e),name:e&&e.name||''});
     return false;
   }
