@@ -53,7 +53,7 @@ button{height:36px;border:0;border-radius:7px;padding:0 10px;font-weight:800;cur
 <div class="app">
   <div class="top">
     <div class="title">DISPATCH PROOF MANAGEMENT</div>
-    <div class="ag">V57 DRIVE SAVE</div>
+    <div class="ag">V58 DRIVE SAVE</div>
   </div>
 
   <div class="tabs">
@@ -124,15 +124,14 @@ function normalizeApiUrl(raw) {
 
 const params = new URLSearchParams(location.search);
 const API_URL = normalizeApiUrl(params.get('api') || localStorage.getItem('DP50_API_URL') || '');
-const API_VERSION = 'V57_BRIDGE_SAVE_20260831';
+const API_VERSION = 'V58_TOP_POSTMESSAGE_20260831';
 if (API_URL) localStorage.setItem('DP50_API_URL', API_URL);
 else localStorage.removeItem('DP50_API_URL');
 
 let bridgeFrame = null;
-let bridgeReady = false;
-let bridgeWaiters = [];
 let bridgePending = {};
 let bridgeSeq = 0;
+let bridgeListening = false;
 
 let mode = 'DISPATCH';
 let stream = null;
@@ -170,12 +169,6 @@ function requireApi() {
 function onBridgeMessage(ev) {
   const d = ev.data;
   if (!d || d.dp !== 1) return;
-  if (d.ready) {
-    bridgeReady = true;
-    const q = bridgeWaiters.splice(0);
-    q.forEach(function(fn) { fn(); });
-    return;
-  }
   if (d.id && bridgePending[d.id]) {
     const cb = bridgePending[d.id];
     delete bridgePending[d.id];
@@ -183,57 +176,51 @@ function onBridgeMessage(ev) {
   }
 }
 
-function startBridge() {
-  if (!API_URL || bridgeFrame) return;
-  window.addEventListener('message', onBridgeMessage);
-  bridgeFrame = document.createElement('iframe');
-  bridgeFrame.id = 'dpBridge';
-  bridgeFrame.style.cssText = 'position:absolute;width:1px;height:1px;left:-9999px;border:0';
-  bridgeFrame.src = API_URL + '?bridge=1&_ts=' + Date.now();
-  document.body.appendChild(bridgeFrame);
-  setTimeout(function() {
-    if (!bridgeReady) {
-      note(
-        'Drive save is not connected yet. In Apps Script paste the latest Code.gs, then Deploy → Manage deployments → pencil → New version. Reload the sheet and open DISPATCH CAMERA again.',
-        'error'
-      );
-    }
-  }, 12000);
-}
-
 function apiGet(action, data, callback) {
   if (!requireApi()) {
     if (callback) callback({ ok: false, found: false });
     return;
   }
-  startBridge();
 
-  const run = function() {
-    const id = 'b' + (++bridgeSeq);
-    const timer = setTimeout(function() {
-      if (!bridgePending[id]) return;
-      delete bridgePending[id];
+  if (!bridgeListening) {
+    window.addEventListener('message', onBridgeMessage);
+    bridgeListening = true;
+  }
+
+  const id = 'b' + (++bridgeSeq);
+  const timer = setTimeout(function() {
+    if (!bridgePending[id]) return;
+    delete bridgePending[id];
+    if (action === 'HEALTH' || action === 'PING' || action === 'GET_RECORD') {
       if (callback) callback({ ok: false, found: false, message: 'timeout' });
-    }, action === 'UPLOAD' ? 180000 : 25000);
-
-    bridgePending[id] = function(result) {
-      clearTimeout(timer);
-      if (callback) callback(result);
-    };
-
-    try {
-      bridgeFrame.contentWindow.postMessage(
-        { dp: 1, id: id, action: action, payload: data || {} },
-        '*'
-      );
-    } catch (err) {
-      delete bridgePending[id];
-      if (callback) callback({ ok: false, found: false, message: String(err) });
+      return;
     }
+    note(
+      'Drive save did not answer. Paste latest Code.gs in Apps Script, Deploy → New version, then open DISPATCH CAMERA again. Under the title you must see V58 DRIVE SAVE.',
+      'error'
+    );
+    if (callback) callback({ ok: false, found: false, message: 'timeout' });
+  }, action === 'UPLOAD' ? 180000 : 25000);
+
+  bridgePending[id] = function(result) {
+    clearTimeout(timer);
+    if (callback) callback(result);
   };
 
-  if (bridgeReady) run();
-  else bridgeWaiters.push(run);
+  const q = new URLSearchParams();
+  q.set('bridge', '1');
+  q.set('dpAction', action);
+  q.set('rid', id);
+  Object.keys(data || {}).forEach(function(k) {
+    q.set(k, data[k] == null ? '' : String(data[k]));
+  });
+
+  if (bridgeFrame) bridgeFrame.remove();
+  bridgeFrame = document.createElement('iframe');
+  bridgeFrame.id = 'dpBridge';
+  bridgeFrame.style.cssText = 'position:absolute;width:1px;height:1px;left:-9999px;border:0';
+  bridgeFrame.src = API_URL + '?' + q.toString();
+  document.body.appendChild(bridgeFrame);
 }
 
 function clearResult() {
@@ -914,7 +901,6 @@ window.addEventListener('beforeunload', e => {
 
 (async function init() {
   if (API_URL) {
-    startBridge();
     apiGet('HEALTH', {}, r => {
       if (r && r.ok) $('cameraState').textContent = 'Drive save ready ✓';
     });
