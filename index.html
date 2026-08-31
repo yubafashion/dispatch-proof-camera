@@ -53,7 +53,7 @@ button{height:36px;border:0;border-radius:7px;padding:0 10px;font-weight:800;cur
 <div class="app">
   <div class="top">
     <div class="title">DISPATCH PROOF MANAGEMENT</div>
-    <div class="ag">V58 DRIVE SAVE</div>
+    <div class="ag">V59 DRIVE UPLOAD</div>
   </div>
 
   <div class="tabs">
@@ -764,29 +764,73 @@ function queueUpload(s, blob) {
 }
 
 function submitUpload(payload) {
-  /*
-   * Cross-origin form POST:
-   * No CORS/fetch dependency. The form navigates a hidden iframe.
-   * We then poll the backend index until the new file appears.
-   */
-  const form = document.createElement('form');
-  form.method = 'POST';
-  form.action = API_URL;
-  form.target = 'DP50_UPLOAD_FRAME';
-  form.style.display = 'none';
+  if (!API_URL) {
+    uploadQueue = Math.max(0, uploadQueue - 1);
+    note('Drive save ke liye camera Google Sheet se kholo: DISPATCH CAMERA → Open camera.', 'error');
+    return;
+  }
 
-  const input = document.createElement('input');
-  input.type = 'hidden';
-  input.name = 'payload';
-  input.value = JSON.stringify(payload);
+  const raw = String(payload.base64 || '');
+  if (!raw) {
+    uploadQueue = Math.max(0, uploadQueue - 1);
+    note('VIDEO SAVE ERROR: empty video data.', 'error');
+    return;
+  }
 
-  form.appendChild(input);
-  document.body.appendChild(form);
-  form.submit();
-  form.remove();
+  const size = 90000;
+  const total = Math.ceil(raw.length / size);
+  const uploadId = 'u' + Date.now() + '_' + Math.floor(Math.random() * 1000000);
 
-  // Poll the AWB/type index. The server writes the file and index.
-  pollSaved(payload.awb, payload.videoType, 0);
+  function postFields(fields) {
+    return new Promise(function(resolve) {
+      const form = document.createElement('form');
+      form.method = 'POST';
+      form.action = API_URL;
+      form.target = 'DP50_UPLOAD_FRAME';
+      form.style.display = 'none';
+      Object.keys(fields).forEach(function(k) {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = k;
+        input.value = fields[k] == null ? '' : String(fields[k]);
+        form.appendChild(input);
+      });
+      document.body.appendChild(form);
+      form.submit();
+      form.remove();
+      setTimeout(resolve, 1400);
+    });
+  }
+
+  (async function() {
+    try {
+      for (let i = 0; i < total; i++) {
+        note('Drive par save ho raha hai… ' + (i + 1) + '/' + total, 'ok');
+        await postFields({
+          phase: 'chunk',
+          uploadId: uploadId,
+          index: String(i),
+          data: raw.slice(i * size, (i + 1) * size)
+        });
+      }
+      note('Video finish ho rahi hai • AWB ' + payload.awb, 'ok');
+      await postFields({
+        phase: 'finish',
+        uploadId: uploadId,
+        total: String(total),
+        awb: payload.awb || '',
+        orderId: payload.orderId || '',
+        videoType: payload.videoType || 'DISPATCH',
+        mimeType: payload.mimeType || 'video/webm',
+        fileName: payload.fileName || ''
+      });
+      await new Promise(function(r) { setTimeout(r, 2500); });
+      pollSaved(payload.awb, payload.videoType, 0);
+    } catch (err) {
+      uploadQueue = Math.max(0, uploadQueue - 1);
+      note('VIDEO SAVE ERROR: ' + (err.message || err), 'error');
+    }
+  })();
 }
 
 function pollSaved(awb, type, attempt) {
