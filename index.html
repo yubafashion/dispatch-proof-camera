@@ -53,7 +53,7 @@ button{height:36px;border:0;border-radius:7px;padding:0 10px;font-weight:800;cur
 <div class="app">
   <div class="top">
     <div class="title">DISPATCH PROOF MANAGEMENT</div>
-    <div class="ag">V67 DRIVE SAVE</div>
+    <div class="ag">V68 JSONP SAVE</div>
   </div>
 
   <div class="tabs">
@@ -356,7 +356,6 @@ function cameraError(e) {
 }
 
 async function testCamera() {
-  bootWorker();
   try {
     await startCamera();
     note('Camera ready ✓. Scan AWB to start recording.', 'ok');
@@ -548,7 +547,6 @@ function lookupFast(awb) {
 }
 
 function scan() {
-  bootWorker();
   const v = $('awb').value.trim();
   if (!v) {
     note('Please scan AWB.', 'error');
@@ -956,50 +954,27 @@ function submitUpload(payload) {
 
   (async function() {
     try {
-      if (raw.length <= 1100000) {
-        note('Drive par save ho raha hai…', 'ok');
-        try {
-          const saved = await workerCall('UPLOAD', {
-            awb: payload.awb || '',
-            orderId: payload.orderId || '',
-            videoType: payload.videoType || 'DISPATCH',
-            mimeType: payload.mimeType || 'video/mp4',
-            fileName: payload.fileName || '',
-            base64: raw
-          }, 180000);
-          uploadQueue = Math.max(0, uploadQueue - 1);
-          if (saved && (saved.ok || saved.fileId)) {
-            lastSaved = saved;
-            note('✓ VIDEO SAVED • ' + payload.awb + ' • Order ' + (saved.orderId || payload.orderId), 'ok');
-            if (mode === 'PROOF' || payload.videoType === 'RETURN') {
-              apiGet('SCAN', {awb: payload.awb, mode: 'PROOF'}, handleScan);
-            }
-            return;
-          }
-        } catch (oneShotErr) {
-          note('Ek shot nahi hua, fast chunks se save…', 'ok');
-        }
-      }
-
-      const size = 180000;
+      const size = 1600;
       const total = Math.ceil(raw.length / size);
       const uploadId = 'u' + Date.now() + '_' + Math.floor(Math.random() * 1000000);
-      const parallel = 2;
+      const parallel = 4;
       for (let i = 0; i < total; i += parallel) {
         const batch = [];
         for (let j = 0; j < parallel && i + j < total; j++) {
           const idx = i + j;
           note('Drive par save ho raha hai… ' + (idx + 1) + '/' + total, 'ok');
-          batch.push(workerCall('CHUNK', {
+          batch.push(jsonpCall('CHUNK', {
             uploadId: uploadId,
             index: String(idx),
             data: raw.slice(idx * size, (idx + 1) * size)
-          }, 45000));
+          }, 25000));
         }
-        await Promise.all(batch);
+        const parts = await Promise.all(batch);
+        const bad = parts.find(function(r) { return r && r.ok === false; });
+        if (bad) throw new Error(bad.message || 'chunk failed');
       }
       note('Video Drive par finish ho rahi hai • AWB ' + payload.awb, 'ok');
-      const saved = await workerCall('FINISH', {
+      const saved = await jsonpCall('FINISH', {
         uploadId: uploadId,
         total: String(total),
         awb: payload.awb || '',
@@ -1009,15 +984,15 @@ function submitUpload(payload) {
         fileName: payload.fileName || ''
       }, 180000);
       uploadQueue = Math.max(0, uploadQueue - 1);
+      if (saved && saved.ok === false) {
+        throw new Error(saved.message || 'finish failed');
+      }
       if (saved && (saved.ok || saved.fileId)) {
         lastSaved = saved;
         note('✓ VIDEO SAVED • ' + payload.awb + ' • Order ' + (saved.orderId || payload.orderId), 'ok');
-        if (mode === 'PROOF' || payload.videoType === 'RETURN') {
-          apiGet('SCAN', {awb: payload.awb, mode: 'PROOF'}, handleScan);
-        }
         return;
       }
-      pollSaved(payload.awb, payload.videoType, 0);
+      throw new Error('Drive save confirm nahi hua');
     } catch (err) {
       uploadQueue = Math.max(0, uploadQueue - 1);
       note('VIDEO SAVE ERROR: ' + (err.message || err), 'error');
@@ -1137,12 +1112,7 @@ window.addEventListener('beforeunload', e => {
 
 (async function init() {
   if (API_URL) {
-    ensureWorker().then(function() {
-      $('cameraState').textContent = 'Drive save ready ✓';
-    }).catch(function() {});
-    apiGet('HEALTH', {}, r => {
-      if (r && r.ok) $('cameraState').textContent = 'Drive save ready ✓';
-    });
+    $('cameraState').textContent = 'Drive save ready ✓';
   } else {
     note('Scan works from the Order sheet. To save video to Drive, open camera from Google Sheet → DISPATCH CAMERA → Open camera.', 'ok');
   }
