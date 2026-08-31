@@ -112,6 +112,7 @@ button{height:36px;border:0;border-radius:7px;padding:0 10px;font-weight:800;cur
 
 const params = new URLSearchParams(location.search);
 const API_URL = params.get('api') || localStorage.getItem('DP50_API_URL') || '';
+const API_VERSION = 'V52_SINGLE_WINDOW_20260831';
 if (API_URL) localStorage.setItem('DP50_API_URL', API_URL);
 
 let mode = 'DISPATCH';
@@ -153,6 +154,7 @@ function apiGet(action, data, callback) {
   const q = new URLSearchParams();
   q.set('dpAction', action);
   q.set('callback', cb);
+  q.set('_ts', Date.now());
 
   Object.keys(data || {}).forEach(k => {
     q.set(k, data[k] == null ? '' : String(data[k]));
@@ -169,7 +171,7 @@ function apiGet(action, data, callback) {
   s.onerror = function() {
     delete window[cb];
     s.remove();
-    note('Apps Script backend request failed. Check the Web App deployment/access.', 'error');
+    note('BACKEND ACCESS FAILED — the /exec Web App is not publicly accessible to this page. Re-deploy this same Apps Script Web App as Execute as Me + Anyone with the link, then reload this page.', 'error');
   };
 
   s.src = API_URL + (API_URL.indexOf('?') >= 0 ? '&' : '?') + q.toString();
@@ -751,9 +753,9 @@ window.addEventListener('beforeunload', e => {
   } else {
     apiGet('PING', {}, r => {
       if (r && r.ok) {
-        $('cameraState').textContent = 'Backend V50 ready ✓';
+        $('cameraState').textContent = 'Backend V52 ready ✓';
       } else {
-        note('Apps Script backend is not responding.', 'error');
+        note('BACKEND NOT RESPONDING — verify the deployed /exec URL and Web App access.', 'error');
       }
     });
   }
