@@ -38,7 +38,6 @@ body.embed-camera-only{background:#111;overflow:hidden}.embed-camera-only .wrap{
 const qs=new URLSearchParams(location.search);
 window.name='DISPATCH_PROOF_CAMERA';
 const BRIDGE_VERSION='V37_DIRECT_LINK_OPENER_20260829';
-const EMBED_BUILD='V46_EMBED_CAMERA_20260831';
 const embedMode=new URLSearchParams(location.search).get('embed')==='1';
 if(embedMode) document.body.classList.add('embed-camera-only');
 const openerRef=window.opener||((window.parent&&window.parent!==window)?window.parent:null);
@@ -133,7 +132,7 @@ async function openCamera(){
     await preview.play().catch(()=>{});
     setCameraState(true,'READY');
     status.textContent=mode==='RECORD' ? 'Camera ready ✓ • STARTING RECORDING...' : 'Camera ready ✓ • READY FOR AWB';
-    sendParent('CAMERA_READY',{recording:false,embedBuild:EMBED_BUILD});
+    sendParent('CAMERA_READY',{recording:false});
     return true;
   }catch(e){status.textContent='Camera error: '+errText(e);setCameraState(false,'ERROR');sendParent('CAMERA_ERROR',{message:errText(e)});return false;}
 }
@@ -223,12 +222,7 @@ window.addEventListener('message',async function(event){
   parentConnected=true;
   setParentState(true,'CONNECTED');
   if(d.type==='TEST_CAMERA' || d.type==='REFRESH_CAMERA'){
-    if(!(recorder&&recorder.state==='recording')){
-      await enumerateCameras();
-      await openCamera();
-      // Reply again so the parent cannot miss the initial load handshake.
-      sendParent('CAMERA_READY',{recording:!!(recorder&&recorder.state==='recording'),embedBuild:EMBED_BUILD});
-    }
+    if(!(recorder&&recorder.state==='recording')){await enumerateCameras();await openCamera();}
     return;
   }
   if(d.type==='SET_CAMERA'){
