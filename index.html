@@ -53,7 +53,7 @@ button{height:36px;border:0;border-radius:7px;padding:0 10px;font-weight:800;cur
 <div class="app">
   <div class="top">
     <div class="title">DISPATCH PROOF MANAGEMENT</div>
-    <div class="ag">V71 POST SAVE</div>
+    <div class="ag">V72 FAST SAVE</div>
   </div>
 
   <div class="tabs">
@@ -325,8 +325,8 @@ async function startCamera() {
   const id = $('cameraSelect').value || selectedCameraId;
 
   const videoConstraints = id
-    ? {deviceId:{exact:id}, width:{ideal:1280}, height:{ideal:720}}
-    : {width:{ideal:1280}, height:{ideal:720}, facingMode:{ideal:'environment'}};
+    ? {deviceId:{exact:id}, width:{ideal:960}, height:{ideal:540}}
+    : {width:{ideal:960}, height:{ideal:540}, facingMode:{ideal:'environment'}};
 
   stream = await navigator.mediaDevices.getUserMedia({
     video: videoConstraints,
@@ -755,8 +755,8 @@ async function startRecording(r) {
     recorder = mime
       ? new MediaRecorder(stream, {
           mimeType:mime,
-          videoBitsPerSecond:350000,
-          audioBitsPerSecond:32000
+          videoBitsPerSecond:220000,
+          audioBitsPerSecond:24000
         })
       : new MediaRecorder(stream);
   } catch (e) {
@@ -981,18 +981,15 @@ function workerCall(action, payload, timeoutMs) {
 
 function formPost(fields, waitMs) {
   return new Promise(function(resolve) {
-    let iframe = document.getElementById('dpPostFrame');
-    if (!iframe) {
-      iframe = document.createElement('iframe');
-      iframe.id = 'dpPostFrame';
-      iframe.name = 'DP_POST_FRAME';
-      iframe.style.cssText = 'position:absolute;width:1px;height:1px;left:-9999px;border:0';
-      document.body.appendChild(iframe);
-    }
+    const name = 'DPF' + (++bridgeSeq);
+    const iframe = document.createElement('iframe');
+    iframe.name = name;
+    iframe.style.cssText = 'position:absolute;width:1px;height:1px;left:-9999px;border:0';
+    document.body.appendChild(iframe);
     const form = document.createElement('form');
     form.method = 'POST';
     form.action = API_URL;
-    form.target = 'DP_POST_FRAME';
+    form.target = name;
     form.acceptCharset = 'UTF-8';
     form.style.display = 'none';
     Object.keys(fields).forEach(function(k) {
@@ -1005,8 +1002,9 @@ function formPost(fields, waitMs) {
     form.submit();
     setTimeout(function() {
       form.remove();
+      iframe.remove();
       resolve({ ok: true });
-    }, waitMs || 1600);
+    }, waitMs || 700);
   });
 }
 
@@ -1026,17 +1024,23 @@ function submitUpload(payload) {
 
   (async function() {
     try {
-      const size = 8000;
+      const size = 28000;
       const total = Math.ceil(raw.length / size);
       const uploadId = 'u' + Date.now() + '_' + Math.floor(Math.random() * 1000000);
-      for (let i = 0; i < total; i++) {
-        note('Drive par save ho raha hai… ' + (i + 1) + '/' + total, 'ok');
-        await formPost({
-          phase: 'chunk',
-          uploadId: uploadId,
-          index: String(i),
-          data: raw.slice(i * size, (i + 1) * size)
-        }, 1700);
+      const parallel = 3;
+      for (let i = 0; i < total; i += parallel) {
+        const batch = [];
+        for (let j = 0; j < parallel && i + j < total; j++) {
+          const idx = i + j;
+          note('Drive par save ho raha hai… ' + (idx + 1) + '/' + total, 'ok');
+          batch.push(formPost({
+            phase: 'chunk',
+            uploadId: uploadId,
+            index: String(idx),
+            data: raw.slice(idx * size, (idx + 1) * size)
+          }, 750));
+        }
+        await Promise.all(batch);
       }
       note('Video Drive par finish ho rahi hai • AWB ' + payload.awb, 'ok');
       await formPost({
@@ -1048,7 +1052,7 @@ function submitUpload(payload) {
         videoType: payload.videoType || 'DISPATCH',
         mimeType: payload.mimeType || 'video/mp4',
         fileName: payload.fileName || ''
-      }, 5000);
+      }, 2800);
       pollSaved(payload.awb, payload.videoType || 'DISPATCH', 0);
     } catch (err) {
       uploadQueue = Math.max(0, uploadQueue - 1);
@@ -1075,7 +1079,7 @@ function pollSaved(awb, type, attempt) {
       }
       pollSaved(awb, type, attempt + 1);
     });
-  }, 2000);
+  }, 1000);
 }
 
 async function startReturnRecording(awb, orderId, status) {
