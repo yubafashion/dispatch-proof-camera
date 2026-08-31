@@ -277,7 +277,7 @@ async function startRecording(sessionOverride){
       if(uiTimer){clearInterval(uiTimer);uiTimer=null;}
       recTimer.textContent='00:00';
 
-      parentMessage('VIDEO_READY',{blob:blob,fileName:name,size:blob.size});
+      parentMessage('VIDEO_READY',{blob:blob,fileName:name,size:blob.size,videoId:'vid_'+Date.now()+'_'+Math.random().toString(36).slice(2)});
 
       chunks=[];
       recorder=null;
@@ -371,6 +371,7 @@ window.addEventListener('message',function(event){
 
   if(d.type==='START_RECORDING'){
     parentStartReceived=true;
+    parentMessage('COMMAND_RECEIVED',{command:'START_RECORDING',commandId:d.commandId||''});
     const s=d.session||{};
     awb=String(s.awb||'');
     orderId=String(s.orderId||'');
@@ -426,7 +427,7 @@ window.addEventListener('beforeunload',function(){
       if(!(recorder&&recorder.state==='recording') && !starting){
         startRecording({awb:awb,orderId:orderId,status:statusValue,videoType:videoType});
       }
-    },3000);
+    },350);
   }
 })();
 </script>
