@@ -112,7 +112,7 @@ button{height:36px;border:0;border-radius:7px;padding:0 10px;font-weight:800;cur
 
 const params = new URLSearchParams(location.search);
 const API_URL = params.get('api') || localStorage.getItem('DP50_API_URL') || '';
-const API_VERSION = 'V52_SINGLE_WINDOW_20260831';
+const API_VERSION = 'V53_BACKEND_ONLY_20260831';
 if (API_URL) localStorage.setItem('DP50_API_URL', API_URL);
 
 let mode = 'DISPATCH';
@@ -139,7 +139,7 @@ function note(text, kind='') {
 
 function requireApi() {
   if (!API_URL) {
-    note('Apps Script API URL is missing. Open Dispatch Proof from the Google Sheet menu after deploying V50.', 'error');
+    note('Apps Script API URL is missing. Open Dispatch Proof from the Google Sheet menu after deploying the current Web App.', 'error');
     return false;
   }
   return true;
@@ -150,32 +150,55 @@ function apiGet(action, data, callback) {
 
   const cb = 'DP50_' + Date.now() + '_' + Math.floor(Math.random()*100000);
   const s = document.createElement('script');
+  let finished = false;
+  let timer = null;
 
   const q = new URLSearchParams();
   q.set('dpAction', action);
   q.set('callback', cb);
   q.set('_ts', Date.now());
+  q.set('transport', 'jsonp');
 
   Object.keys(data || {}).forEach(k => {
     q.set(k, data[k] == null ? '' : String(data[k]));
   });
 
+  const cleanup = () => {
+    if (finished) return;
+    finished = true;
+    if (timer) clearTimeout(timer);
+    delete window[cb];
+    s.remove();
+  };
+
   window[cb] = function(result) {
+    if (finished) return;
     try { callback(result); }
-    finally {
-      delete window[cb];
-      s.remove();
-    }
+    finally { cleanup(); }
   };
 
   s.onerror = function() {
-    delete window[cb];
-    s.remove();
-    note('BACKEND ACCESS FAILED — the /exec Web App is not publicly accessible to this page. Re-deploy this same Apps Script Web App as Execute as Me + Anyone with the link, then reload this page.', 'error');
+    if (finished) return;
+    cleanup();
+    note(
+      'Apps Script backend request failed. The Management page reached the backend URL but did not receive a JSONP response. ' +
+      'Check that this SAME Apps Script deployment is the active /exec Web App and its access is public to the GitHub page.',
+      'error'
+    );
   };
 
+  timer = setTimeout(function() {
+    if (finished) return;
+    cleanup();
+    note(
+      'Apps Script backend request timed out. The camera is working, but the /exec Web App did not answer the Management page. ' +
+      'This is a backend deployment/access problem only.',
+      'error'
+    );
+  }, 12000);
+
   s.src = API_URL + (API_URL.indexOf('?') >= 0 ? '&' : '?') + q.toString();
-  document.body.appendChild(s);
+  document.head.appendChild(s);
 }
 
 function clearResult() {
@@ -753,7 +776,7 @@ window.addEventListener('beforeunload', e => {
   } else {
     apiGet('PING', {}, r => {
       if (r && r.ok) {
-        $('cameraState').textContent = 'Backend V52 ready ✓';
+        $('cameraState').textContent = 'Backend V53 ready ✓';
       } else {
         note('BACKEND NOT RESPONDING — verify the deployed /exec URL and Web App access.', 'error');
       }
