@@ -112,7 +112,7 @@ button{height:36px;border:0;border-radius:7px;padding:0 10px;font-weight:800;cur
 
 const params = new URLSearchParams(location.search);
 const API_URL = params.get('api') || localStorage.getItem('DP50_API_URL') || '';
-const API_VERSION = 'V53_BACKEND_ONLY_20260831';
+const API_VERSION = 'V54_BACKEND_ACCESS_ONLY_20260831';
 if (API_URL) localStorage.setItem('DP50_API_URL', API_URL);
 
 let mode = 'DISPATCH';
@@ -181,8 +181,7 @@ function apiGet(action, data, callback) {
     if (finished) return;
     cleanup();
     note(
-      'Apps Script backend request failed. The Management page reached the backend URL but did not receive a JSONP response. ' +
-      'Check that this SAME Apps Script deployment is the active /exec Web App and its access is public to the GitHub page.',
+      'BACKEND ACCESS FAILED — the /exec Web App did not return JSONP. Keep the camera code unchanged; verify this SAME deployment is Execute as Me + Anyone with the link.',
       'error'
     );
   };
@@ -774,9 +773,9 @@ window.addEventListener('beforeunload', e => {
   if (!API_URL) {
     note('Open this page from Google Sheet → DISPATCH PROOF → Open Dispatch Proof so the backend URL is supplied.', 'error');
   } else {
-    apiGet('PING', {}, r => {
+    apiGet('HEALTH', {}, r => {
       if (r && r.ok) {
-        $('cameraState').textContent = 'Backend V53 ready ✓';
+        $('cameraState').textContent = 'Backend V54 ready ✓';
       } else {
         note('BACKEND NOT RESPONDING — verify the deployed /exec URL and Web App access.', 'error');
       }
