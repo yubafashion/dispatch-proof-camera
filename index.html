@@ -53,7 +53,7 @@ button{height:36px;border:0;border-radius:7px;padding:0 10px;font-weight:800;cur
 <div class="app">
   <div class="top">
     <div class="title">DISPATCH PROOF MANAGEMENT</div>
-    <div class="ag">V59 DRIVE UPLOAD</div>
+    <div class="ag">V60 DRIVE BRIDGE</div>
   </div>
 
   <div class="tabs">
@@ -129,6 +129,8 @@ if (API_URL) localStorage.setItem('DP50_API_URL', API_URL);
 else localStorage.removeItem('DP50_API_URL');
 
 let bridgeFrame = null;
+let workerFrame = null;
+let workerReady = false;
 let bridgePending = {};
 let bridgeSeq = 0;
 let bridgeListening = false;
@@ -169,6 +171,10 @@ function requireApi() {
 function onBridgeMessage(ev) {
   const d = ev.data;
   if (!d || d.dp !== 1) return;
+  if (d.ready && d.worker) {
+    workerReady = true;
+    return;
+  }
   if (d.id && bridgePending[d.id]) {
     const cb = bridgePending[d.id];
     delete bridgePending[d.id];
@@ -196,7 +202,7 @@ function apiGet(action, data, callback) {
       return;
     }
     note(
-      'Drive save did not answer. Paste latest Code.gs in Apps Script, Deploy → New version, then open DISPATCH CAMERA again. Under the title you must see V58 DRIVE SAVE.',
+      'Drive save did not answer. Paste latest Code.gs in Apps Script, Deploy → New version, then open DISPATCH CAMERA again. Under the title you must see V60 DRIVE BRIDGE.',
       'error'
     );
     if (callback) callback({ ok: false, found: false, message: 'timeout' });
@@ -763,6 +769,63 @@ function queueUpload(s, blob) {
   reader.readAsDataURL(blob);
 }
 
+function ensureWorker() {
+  return new Promise(function(resolve, reject) {
+    if (workerReady && workerFrame && workerFrame.contentWindow) {
+      resolve();
+      return;
+    }
+    if (!bridgeListening) {
+      window.addEventListener('message', onBridgeMessage);
+      bridgeListening = true;
+    }
+    workerReady = false;
+    if (workerFrame) workerFrame.remove();
+    workerFrame = document.createElement('iframe');
+    workerFrame.id = 'dpWorker';
+    workerFrame.style.cssText = 'position:absolute;width:1px;height:1px;left:-9999px;border:0';
+    workerFrame.src = API_URL + '?bridge=1&worker=1';
+    document.body.appendChild(workerFrame);
+    let n = 0;
+    const t = setInterval(function() {
+      if (workerReady) {
+        clearInterval(t);
+        resolve();
+      } else if (++n > 60) {
+        clearInterval(t);
+        reject(new Error('Drive worker did not start. Deploy New version of Code.gs.'));
+      }
+    }, 200);
+  });
+}
+
+function workerCall(action, payload, timeoutMs) {
+  return new Promise(function(resolve, reject) {
+    ensureWorker().then(function() {
+      const id = 'w' + (++bridgeSeq);
+      const timer = setTimeout(function() {
+        if (!bridgePending[id]) return;
+        delete bridgePending[id];
+        reject(new Error('Drive save timeout on ' + action));
+      }, timeoutMs || 45000);
+      bridgePending[id] = function(result) {
+        clearTimeout(timer);
+        if (result && result.ok === false) {
+          reject(new Error(result.message || 'save failed'));
+          return;
+        }
+        resolve(result);
+      };
+      workerFrame.contentWindow.postMessage({
+        dp: 1,
+        id: id,
+        action: action,
+        payload: payload
+      }, '*');
+    }).catch(reject);
+  });
+}
+
 function submitUpload(payload) {
   if (!API_URL) {
     uploadQueue = Math.max(0, uploadQueue - 1);
@@ -777,45 +840,22 @@ function submitUpload(payload) {
     return;
   }
 
-  const size = 90000;
+  const size = 40000;
   const total = Math.ceil(raw.length / size);
   const uploadId = 'u' + Date.now() + '_' + Math.floor(Math.random() * 1000000);
-
-  function postFields(fields) {
-    return new Promise(function(resolve) {
-      const form = document.createElement('form');
-      form.method = 'POST';
-      form.action = API_URL;
-      form.target = 'DP50_UPLOAD_FRAME';
-      form.style.display = 'none';
-      Object.keys(fields).forEach(function(k) {
-        const input = document.createElement('input');
-        input.type = 'hidden';
-        input.name = k;
-        input.value = fields[k] == null ? '' : String(fields[k]);
-        form.appendChild(input);
-      });
-      document.body.appendChild(form);
-      form.submit();
-      form.remove();
-      setTimeout(resolve, 1400);
-    });
-  }
 
   (async function() {
     try {
       for (let i = 0; i < total; i++) {
         note('Drive par save ho raha hai… ' + (i + 1) + '/' + total, 'ok');
-        await postFields({
-          phase: 'chunk',
+        await workerCall('CHUNK', {
           uploadId: uploadId,
           index: String(i),
           data: raw.slice(i * size, (i + 1) * size)
-        });
+        }, 45000);
       }
-      note('Video finish ho rahi hai • AWB ' + payload.awb, 'ok');
-      await postFields({
-        phase: 'finish',
+      note('Video Drive par finish ho rahi hai • AWB ' + payload.awb, 'ok');
+      const saved = await workerCall('FINISH', {
         uploadId: uploadId,
         total: String(total),
         awb: payload.awb || '',
@@ -823,8 +863,13 @@ function submitUpload(payload) {
         videoType: payload.videoType || 'DISPATCH',
         mimeType: payload.mimeType || 'video/webm',
         fileName: payload.fileName || ''
-      });
-      await new Promise(function(r) { setTimeout(r, 2500); });
+      }, 180000);
+      uploadQueue = Math.max(0, uploadQueue - 1);
+      if (saved && (saved.ok || saved.fileId)) {
+        lastSaved = saved;
+        note('✓ VIDEO SAVED • ' + payload.awb + ' • Order ' + (saved.orderId || payload.orderId), 'ok');
+        return;
+      }
       pollSaved(payload.awb, payload.videoType, 0);
     } catch (err) {
       uploadQueue = Math.max(0, uploadQueue - 1);
@@ -945,6 +990,9 @@ window.addEventListener('beforeunload', e => {
 
 (async function init() {
   if (API_URL) {
+    ensureWorker().then(function() {
+      $('cameraState').textContent = 'Drive save ready ✓';
+    }).catch(function() {});
     apiGet('HEALTH', {}, r => {
       if (r && r.ok) $('cameraState').textContent = 'Drive save ready ✓';
     });
