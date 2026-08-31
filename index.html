@@ -53,7 +53,7 @@ button{height:36px;border:0;border-radius:7px;padding:0 10px;font-weight:800;cur
 <div class="app">
   <div class="top">
     <div class="title">DISPATCH PROOF MANAGEMENT</div>
-    <div class="ag">AG</div>
+    <div class="ag">V56 SHEET LOOKUP</div>
   </div>
 
   <div class="tabs">
@@ -110,10 +110,25 @@ button{height:36px;border:0;border-radius:7px;padding:0 10px;font-weight:800;cur
  * not from Apps Script HTMLService.
  */
 
+function normalizeApiUrl(raw) {
+  const s = String(raw || '').trim();
+  if (!s) return '';
+  if (/googleusercontent\.com\/macros\/echo/i.test(s)) return '';
+  const exec = s.match(/^(https:\/\/script\.google\.com\/(?:macros|a\/macros\/[^/]+)\/s\/[^/?#]+\/(?:exec|dev))/i);
+  if (exec) return exec[1];
+  if (/^https:\/\/script\.google\.com\/macros\/s\//i.test(s)) {
+    return s.split('#')[0].split('?')[0].replace(/\/+$/, '');
+  }
+  return '';
+}
+
 const params = new URLSearchParams(location.search);
-const API_URL = params.get('api') || localStorage.getItem('DP50_API_URL') || '';
-const API_VERSION = 'V54_BACKEND_ACCESS_ONLY_20260831';
+const API_URL = normalizeApiUrl(params.get('api') || localStorage.getItem('DP50_API_URL') || '');
+const API_VERSION = 'V55_EXEC_URL_ONLY_20260831';
 if (API_URL) localStorage.setItem('DP50_API_URL', API_URL);
+else localStorage.removeItem('DP50_API_URL');
+
+let pendingJsonp = null;
 
 let mode = 'DISPATCH';
 let stream = null;
@@ -139,7 +154,11 @@ function note(text, kind='') {
 
 function requireApi() {
   if (!API_URL) {
-    note('Apps Script API URL is missing. Open Dispatch Proof from the Google Sheet menu after deploying the current Web App.', 'error');
+    note(
+      'Wrong backend URL. Copy the Web App URL from Deploy → Web app. It must end with /exec ' +
+      '(https://script.google.com/macros/s/…/exec). Do not copy the googleusercontent.com/macros/echo address from the browser bar.',
+      'error'
+    );
     return false;
   }
   return true;
@@ -155,6 +174,7 @@ function apiGet(action, data, callback) {
 
   const q = new URLSearchParams();
   q.set('dpAction', action);
+  q.set('action', action);
   q.set('callback', cb);
   q.set('_ts', Date.now());
   q.set('transport', 'jsonp');
@@ -166,22 +186,30 @@ function apiGet(action, data, callback) {
   const cleanup = () => {
     if (finished) return;
     finished = true;
+    pendingJsonp = null;
     if (timer) clearTimeout(timer);
     delete window[cb];
     s.remove();
   };
 
-  window[cb] = function(result) {
+  const deliver = function(result) {
     if (finished) return;
     try { callback(result); }
     finally { cleanup(); }
   };
 
+  pendingJsonp = { deliver: deliver };
+  window[cb] = deliver;
+  window.callback = function(result) {
+    if (pendingJsonp) pendingJsonp.deliver(result);
+  };
+
   s.onerror = function() {
     if (finished) return;
     cleanup();
+    if (action === 'HEALTH' || action === 'PING') return;
     note(
-      'BACKEND ACCESS FAILED — the /exec Web App did not return JSONP. Keep the camera code unchanged; verify this SAME deployment is Execute as Me + Anyone with the link.',
+      'Video save backend is not reachable. Recording can still start from the sheet. After stop, videos save only if you opened camera from the sheet menu DISPATCH CAMERA.',
       'error'
     );
   };
@@ -190,13 +218,13 @@ function apiGet(action, data, callback) {
     if (finished) return;
     cleanup();
     note(
-      'Apps Script backend request timed out. The camera is working, but the /exec Web App did not answer the Management page. ' +
-      'This is a backend deployment/access problem only.',
+      'Apps Script backend request timed out. Open this page as ' +
+      'https://yubafashion.github.io/dispatch-proof-camera/?api=YOUR_EXEC_URL',
       'error'
     );
   }, 12000);
 
-  s.src = API_URL + (API_URL.indexOf('?') >= 0 ? '&' : '?') + q.toString();
+  s.src = API_URL + '?' + q.toString();
   document.head.appendChild(s);
 }
 
@@ -332,6 +360,110 @@ async function testCamera() {
   }
 }
 
+const SHEET_ID = '1E5VW0AjcECVcuVFx9geaCHfhbMtefA_ZUC8FB9kxqDs';
+
+function gvizJsonp(sheetName) {
+  const cb = 'DP50g' + Date.now() + '_' + Math.floor(Math.random() * 100000);
+  const url =
+    'https://docs.google.com/spreadsheets/d/' + SHEET_ID +
+    '/gviz/tq?sheet=' + encodeURIComponent(sheetName) +
+    '&headers=1&tqx=' + encodeURIComponent('out:json;responseHandler:' + cb) +
+    '&_ts=' + Date.now();
+
+  return new Promise(function(resolve, reject) {
+    const s = document.createElement('script');
+    let finished = false;
+    const timer = setTimeout(function() {
+      if (finished) return;
+      finished = true;
+      delete window[cb];
+      s.remove();
+      reject(new Error('Sheet lookup timed out'));
+    }, 12000);
+
+    window[cb] = function(data) {
+      if (finished) return;
+      finished = true;
+      clearTimeout(timer);
+      delete window[cb];
+      s.remove();
+      resolve(data);
+    };
+
+    s.onerror = function() {
+      if (finished) return;
+      finished = true;
+      clearTimeout(timer);
+      delete window[cb];
+      s.remove();
+      reject(new Error('Sheet lookup failed'));
+    };
+
+    s.src = url;
+    document.head.appendChild(s);
+  });
+}
+
+function parseGviz(data) {
+  if (!data || !data.table) return [];
+  const cols = (data.table.cols || []).map(function(c) {
+    return String(c.label || c.id || '').trim().toLowerCase();
+  });
+  return (data.table.rows || []).map(function(row) {
+    const o = {};
+    (row.c || []).forEach(function(cell, i) {
+      const name = cols[i] || ('c' + i);
+      if (!cell) {
+        o[name] = '';
+        return;
+      }
+      o[name] = cell.f != null && String(cell.f) !== ''
+        ? String(cell.f)
+        : (cell.v == null ? '' : String(cell.v));
+    });
+    return o;
+  });
+}
+
+function normalizeAwb(v) {
+  return String(v == null ? '' : v).replace(/[^\w]/g, '').toUpperCase();
+}
+
+function pickOrderRow(rows, awb) {
+  const needle = normalizeAwb(awb);
+  for (let i = rows.length - 1; i >= 0; i--) {
+    const r = rows[i];
+    const val = r['awb number'] || r['awb'] || r['awb no'] || r['awb no.'] || '';
+    if (normalizeAwb(val) === needle) return r;
+  }
+  return null;
+}
+
+function rowToScanResult(r, awb, nextMode) {
+  const status = r['live delivery status'] || r['status'] || '';
+  const delivered = /^(delivered|successful|success|closed)$/i.test(String(status).trim());
+  return {
+    ok: true,
+    found: true,
+    date: r['date'] || '',
+    orderId: r['order number'] || r['order id'] || r['order'] || '',
+    awb: r['awb number'] || r['awb'] || awb,
+    dispatchType: r['dispatch type'] || '',
+    status: status,
+    sku: r['itam sku'] || r['itam'] || r['sku'] || '',
+    store: r['store'] || '',
+    videoType: nextMode === 'PROOF' ? 'RETURN' : 'DISPATCH',
+    terminal: nextMode !== 'PROOF' && delivered
+  };
+}
+
+async function lookupAwb(awb, nextMode) {
+  let row = pickOrderRow(parseGviz(await gvizJsonp('Order')), awb);
+  if (!row) row = pickOrderRow(parseGviz(await gvizJsonp('Closed')), awb);
+  if (!row) return { found: false, message: 'AWB not found: ' + awb };
+  return rowToScanResult(row, awb, nextMode);
+}
+
 function scan() {
   const v = $('awb').value.trim();
   if (!v) {
@@ -339,7 +471,10 @@ function scan() {
     return;
   }
 
-  apiGet('SCAN', {awb:v, mode:mode}, handleScan);
+  note('Looking up AWB in the Order sheet…', 'ok');
+  lookupAwb(v, mode).then(handleScan).catch(function() {
+    apiGet('SCAN', {awb:v, mode:mode}, handleScan);
+  });
 }
 
 function handleScan(r) {
@@ -770,16 +905,12 @@ window.addEventListener('beforeunload', e => {
 });
 
 (async function init() {
-  if (!API_URL) {
-    note('Open this page from Google Sheet → DISPATCH PROOF → Open Dispatch Proof so the backend URL is supplied.', 'error');
-  } else {
+  if (API_URL) {
     apiGet('HEALTH', {}, r => {
-      if (r && r.ok) {
-        $('cameraState').textContent = 'Backend V54 ready ✓';
-      } else {
-        note('BACKEND NOT RESPONDING — verify the deployed /exec URL and Web App access.', 'error');
-      }
+      if (r && r.ok) $('cameraState').textContent = 'Save backend ready ✓';
     });
+  } else {
+    note('Scan works from the Order sheet. To save video to Drive, open camera from the Google Sheet menu DISPATCH CAMERA → Open camera.', 'ok');
   }
 
   await refreshCameras();
