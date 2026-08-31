@@ -53,7 +53,7 @@ button{height:36px;border:0;border-radius:7px;padding:0 10px;font-weight:800;cur
 <div class="app">
   <div class="top">
     <div class="title">DISPATCH PROOF MANAGEMENT</div>
-    <div class="ag">V66 AWB SCAN</div>
+    <div class="ag">V67 DRIVE SAVE</div>
   </div>
 
   <div class="tabs">
@@ -130,6 +130,7 @@ else localStorage.removeItem('DP50_API_URL');
 
 let bridgeFrame = null;
 let workerFrame = null;
+let workerWin = null;
 let workerReady = false;
 let bridgePending = {};
 let bridgeSeq = 0;
@@ -355,6 +356,7 @@ function cameraError(e) {
 }
 
 async function testCamera() {
+  bootWorker();
   try {
     await startCamera();
     note('Camera ready ✓. Scan AWB to start recording.', 'ok');
@@ -546,6 +548,7 @@ function lookupFast(awb) {
 }
 
 function scan() {
+  bootWorker();
   const v = $('awb').value.trim();
   if (!v) {
     note('Please scan AWB.', 'error');
@@ -861,31 +864,45 @@ function queueUpload(s, blob) {
   reader.readAsDataURL(blob);
 }
 
-function ensureWorker() {
-  return new Promise(function(resolve, reject) {
-    if (workerReady && workerFrame && workerFrame.contentWindow) {
-      resolve();
-      return;
-    }
-    if (!bridgeListening) {
-      window.addEventListener('message', onBridgeMessage);
-      bridgeListening = true;
-    }
-    workerReady = false;
-    if (workerFrame) workerFrame.remove();
+function bootWorker() {
+  if (!API_URL) return;
+  if (!bridgeListening) {
+    window.addEventListener('message', onBridgeMessage);
+    bridgeListening = true;
+  }
+  if (!workerWin || workerWin.closed) {
+    workerWin = window.open(API_URL + '?bridge=1', 'DP_DRIVE_WORKER', 'width=140,height=90,left=0,top=0');
+  }
+  if (!workerFrame) {
     workerFrame = document.createElement('iframe');
     workerFrame.id = 'dpWorker';
     workerFrame.style.cssText = 'position:absolute;width:1px;height:1px;left:-9999px;border:0';
     workerFrame.src = API_URL + '?bridge=1';
     document.body.appendChild(workerFrame);
+  }
+}
+
+function workerTarget() {
+  if (workerWin && !workerWin.closed) return workerWin;
+  if (workerFrame && workerFrame.contentWindow) return workerFrame.contentWindow;
+  return null;
+}
+
+function ensureWorker() {
+  return new Promise(function(resolve, reject) {
+    if (workerReady && workerTarget()) {
+      resolve();
+      return;
+    }
+    bootWorker();
     let n = 0;
     const t = setInterval(function() {
-      if (workerReady) {
+      if (workerReady && workerTarget()) {
         clearInterval(t);
         resolve();
-      } else if (++n > 60) {
+      } else if (++n > 80) {
         clearInterval(t);
-        reject(new Error('Drive worker did not start. Deploy New version of Code.gs.'));
+        reject(new Error('Drive worker did not start. Scan ke time chhota Drive window allow karein, phir Code.gs Deploy New version karein.'));
       }
     }, 200);
   });
@@ -894,6 +911,11 @@ function ensureWorker() {
 function workerCall(action, payload, timeoutMs) {
   return new Promise(function(resolve, reject) {
     ensureWorker().then(function() {
+      const target = workerTarget();
+      if (!target) {
+        reject(new Error('Drive worker window band ho gayi.'));
+        return;
+      }
       const id = 'w' + (++bridgeSeq);
       const timer = setTimeout(function() {
         if (!bridgePending[id]) return;
@@ -908,7 +930,7 @@ function workerCall(action, payload, timeoutMs) {
         }
         resolve(result);
       };
-      workerFrame.contentWindow.postMessage({
+      target.postMessage({
         dp: 1,
         id: id,
         action: action,
