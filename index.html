@@ -53,7 +53,7 @@ button{height:36px;border:0;border-radius:7px;padding:0 10px;font-weight:800;cur
 <div class="app">
   <div class="top">
     <div class="title">DISPATCH PROOF MANAGEMENT</div>
-    <div class="ag">V64 LIVE SCAN</div>
+    <div class="ag">V65 AWB QUERY</div>
   </div>
 
   <div class="tabs">
@@ -364,13 +364,26 @@ async function testCamera() {
 }
 
 const SHEET_ID = '1E5VW0AjcECVcuVFx9geaCHfhbMtefA_ZUC8FB9kxqDs';
+let awbColBySheet = {};
 
-function gvizJsonp(sheetName) {
+function indexToLetter(n) {
+  let s = '';
+  let i = n + 1;
+  while (i > 0) {
+    const r = (i - 1) % 26;
+    s = String.fromCharCode(65 + r) + s;
+    i = Math.floor((i - 1) / 26);
+  }
+  return s;
+}
+
+function gvizQuery(sheetName, tq, timeoutMs) {
   const cb = 'DP50g' + Date.now() + '_' + Math.floor(Math.random() * 100000);
   const url =
     'https://docs.google.com/spreadsheets/d/' + SHEET_ID +
     '/gviz/tq?sheet=' + encodeURIComponent(sheetName) +
-    '&headers=1&tqx=' + encodeURIComponent('out:json;responseHandler:' + cb) +
+    '&headers=1&tq=' + encodeURIComponent(tq || 'select * limit 1') +
+    '&tqx=' + encodeURIComponent('out:json;responseHandler:' + cb) +
     '&_ts=' + Date.now();
 
   return new Promise(function(resolve, reject) {
@@ -379,17 +392,17 @@ function gvizJsonp(sheetName) {
     const timer = setTimeout(function() {
       if (finished) return;
       finished = true;
-      delete window[cb];
-      s.remove();
+      try { delete window[cb]; } catch (e) { window[cb] = function() {}; }
+      if (s.parentNode) s.remove();
       reject(new Error('Sheet lookup timed out'));
-    }, 12000);
+    }, timeoutMs || 5000);
 
     window[cb] = function(data) {
       if (finished) return;
       finished = true;
       clearTimeout(timer);
-      delete window[cb];
-      s.remove();
+      try { delete window[cb]; } catch (e2) { window[cb] = function() {}; }
+      if (s.parentNode) s.remove();
       resolve(data);
     };
 
@@ -397,8 +410,8 @@ function gvizJsonp(sheetName) {
       if (finished) return;
       finished = true;
       clearTimeout(timer);
-      delete window[cb];
-      s.remove();
+      try { delete window[cb]; } catch (e3) { window[cb] = function() {}; }
+      if (s.parentNode) s.remove();
       reject(new Error('Sheet lookup failed'));
     };
 
@@ -460,11 +473,42 @@ function rowToScanResult(r, awb, nextMode) {
   };
 }
 
+async function getAwbCol(sheetName) {
+  if (awbColBySheet[sheetName] != null) return awbColBySheet[sheetName];
+  const data = await gvizQuery(sheetName, 'select * limit 1', 5000);
+  const cols = (data && data.table && data.table.cols) || [];
+  const aliases = ['awb number', 'awb', 'awb no', 'awb no.'];
+  for (let i = 0; i < cols.length; i++) {
+    const lab = String(cols[i].label || '').trim().toLowerCase();
+    if (aliases.indexOf(lab) >= 0) {
+      awbColBySheet[sheetName] = i;
+      return i;
+    }
+  }
+  return -1;
+}
+
 async function lookupAwb(awb, nextMode) {
-  let row = pickOrderRow(parseGviz(await gvizJsonp('Order')), awb);
-  if (!row) row = pickOrderRow(parseGviz(await gvizJsonp('Closed')), awb);
-  if (!row) return { found: false, message: 'AWB not found: ' + awb };
-  return rowToScanResult(row, awb, nextMode);
+  const needle = normalizeAwb(awb);
+  const sheets = ['Order', 'Closed'];
+  let queried = false;
+  for (let s = 0; s < sheets.length; s++) {
+    const name = sheets[s];
+    try {
+      const col = await getAwbCol(name);
+      if (col < 0) continue;
+      const L = indexToLetter(col);
+      const tq = 'select * where ' + L + ' = ' + needle + ' or ' + L + ' = "' + needle + '" limit 5';
+      const data = await gvizQuery(name, tq, 5000);
+      queried = true;
+      const row = pickOrderRow(parseGviz(data), awb);
+      if (row) return rowToScanResult(row, awb, nextMode);
+    } catch (ignore) {}
+  }
+  if (!queried && API_URL) {
+    return jsonpCall('SCAN', {awb: awb, mode: nextMode}, 8000);
+  }
+  return { found: false, message: 'AWB not found: ' + needle };
 }
 
 function jsonpCall(action, data, timeoutMs) {
@@ -538,7 +582,7 @@ function scan() {
   }
 
   note('AWB check…', 'ok');
-  lookupFast(v).then(handleScan).catch(function(err) {
+  lookupAwb(v, mode).then(handleScan).catch(function(err) {
     note(err && err.message ? err.message : 'AWB lookup failed.', 'error');
   });
 }
