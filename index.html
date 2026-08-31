@@ -53,7 +53,7 @@ button{height:36px;border:0;border-radius:7px;padding:0 10px;font-weight:800;cur
 <div class="app">
   <div class="top">
     <div class="title">DISPATCH PROOF MANAGEMENT</div>
-    <div class="ag">V72 FAST SAVE</div>
+    <div class="ag">V73 QUICK SAVE</div>
   </div>
 
   <div class="tabs">
@@ -78,8 +78,7 @@ button{height:36px;border:0;border-radius:7px;padding:0 10px;font-weight:800;cur
   <div class="main">
     <div id="notice" class="notice"></div>
     <div id="info" class="info">
-      Dispatch: scan AWB → order details → recording starts automatically.
-      Scan next AWB to save the previous video and continue.
+      Dispatch: scan AWB → 12 sec clip → next AWB. Previous video saves in background (~10–15 sec).
     </div>
 
     <div id="cameraPanel" class="cameraPanel">
@@ -260,7 +259,7 @@ function setMode(next) {
   $('tabDispatch').classList.toggle('active', mode === 'DISPATCH');
   $('tabProof').classList.toggle('active', mode === 'PROOF');
   $('info').textContent = mode === 'DISPATCH'
-    ? 'Dispatch: scan AWB → order details → recording starts automatically. Scan next AWB to save the previous video and continue.'
+    ? 'Dispatch: scan AWB → 12 sec recording → next AWB. Previous video saves in background (about 10–15 sec).'
     : 'Proof: scan AWB → old Dispatch video opens here. Return video is made from this same tab.';
   clearResult();
   $('awb').focus();
@@ -755,8 +754,8 @@ async function startRecording(r) {
     recorder = mime
       ? new MediaRecorder(stream, {
           mimeType:mime,
-          videoBitsPerSecond:220000,
-          audioBitsPerSecond:24000
+          videoBitsPerSecond:120000,
+          audioBitsPerSecond:16000
         })
       : new MediaRecorder(stream);
   } catch (e) {
@@ -791,7 +790,7 @@ async function startRecording(r) {
   $('timer').textContent = '00:00';
   updateTimer();
 
-  note('● RECORDING STARTED • Scan next AWB to auto-save and continue.', 'ok');
+  note('● RECORDING • max 12 sec. Next AWB scan saves this in background.', 'ok');
   $('awb').value = '';
   $('awb').focus();
 }
@@ -804,6 +803,9 @@ function updateTimer() {
     $('timer').textContent =
       String(Math.floor(sec / 60)).padStart(2,'0') + ':' +
       String(sec % 60).padStart(2,'0');
+    if (sec >= 12 && recorder && recorder.state === 'recording') {
+      stopRecording();
+    }
   }, 250);
 }
 
@@ -1024,25 +1026,26 @@ function submitUpload(payload) {
 
   (async function() {
     try {
-      const size = 28000;
+      const size = 50000;
       const total = Math.ceil(raw.length / size);
       const uploadId = 'u' + Date.now() + '_' + Math.floor(Math.random() * 1000000);
-      const parallel = 3;
+      const parallel = 4;
+      note('Background save • AWB ' + payload.awb, 'ok');
       for (let i = 0; i < total; i += parallel) {
         const batch = [];
         for (let j = 0; j < parallel && i + j < total; j++) {
           const idx = i + j;
-          note('Drive par save ho raha hai… ' + (idx + 1) + '/' + total, 'ok');
+          $('cameraState').textContent = 'Saving ' + (idx + 1) + '/' + total;
           batch.push(formPost({
             phase: 'chunk',
             uploadId: uploadId,
             index: String(idx),
             data: raw.slice(idx * size, (idx + 1) * size)
-          }, 750));
+          }, 400));
         }
         await Promise.all(batch);
       }
-      note('Video Drive par finish ho rahi hai • AWB ' + payload.awb, 'ok');
+      $('cameraState').textContent = 'Finishing save…';
       await formPost({
         phase: 'finish',
         uploadId: uploadId,
@@ -1052,7 +1055,7 @@ function submitUpload(payload) {
         videoType: payload.videoType || 'DISPATCH',
         mimeType: payload.mimeType || 'video/mp4',
         fileName: payload.fileName || ''
-      }, 2800);
+      }, 2000);
       pollSaved(payload.awb, payload.videoType || 'DISPATCH', 0);
     } catch (err) {
       uploadQueue = Math.max(0, uploadQueue - 1);
