@@ -53,7 +53,7 @@ button{height:36px;border:0;border-radius:7px;padding:0 10px;font-weight:800;cur
 <div class="app">
   <div class="top">
     <div class="title">DISPATCH PROOF MANAGEMENT</div>
-    <div class="ag">V70 CONFIRM</div>
+    <div class="ag">V71 POST SAVE</div>
   </div>
 
   <div class="tabs">
@@ -979,6 +979,37 @@ function workerCall(action, payload, timeoutMs) {
   });
 }
 
+function formPost(fields, waitMs) {
+  return new Promise(function(resolve) {
+    let iframe = document.getElementById('dpPostFrame');
+    if (!iframe) {
+      iframe = document.createElement('iframe');
+      iframe.id = 'dpPostFrame';
+      iframe.name = 'DP_POST_FRAME';
+      iframe.style.cssText = 'position:absolute;width:1px;height:1px;left:-9999px;border:0';
+      document.body.appendChild(iframe);
+    }
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = API_URL;
+    form.target = 'DP_POST_FRAME';
+    form.acceptCharset = 'UTF-8';
+    form.style.display = 'none';
+    Object.keys(fields).forEach(function(k) {
+      const area = document.createElement('textarea');
+      area.name = k;
+      area.value = fields[k] == null ? '' : String(fields[k]);
+      form.appendChild(area);
+    });
+    document.body.appendChild(form);
+    form.submit();
+    setTimeout(function() {
+      form.remove();
+      resolve({ ok: true });
+    }, waitMs || 1600);
+  });
+}
+
 function submitUpload(payload) {
   if (!API_URL) {
     uploadQueue = Math.max(0, uploadQueue - 1);
@@ -995,27 +1026,21 @@ function submitUpload(payload) {
 
   (async function() {
     try {
-      const size = 1600;
+      const size = 8000;
       const total = Math.ceil(raw.length / size);
       const uploadId = 'u' + Date.now() + '_' + Math.floor(Math.random() * 1000000);
-      const parallel = 4;
-      for (let i = 0; i < total; i += parallel) {
-        const batch = [];
-        for (let j = 0; j < parallel && i + j < total; j++) {
-          const idx = i + j;
-          note('Drive par save ho raha hai… ' + (idx + 1) + '/' + total, 'ok');
-          batch.push(jsonpCall('CHUNK', {
-            uploadId: uploadId,
-            index: String(idx),
-            data: raw.slice(idx * size, (idx + 1) * size)
-          }, 25000));
-        }
-        const parts = await Promise.all(batch);
-        const bad = parts.find(function(r) { return r && r.ok === false; });
-        if (bad) throw new Error(bad.message || 'chunk failed');
+      for (let i = 0; i < total; i++) {
+        note('Drive par save ho raha hai… ' + (i + 1) + '/' + total, 'ok');
+        await formPost({
+          phase: 'chunk',
+          uploadId: uploadId,
+          index: String(i),
+          data: raw.slice(i * size, (i + 1) * size)
+        }, 1700);
       }
       note('Video Drive par finish ho rahi hai • AWB ' + payload.awb, 'ok');
-      const saved = await jsonpCall('FINISH', {
+      await formPost({
+        phase: 'finish',
         uploadId: uploadId,
         total: String(total),
         awb: payload.awb || '',
@@ -1023,18 +1048,8 @@ function submitUpload(payload) {
         videoType: payload.videoType || 'DISPATCH',
         mimeType: payload.mimeType || 'video/mp4',
         fileName: payload.fileName || ''
-      }, 180000);
-      uploadQueue = Math.max(0, uploadQueue - 1);
-      if (saved && saved.ok === false) {
-        throw new Error(saved.message || 'finish failed');
-      }
-      if (saved && (saved.ok || saved.fileId)) {
-        lastSaved = saved;
-        savedAwbs[normalizeAwb(payload.awb)] = true;
-        note('✓ VIDEO SAVED • ' + payload.awb + ' • Order ' + (saved.orderId || payload.orderId), 'ok');
-        return;
-      }
-      throw new Error('Drive save confirm nahi hua');
+      }, 5000);
+      pollSaved(payload.awb, payload.videoType || 'DISPATCH', 0);
     } catch (err) {
       uploadQueue = Math.max(0, uploadQueue - 1);
       note('VIDEO SAVE ERROR: ' + (err.message || err), 'error');
