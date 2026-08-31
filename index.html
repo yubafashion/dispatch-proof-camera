@@ -1,314 +1,108 @@
 <!doctype html>
-<html>
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>DISPATCH PROOF CAMERA BRIDGE V37</title>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>DISPATCH PROOF MANAGEMENT</title>
 <style>
-*{box-sizing:border-box}body{margin:0;background:#202124;color:#fff;font-family:Arial,sans-serif}.wrap{padding:14px;max-width:760px;margin:auto}h2{margin:0 0 4px;font-size:20px}.sub{font-size:12px;color:#c9cacc;margin-bottom:10px}.bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}button{border:0;border-radius:7px;padding:10px 14px;font-weight:700;cursor:pointer}button:disabled{opacity:.5;cursor:not-allowed}.blue{background:#1a73e8;color:#fff}.red{background:#d93025;color:#fff}.gray{background:#e8eaed;color:#202124}select{height:38px;border-radius:7px;border:0;padding:0 8px;min-width:220px}video{display:block;width:100%;max-height:440px;background:#000;border-radius:10px;margin-top:12px}.status{margin-top:10px;background:#303134;border-radius:8px;padding:9px;font-size:13px}.meta{font-size:12px;color:#c9cacc;margin-top:8px}.recstate{margin-top:10px;background:#3a1f22;color:#ff6b6b;border-radius:8px;padding:9px;font-size:14px;font-weight:700;display:none}.rectimer{float:right;color:#fff}.diag{margin-top:8px;padding:8px;background:#171717;border-radius:7px;font-size:11px;line-height:1.45;color:#c9cacc}.ok{color:#81c995}.bad{color:#f28b82}
-</style>
-<style>
-/* V46 MANAGEMENT EMBED: never render a second management UI inside the parent. */
-body.embed-camera-only{background:#111;overflow:hidden}.embed-camera-only .wrap{padding:0;max-width:none;width:100%;height:100vh}.embed-camera-only .wrap>*{display:none!important}.embed-camera-only #preview{display:block!important;width:100vw;height:100vh;max-height:none;margin:0;border-radius:0;object-fit:contain;background:#000}.embed-camera-only #status{display:block!important;position:fixed;left:10px;right:10px;bottom:10px;margin:0;background:rgba(0,0,0,.65);color:#fff;z-index:5}.embed-camera-only #recstate{display:none!important}.embed-camera-only #meta,.embed-camera-only .diag{display:none!important}</style>
-
-<style>
-/* V46.2 DIRECT CAMERA: top-level HTTPS camera window; no second management UI. */
-.external-camera-only{background:#000;overflow:hidden}.external-camera-only .wrap{padding:0;max-width:none;width:100%;height:100vh}.external-camera-only .wrap>*{display:none!important}.external-camera-only #preview{display:block!important;width:100vw;height:100vh;max-height:none;margin:0;border-radius:0;object-fit:contain;background:#000}.external-camera-only #status{display:none!important}
-</style>
-</head>
-<body>
-<div class="wrap">
-  <h2>🎥 DISPATCH PROOF CAMERA</h2>
-  <div class="sub">External camera bridge • webcam access • recording • V37 DIRECT LINK OPENER CAMERA</div>
-  <div class="meta" id="modeBadge">READY MODE • CAMERA WINDOW OPEN</div>
-  <div class="bar">
-    <select id="cameraSelect"></select>
-    <button class="gray" id="refresh">REFRESH CAMERA</button>
-    <button class="red" id="stop" style="display:none">■ STOP & SAVE</button>
-    <button class="gray" id="close">CLOSE</button>
-  </div>
-  <video id="preview" autoplay muted playsinline></video>
-  <div id="status" class="status">Connecting to Dispatch Proof...</div>
-  <div id="recstate" class="recstate">● RECORDING <span id="rectimer" class="rectimer">00:00</span></div>
-  <div id="meta" class="meta"></div>
-  <div class="diag">
-    <div>Parent connection: <span id="parentState" class="bad">WAITING</span></div>
-    <div>Camera: <span id="cameraState" class="bad">STARTING</span></div>
-    <div>Recording: <span id="recordState" class="bad">NO</span></div>
-  </div>
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;font-family:Arial,sans-serif;background:#f4f6f8;color:#202124}button,input,select{font:inherit}
+.top{background:#fff;padding:10px 14px;text-align:center;border-bottom:1px solid #d9dee5}.title{font-size:21px;font-weight:800}.ag{font-size:11px;font-weight:800;letter-spacing:2px;color:#5f6368;margin-top:2px}
+.tabs{display:flex;background:#fff;border-bottom:1px solid #d9dee5}.tab{flex:1;padding:11px;text-align:center;font-weight:800;cursor:pointer}.active{background:#202124;color:#fff}
+.tools,.scan{background:#fff;padding:8px 12px;display:flex;gap:8px;align-items:center;border-bottom:1px solid #d9dee5}.tools select{height:36px;min-width:240px;border:1px solid #bdc5d1;border-radius:7px;padding:0 8px}.status{font-size:12px;color:#5f6368}
+input{flex:1;height:42px;border:1px solid #b7c0cc;border-radius:7px;padding:0 12px;font-size:16px}button{height:38px;border:0;border-radius:7px;padding:0 13px;font-weight:800;cursor:pointer}.primary{background:#1a73e8;color:#fff}.gray{background:#e8eaed}.red{background:#d93025;color:#fff}.green{background:#188038;color:#fff}.orange{background:#f9ab00;color:#111}
+.notice{margin:8px 12px;padding:9px 11px;background:#fff8e1;color:#6b4e00;border-radius:7px;font-size:12px}.notice.err{background:#fce8e6;color:#b31412}.notice.ok{background:#e6f4ea;color:#137333}
+.main{padding:8px 12px}.cameraBox{background:#111;border-radius:9px;min-height:430px;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative}.cameraBox video{width:100%;height:430px;object-fit:contain;background:#000}.cameraPrompt{color:#fff;text-align:center;font-weight:800;font-size:18px;padding:25px}.recBar{position:absolute;left:10px;right:10px;top:10px;display:none;justify-content:space-between;color:#fff;font-weight:800;text-shadow:0 1px 2px #000}.live{color:#ff6b6b}.card{background:#fff;border:1px solid #dfe3e8;border-radius:8px;padding:11px;margin-top:8px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}.label{font-size:10px;color:#6b7280}.value{font-weight:800;margin-top:2px}.ready{color:#188038}.required{color:#d93025}.controls{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}.videoBox{background:#111;color:#fff;border-radius:8px;padding:8px;margin-top:8px}.videoBox video{width:100%;max-height:280px}.muted{color:#6b7280;font-size:11px}
+</style></head><body>
+<div class="top"><div class="title">🎥 DISPATCH PROOF MANAGEMENT</div><div class="ag">AG</div></div>
+<div class="tabs"><div id="td" class="tab active">🎥 MAKE DISPATCH VIDEO</div><div id="tp" class="tab">🎥 VIDEO PROOF</div></div>
+<div class="tools"><b>CAMERA</b><select id="cams"></select><button class="gray" id="refreshCam">REFRESH CAMERA</button><button class="primary" id="testCam">TEST CAMERA</button><span id="camState" class="status">Camera not started</span></div>
+<div class="scan"><input id="awb" placeholder="SCAN AWB BARCODE..." autocomplete="off"><button class="primary" id="scanBtn">SCAN</button><button class="gray" id="clearBtn">REFRESH</button></div>
+<div id="notice" class="notice">Click TEST CAMERA once, allow camera, and wait for CAMERA READY.</div>
+<div class="main">
+<div class="cameraBox"><div id="prompt" class="cameraPrompt">CLICK TEST CAMERA ONCE<br>THEN ALLOW CAMERA</div><video id="preview" autoplay muted playsinline></video><div id="recBar" class="recBar"><span class="live">● RECORDING</span><span id="timer">00:00</span></div></div><div class="controls"><button class="red" id="stopSaveBtn" disabled>STOP &amp; SAVE</button><span id="saveState" class="muted">Emergency/manual save is available while recording.</span></div>
+<div id="info" class="card"><span class="muted">Scan one AWB. Nothing else is loaded.</span></div>
+<div id="result"></div>
 </div>
 <script>
-'use strict';
-
-const qs=new URLSearchParams(location.search);
-window.name='DISPATCH_PROOF_CAMERA';
-const BRIDGE_VERSION='V46_2_DIRECT_CAMERA_20260831';
-const EMBED_BUILD='V46_2_EXTERNAL_CAMERA_20260831';
-const embedMode=new URLSearchParams(location.search).get('embed')==='1';
-const externalMode=new URLSearchParams(location.search).get('external')==='1';
-if(embedMode) document.body.classList.add('embed-camera-only');
-if(externalMode) document.body.classList.add('external-camera-only');
-const openerRef=window.opener||((window.parent&&window.parent!==window)?window.parent:null);
-const bridgeId=qs.get('session')||('bridge_'+Date.now()+'_'+Math.random().toString(36).slice(2));
-const mode=(qs.get('mode')||'READY').toUpperCase();
-const urlSession={
-  awb:qs.get('awb')||'',
-  orderId:qs.get('orderId')||'',
-  status:qs.get('status')||'',
-  videoType:(qs.get('videoType')||'DISPATCH').toUpperCase()
-};
-
-const preview=document.getElementById('preview');
-const cameraSelect=document.getElementById('cameraSelect');
-const status=document.getElementById('status');
-const meta=document.getElementById('meta');
-const recState=document.getElementById('recstate');
-const recTimer=document.getElementById('rectimer');
-const stopBtn=document.getElementById('stop');
-const parentState=document.getElementById('parentState');
-const cameraState=document.getElementById('cameraState');
-const recordState=document.getElementById('recordState');
-const modeBadge=document.getElementById('modeBadge');
-
-let stream=null;
-let recorder=null;
-let chunks=[];
-let selectedCameraId=localStorage.getItem('DP21_CAMERA_ID')||'';
-let parentConnected=!!openerRef;
-let trustedParentOrigin='';
-let readySent=false;
-let recordingStartedAt=0;
-let uiTimer=null;
-let starting=false;
-let currentSession=null;
-let lastStartCommandId='';
-let pendingStart=null;
-let currentVideoId='';
-let videoAcked=false;
-let videoRetryTimer=null;
-let orphanTimer=null;
-
-function setParentState(ok,text){parentConnected=!!ok;parentState.textContent=text|| (ok?'LINKED':'NO OPENER');parentState.className=ok?'ok':'bad';}
-function setCameraState(ok,text){cameraState.textContent=text||'';cameraState.className=ok?'ok':'bad';}
-function setRecordState(ok,text){recordState.textContent=text|| (ok?'YES':'NO');recordState.className=ok?'ok':'bad';}
-function cleanTracks(){if(stream){stream.getTracks().forEach(t=>{try{t.stop()}catch(e){}});stream=null;}preview.srcObject=null;setCameraState(false,'OFF');}
-function closeSelf(){
-  if(uiTimer){clearInterval(uiTimer);uiTimer=null;}
-  if(videoRetryTimer){clearInterval(videoRetryTimer);videoRetryTimer=null;}
-  cleanTracks();
-  try{window.close()}catch(e){}
+const BRIDGE_ORIGIN='https://script.google.com';
+const EXPECTED_VERSION=new URLSearchParams(location.search).get('bridgeVersion')||'';
+let bridge=null, mode='DISPATCH', stream=null, recorder=null, chunks=[], current=null, pendingScan=null, req=0, waiting=new Map(), timer=null, startedAt=0, saving=false;
+const $=id=>document.getElementById(id);
+function msg(text,kind=''){const n=$('notice');n.textContent=text;n.className='notice '+kind}
+function request(type,data={}){return new Promise((resolve,reject)=>{const id='r'+(++req)+'_'+Date.now();waiting.set(id,{resolve,reject});bridge.postMessage(Object.assign({source:'DISPATCH_PROOF_EXTERNAL_MANAGEMENT',type,requestId:id},data),'*');setTimeout(()=>{if(waiting.has(id)){waiting.delete(id);reject(new Error('No response from Sheet bridge.'))}},30000)})}
+function setCamState(t){$('camState').textContent=t}
+function connectBridge(){
+  if(!window.opener){msg('Management was not opened from DISPATCH PROOF. Close this window and open it from the Sheet menu.','err');return}
+  bridge=window.opener;
+  bridge.postMessage({source:'DISPATCH_PROOF_EXTERNAL_MANAGEMENT',type:'MANAGEMENT_READY',version:EXPECTED_VERSION},'*');
 }
-function sendParent(type,extra){
-  if(!openerRef || openerRef.closed) return false;
-  const msg=Object.assign({source:'DISPATCH_PROOF_CAMERA_BRIDGE',type:type,bridgeId:bridgeId,version:BRIDGE_VERSION},extra||{});
-  try{openerRef.postMessage(msg,'*');return true;}catch(e){return false;}
-}
-function errText(e){
-  const n=e&&e.name?e.name:'';const m=e&&e.message?e.message:String(e||'Unknown error');
-  if(n==='NotAllowedError'||n==='PermissionDeniedError')return 'Camera permission denied. Allow camera access for this camera window.';
-  if(n==='NotFoundError'||n==='DevicesNotFoundError')return 'No webcam found.';
-  if(n==='NotReadableError'||n==='TrackStartError')return 'Webcam is busy. Close other apps using the camera.';
-  if(n==='OverconstrainedError')return 'Selected camera is unavailable. Refresh the camera list.';
-  return m;
-}
-
-async function enumerateCameras(){
-  try{
-    if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)throw new Error('Camera API is not available in this browser.');
-    let ds=await navigator.mediaDevices.enumerateDevices();
-    let cams=ds.filter(d=>d.kind==='videoinput');
-    if(!cams.length){
-      let t=null;try{t=await navigator.mediaDevices.getUserMedia({video:true,audio:false});}finally{if(t)t.getTracks().forEach(x=>x.stop());}
-      ds=await navigator.mediaDevices.enumerateDevices();cams=ds.filter(d=>d.kind==='videoinput');
-    }
-    cameraSelect.innerHTML='';
-    if(!cams.length){status.textContent='No camera detected.';setCameraState(false,'NONE');sendParent('CAMERA_ERROR',{message:'No webcam detected.'});return[];}
-    cams.forEach(function(c,i){const o=document.createElement('option');o.value=c.deviceId;o.textContent=c.label||('Camera '+(i+1));cameraSelect.appendChild(o);});
-    if(!cams.some(c=>c.deviceId===selectedCameraId))selectedCameraId=cams[0].deviceId;
-    cameraSelect.value=selectedCameraId;
-    sendParent('CAMERA_LIST',{cameras:cams.map(function(c){return {deviceId:c.deviceId,label:c.label||''};}),selectedCameraId:selectedCameraId});
-    return cams;
-  }catch(e){status.textContent='Camera error: '+errText(e);setCameraState(false,'ERROR');sendParent('CAMERA_ERROR',{message:errText(e)});return[];}
-}
-
-async function openCamera(){
-  try{
-    if(stream&&stream.getTracks().some(t=>t.readyState==='live')){preview.srcObject=stream;return true;}
-    const constraints=selectedCameraId?{video:{deviceId:{exact:selectedCameraId}},audio:true}:{video:true,audio:true};
-    try{stream=await navigator.mediaDevices.getUserMedia(constraints);}catch(first){stream=await navigator.mediaDevices.getUserMedia(selectedCameraId?{video:{deviceId:{exact:selectedCameraId}},audio:false}:{video:true,audio:false});}
-    preview.srcObject=stream;
-    await preview.play().catch(()=>{});
-    setCameraState(true,'READY');
-    status.textContent=mode==='RECORD' ? 'Camera ready ✓ • STARTING RECORDING...' : 'Camera ready ✓ • READY FOR AWB';
-    // Permission is now granted, so device labels become available.
-    try{await enumerateCameras();}catch(e){}
-    sendParent('CAMERA_READY',{recording:false,embedBuild:EMBED_BUILD});
-    return true;
-  }catch(e){status.textContent='Camera error: '+errText(e);setCameraState(false,'ERROR');sendParent('CAMERA_ERROR',{message:errText(e)});return false;}
-}
-
-function confirmRecordingStarted(){
-  if(!recorder||recorder.state!=='recording')return false;
-  starting=false;
-  stopBtn.style.display='inline-block';
-  status.textContent='● RECORDING';
-  recState.style.display='block';
-  setRecordState(true,'YES');
-  recordingStartedAt=Date.now();
-  if(uiTimer)clearInterval(uiTimer);
-  uiTimer=setInterval(function(){
-    if(!recorder||recorder.state!=='recording')return;
-    const sec=Math.floor((Date.now()-recordingStartedAt)/1000);
-    recTimer.textContent=String(Math.floor(sec/60)).padStart(2,'0')+':'+String(sec%60).padStart(2,'0');
-  },250);
-  sendParent('RECORDING_STARTED',{awb:currentSession&&currentSession.awb||'',orderId:currentSession&&currentSession.orderId||'',videoType:currentSession&&currentSession.videoType||'DISPATCH',startedAt:recordingStartedAt,commandId:lastStartCommandId});
-  return true;
-}
-
-async function startRecording(s,commandId){
-  if(recorder&&recorder.state==='recording'){
-    confirmRecordingStarted();
-    return;
-  }
-  if(starting)return;
-  starting=true;
-  currentSession={awb:String(s&&s.awb||''),orderId:String(s&&s.orderId||''),status:String(s&&s.status||''),videoType:String(s&&s.videoType||'DISPATCH').toUpperCase()};
-  lastStartCommandId=String(commandId||lastStartCommandId||('start_'+Date.now()));
-  pendingStart=null;
-  try{
-    if(!stream||!stream.getTracks().some(t=>t.readyState==='live')){const ok=await openCamera();if(!ok)throw new Error('Camera stream is not ready.');}
-    chunks=[];currentVideoId='';videoAcked=false;
-    const opts=['video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm'];
-    let mime='';for(const x of opts){if(window.MediaRecorder&&MediaRecorder.isTypeSupported&&MediaRecorder.isTypeSupported(x)){mime=x;break;}}
-    if(!window.MediaRecorder)throw new Error('MediaRecorder is not supported in this browser.');
-    recorder=mime?new MediaRecorder(stream,{mimeType:mime}):new MediaRecorder(stream);
-    recorder.ondataavailable=function(e){if(e.data&&e.data.size)chunks.push(e.data);};
-    recorder.onerror=function(e){starting=false;setRecordState(false,'ERROR');status.textContent='Recording error.';sendParent('CAMERA_ERROR',{message:'Recording error: '+errText(e.error||e)});};
-    recorder.onstart=function(){confirmRecordingStarted();};
-    recorder.onstop=function(){
-      starting=false;
-      if(uiTimer){clearInterval(uiTimer);uiTimer=null;}
-      const blob=new Blob(chunks,{type:(chunks[0]&&chunks[0].type)||mime||'video/webm'});
-      const awb=currentSession&&currentSession.awb||'VIDEO';
-      const type=currentSession&&currentSession.videoType||'DISPATCH';
-      const name=awb+'_'+type+'.webm';
-      stopBtn.style.display='none';recState.style.display='none';recTimer.textContent='00:00';setRecordState(false,'NO');
-      if(!blob.size){recorder=null;chunks=[];status.textContent='Recording produced an empty video.';sendParent('CAMERA_ERROR',{message:'Recording stopped but produced an empty video file.'});return;}
-      currentVideoId='video_'+Date.now()+'_'+Math.random().toString(36).slice(2);
-      const payload={source:'DISPATCH_PROOF_CAMERA_BRIDGE',type:'VIDEO_READY',bridgeId:bridgeId,videoId:currentVideoId,blob:blob,fileName:name,awb:awb,orderId:currentSession&&currentSession.orderId||'',videoType:type};
-      status.textContent='Recording stopped. Sending video...';
-      let attempts=0;
-      if(videoRetryTimer)clearInterval(videoRetryTimer);
-      function sendVideo(){
-        if(videoAcked){clearInterval(videoRetryTimer);videoRetryTimer=null;return;}
-        if(!openerRef||openerRef.closed){clearInterval(videoRetryTimer);videoRetryTimer=null;return;}
-        try{openerRef.postMessage(payload,trustedParentOrigin||'*');}catch(e){}
-        attempts++;if(attempts>=12){clearInterval(videoRetryTimer);videoRetryTimer=null;status.textContent='Video delivery acknowledgement timed out.';}
-      }
-      sendVideo();videoRetryTimer=setInterval(sendVideo,500);
-      recorder=null;chunks=[];
-    };
-    recorder.start(1000);
-    if(recorder.state!=='recording')throw new Error('MediaRecorder did not enter recording state.');
-    confirmRecordingStarted();
-  }catch(e){starting=false;recorder=null;setRecordState(false,'ERROR');status.textContent='Recording error: '+errText(e);sendParent('CAMERA_ERROR',{message:'Recording error: '+errText(e)});}
-}
-
-function stopRecording(){if(recorder&&recorder.state==='recording'){try{recorder.stop()}catch(e){}return true;}return false;}
-
-cameraSelect.onchange=function(){
-  selectedCameraId=this.value;localStorage.setItem('DP21_CAMERA_ID',selectedCameraId);
-  if(!(recorder&&recorder.state==='recording')){cleanTracks();openCamera();}
-};
-document.getElementById('refresh').onclick=async function(){await enumerateCameras();await openCamera();};
-stopBtn.onclick=function(){stopRecording();};
-document.getElementById('close').onclick=function(){if(recorder&&recorder.state==='recording'){status.textContent='Stop the recording before closing.';return;}sendParent('BRIDGE_CLOSED');closeSelf();};
-
-window.addEventListener('message',async function(event){
-  const d=event.data||{};
-  if(!d||d.source!=='DISPATCH_PROOF_PARENT')return;
-  if(!openerRef||event.source!==openerRef)return;
-  if(d.bridgeId && String(d.bridgeId)!==String(bridgeId))return;
-  parentConnected=true;
-  trustedParentOrigin=event.origin;
-  setParentState(true,'CONNECTED');
-  if(d.type==='TEST_CAMERA' || d.type==='REFRESH_CAMERA'){
-    if(!(recorder&&recorder.state==='recording')){
-      await enumerateCameras();
-      await openCamera();
-      // Reply again so the parent cannot miss the initial load handshake.
-      sendParent('CAMERA_READY',{recording:!!(recorder&&recorder.state==='recording'),embedBuild:EMBED_BUILD});
-    }
-    return;
-  }
-  if(d.type==='SET_CAMERA'){
-    if(recorder&&recorder.state==='recording')return;
-    selectedCameraId=String(d.deviceId||'');
-    localStorage.setItem('DP21_CAMERA_ID',selectedCameraId);
-    await enumerateCameras();
-    await openCamera();
-    return;
-  }
-  if(d.type==='START_RECORDING'){
-    const commandId=String(d.commandId||('start_'+Date.now()));
-    const s=d.session||{};
-    sendParent('COMMAND_RECEIVED',{command:'START_RECORDING',commandId:commandId});
-    status.textContent='● RECORD COMMAND RECEIVED • STARTING...';
-    if(recorder&&recorder.state==='recording'){
-      sendParent('RECORDING_STARTED',{awb:currentSession&&currentSession.awb||'',orderId:currentSession&&currentSession.orderId||'',videoType:currentSession&&currentSession.videoType||'DISPATCH',startedAt:recordingStartedAt,commandId:commandId});
-      return;
-    }
-    if(commandId===lastStartCommandId && starting)return;
-    lastStartCommandId=commandId;
-    pendingStart=s;
-    startRecording(s,commandId);
-    return;
-  }
-  if(d.type==='STOP_RECORDING'){
-    stopRecording();
-    return;
-  }
-  if(d.type==='VIDEO_ACK'){
-    if(d.videoId&&String(d.videoId)===String(currentVideoId)){
-      videoAcked=true;
-      if(videoRetryTimer){clearInterval(videoRetryTimer);videoRetryTimer=null;}
-      currentVideoId='';currentSession=null;
-      status.textContent=mode==='RECORD' ? 'Camera ready ✓ • STARTING RECORDING...' : 'Camera ready ✓ • READY FOR AWB';
-      return;
-    }
-  }
+window.addEventListener('message',e=>{
+  if(e.source!==bridge)return; const d=e.data||{}; if(d.source!=='DISPATCH_PROOF_SHEET_BRIDGE')return;
+  if(d.type==='BRIDGE_READY'){setCamState('Management bridge connected');msg('Bridge connected. Click TEST CAMERA.','ok');return}
+  const p=waiting.get(d.requestId); if(p){waiting.delete(d.requestId); if(d.type==='ERROR')p.reject(new Error(d.message||'Bridge error')); else p.resolve(d.result)}
 });
-
-window.addEventListener('pagehide',function(){
-  if(uiTimer){clearInterval(uiTimer);uiTimer=null;}
-  if(videoRetryTimer){clearInterval(videoRetryTimer);videoRetryTimer=null;}
-  cleanTracks();
-});
-
-(async function init(){
-  setParentState(!!openerRef,openerRef?'LINKED':'NO PARENT LINK');
-  meta.textContent='Bridge ID: '+bridgeId+' • '+BRIDGE_VERSION;
-
-  const cams=await enumerateCameras();
-  if(!cams.length)return;
-
-  const ok=await openCamera();
-  if(!ok)return;
-
-  if(mode==='RECORD' && urlSession.awb){
-    modeBadge.textContent='RECORD MODE • AWB '+urlSession.awb;
-    meta.textContent='AWB: '+urlSession.awb+' • Order ID: '+urlSession.orderId+' • '+BRIDGE_VERSION;
-    status.textContent='Camera ready ✓ • STARTING RECORDING...';
-    setTimeout(function(){
-      if(!(recorder&&recorder.state==='recording') && !starting){
-        startRecording(urlSession,'url_'+Date.now());
-      }
-    },150);
-  }else{
-    modeBadge.textContent='READY MODE • CAMERA WINDOW OPEN';
-    meta.textContent='Bridge ID: '+bridgeId+' • '+BRIDGE_VERSION;
-  }
-})();
-</script>
-</body>
-</html>
+async function refreshCameras(){
+  if(!navigator.mediaDevices||!navigator.mediaDevices.enumerateDevices){msg('Camera API is unavailable in this browser.','err');return}
+  try{const ds=await navigator.mediaDevices.enumerateDevices();$('cams').innerHTML='';ds.filter(x=>x.kind==='videoinput').forEach((d,i)=>{const o=document.createElement('option');o.value=d.deviceId;o.textContent=d.label||('Camera '+(i+1));$('cams').appendChild(o)})}catch(e){msg('Camera list error: '+e.message,'err')}
+}
+async function startCamera(){
+  if(stream){setCamState('Camera ready ✓');return true}
+  try{
+    setCamState('Requesting camera permission...'); msg('Allow camera access in the browser prompt, then wait for CAMERA READY.');
+    stream=await navigator.mediaDevices.getUserMedia({video:{deviceId:$('cams').value?{exact:$('cams').value}:undefined,width:{ideal:1280},height:{ideal:720},facingMode:'environment'},audio:true});
+    $('preview').srcObject=stream;$('prompt').style.display='none';await $('preview').play().catch(()=>{});await refreshCameras();setCamState('Camera ready ✓');msg('CAMERA READY ✓ — LIVE PREVIEW is active.','ok');return true;
+  }catch(e){stream=null;setCamState('Camera permission/error');msg('Camera could not start: '+e.name+' — '+e.message,'err');return false}
+}
+async function stopStream(){if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;$('preview').srcObject=null;$('prompt').style.display='block';setCamState('Camera stopped')}}
+function startTimer(){startedAt=Date.now();$('timer').textContent='00:00';clearInterval(timer);timer=setInterval(()=>{const s=Math.floor((Date.now()-startedAt)/1000);$('timer').textContent=String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0')},250)}
+function stopTimer(){clearInterval(timer);timer=null;$('timer').textContent='00:00'}
+function setSaveUi(active,text){$('stopSaveBtn').disabled=!active;$('saveState').textContent=text||'Emergency/manual save is available while recording.'}
+async function beginRecording(r){
+  if(saving){msg('VIDEO SAVE is still in progress. Please wait.','err');return}
+  if(!stream){if(!(await startCamera()))return}
+  current=r;chunks=[];
+  let options={}; if(MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus'))options.mimeType='video/webm;codecs=vp9,opus'; else if(MediaRecorder.isTypeSupported('video/webm;codecs=vp8,opus'))options.mimeType='video/webm;codecs=vp8,opus';
+  try{recorder=new MediaRecorder(stream,options)}catch(e){msg('Recorder error: '+e.message,'err');return}
+  recorder.ondataavailable=e=>{if(e.data&&e.data.size)chunks.push(e.data)};
+  recorder.onstop=async()=>{
+    stopTimer();$('recBar').style.display='none';setSaveUi(false,'Saving video...');
+    const blob=new Blob(chunks,{type:recorder.mimeType||'video/webm'});const save=current;recorder=null;chunks=[];
+    if(!save){setSaveUi(false);return}
+    saving=true;msg('VIDEO SAVING — please wait...');
+    try{
+      const r=await request('SAVE_VIDEO',{awb:save.awb,orderId:save.orderId,status:save.status,videoType:save.videoType,fileName:save.awb+'_'+save.videoType+'_'+Date.now()+'.webm',blob});
+      renderSaved(r);msg('✓ VIDEO SAVED • '+save.awb,'ok');
+      if(pendingScan){const n=pendingScan;pendingScan=null;await handleScan(n.awb,n.mode,true)}
+    }catch(e){msg('VIDEO SAVE ERROR: '+e.message,'err')}
+    finally{saving=false;setSaveUi(false,'Emergency/manual save is available while recording.');}
+  };
+  recorder.start(250);$('recBar').style.display='flex';setSaveUi(true,'Recording active — STOP & SAVE is available.');startTimer();msg('● RECORDING STARTED — scan next AWB to auto-save, or use STOP & SAVE for emergency/manual save.','ok');
+}
+function stopRecording(){if(recorder&&recorder.state==='recording'){setSaveUi(false,'Saving video...');recorder.stop()}}
+function emergencySave(){
+  if(!recorder||recorder.state!=='recording'){msg('No active recording to save.');return}
+  if(saving)return;
+  pendingScan=null;
+  msg('EMERGENCY SAVE — stopping current recording and saving it now...','ok');
+  stopRecording();
+}
+async function scan(){const v=$('awb').value.trim();if(!v){msg('Please scan AWB.');return}const m=mode;if(recorder&&recorder.state==='recording'){pendingScan={awb:v,mode:m};msg('Saving previous AWB before starting the new AWB...');stopRecording();return}
+  if(saving){msg('Previous video is still saving. Please wait until VIDEO SAVED.','err');return}await handleScan(v,m,false)}
+async function handleScan(v,m,afterSave){
+  $('awb').value='';
+  try{const r=await request('SCAN_AWB',{awb:v,mode:m}); if(!r||!r.found){msg(r&&r.message?r.message:'AWB not found.','err');return}
+    if(r.terminal){renderResult(r);msg('This order is already delivered successfully. No video proof is required.');return}
+    if(m==='DISPATCH'){renderDispatch(r);await beginRecording({awb:r.awb,orderId:r.orderId,status:r.status||'',videoType:'DISPATCH'});}
+    else {renderProof(r)}
+  }catch(e){msg(e.message,'err')}
+}
+function renderDispatch(r){$('info').innerHTML='<div class="grid"><div><div class="label">DATE</div><div class="value">'+esc(r.date)+'</div></div><div><div class="label">ORDER ID</div><div class="value">'+esc(r.orderId)+'</div></div><div><div class="label">AWB</div><div class="value">'+esc(r.awb)+'</div></div><div><div class="label">DISPATCH TYPE</div><div class="value">'+esc(r.dispatchType)+'</div></div></div>'}
+function renderProof(r){let h='<div class="card"><div class="grid"><div><div class="label">ORDER ID</div><div class="value">'+esc(r.orderId)+'</div></div><div><div class="label">AWB</div><div class="value">'+esc(r.awb)+'</div></div><div><div class="label">LIVE STATUS</div><div class="value">'+esc(r.status||'')+'</div></div><div><div class="label">DISPATCH VIDEO</div><div class="value '+(r.dispatchVideo?'ready':'required')+'">'+(r.dispatchVideo?'VIDEO READY':'NOT AVAILABLE')+'</div></div></div>';
+if(r.dispatchVideo)h+='<div class="videoBox"><b>DISPATCH VIDEO</b><video controls playsinline src="'+esc(r.dispatchVideo.downloadUrl)+'"></video><div class="controls"><a class="primary" href="'+esc(r.dispatchVideo.downloadUrl)+'" target="_blank">DOWNLOAD</a></div></div>';
+if(r.returnVideo)h+='<div class="videoBox"><b>RETURN VIDEO • READY</b><video controls playsinline src="'+esc(r.returnVideo.downloadUrl)+'"></video></div>';else if(r.status)h+='<div class="controls"><button class="orange" onclick="makeReturn('+js(r.awb)+','+js(r.orderId)+','+js(r.status)+')">MAKE RETURN VIDEO</button></div>';
+h+='</div>';$('result').innerHTML=h}
+async function makeReturn(awb,orderId,status){if(recorder){msg('Stop current recording first.');return}await beginRecording({awb:String(awb),orderId:String(orderId||''),status:String(status||''),videoType:'RETURN'})}
+function renderSaved(r){$('result').innerHTML='<div class="card"><b class="ready">VIDEO READY • '+esc(r.awb)+'</b><div class="muted">'+esc(r.fileName||'')+'</div></div>'}
+function renderResult(r){$('result').innerHTML='<div class="card"><b>'+esc(r.message||'No video proof required.')+'</b></div>'}
+function esc(v){return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;')}
+function js(v){return JSON.stringify(String(v==null?'':v))}
+$('testCam').onclick=startCamera;$('refreshCam').onclick=async()=>{if(recorder){msg('Recording is active. Use STOP & SAVE first.');return}await stopStream();await refreshCameras()};$('stopSaveBtn').onclick=emergencySave;$('scanBtn').onclick=scan;$('clearBtn').onclick=()=>{$('awb').value='';$('result').innerHTML='';msg('Ready for next AWB.');$('awb').focus()};$('awb').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();scan()}});
+$('td').onclick=()=>{if(recorder){msg('Recording active.');return}mode='DISPATCH';$('td').classList.add('active');$('tp').classList.remove('active');msg('DISPATCH mode — scan AWB to start recording.')};$('tp').onclick=()=>{if(recorder){msg('Recording active.');return}mode='PROOF';$('tp').classList.add('active');$('td').classList.remove('active');msg('VIDEO PROOF mode — scan AWB to load proof.')};
+connectBridge();refreshCameras();$('awb').focus();
+</script></body></html>
