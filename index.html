@@ -1,126 +1,766 @@
 <!doctype html>
-<html lang="en">
+<html>
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>DISPATCH PROOF CAMERA</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>DISPATCH PROOF MANAGEMENT</title>
 <style>
-*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#111;color:#fff;font-family:Arial,sans-serif}
-.wrap{height:100%;display:flex;flex-direction:column;background:#111}
-.head{height:48px;display:flex;align-items:center;justify-content:space-between;padding:0 12px;background:#202124;border-bottom:1px solid #3a3a3a}
-.brand{font-weight:800;font-size:15px}.state{font-size:11px;color:#b9c0c8}
-.main{position:relative;flex:1;min-height:0;background:#000;display:flex;align-items:center;justify-content:center}
-video{width:100%;height:100%;object-fit:cover;background:#000}
-.empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:20px;color:#b9c0c8;background:#111}
-.controls{position:absolute;left:0;right:0;bottom:0;padding:10px;display:flex;gap:8px;align-items:center;justify-content:center;background:linear-gradient(transparent,rgba(0,0,0,.9))}
-button{border:0;border-radius:8px;padding:10px 15px;font-weight:800;cursor:pointer}.allow{background:#1a73e8;color:#fff}.stop{background:#d93025;color:#fff}.secondary{background:#e8eaed;color:#202124}
-.rec{position:absolute;left:10px;top:10px;background:rgba(0,0,0,.75);padding:7px 10px;border-radius:8px;font-weight:800;font-size:13px}.timer{margin-left:8px;color:#fff}.live{color:#ff6b6b}
-.foot{height:34px;background:#202124;display:flex;align-items:center;justify-content:center;font-size:10px;color:#9aa0a6}
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;font-family:Arial,sans-serif;background:#e9edf2;color:#202124}
+body{padding:8px;overflow:auto}
+.app{width:min(980px,100%);min-height:calc(100vh - 16px);margin:0 auto;background:#f4f6f8;border:1px solid #cfd5dc;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,.12);overflow:hidden}
+.top{background:#fff;padding:8px 10px;border-bottom:1px solid #d9dee5;text-align:center}
+.title{font-size:18px;font-weight:800;line-height:1.1}
+.ag{font-size:10px;font-weight:800;letter-spacing:1.5px;color:#5f6368;margin-top:2px}
+.tabs{display:flex;background:#fff;border-bottom:1px solid #d9dee5}
+.tab{flex:1;text-align:center;padding:9px 5px;font-size:12px;font-weight:800;cursor:pointer}
+.tab.active{background:#202124;color:#fff}
+.tools{display:flex;gap:6px;align-items:center;background:#fff;padding:6px 8px;border-bottom:1px solid #d9dee5}
+.tools b{font-size:10px}
+select{height:34px;min-width:150px;max-width:220px;border:1px solid #aeb7c4;border-radius:7px;padding:0 6px;background:#fff}
+.status{font-size:10px;color:#5f6368;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.scan{display:flex;gap:6px;background:#fff;padding:7px 8px;border-bottom:1px solid #d9dee5}
+#awb{flex:1;min-width:0;height:40px;border:1px solid #aeb7c4;border-radius:7px;padding:0 10px;font-size:16px;outline:none}
+button{height:36px;border:0;border-radius:7px;padding:0 10px;font-weight:800;cursor:pointer}
+.primary{background:#1a73e8;color:#fff}.green{background:#188038;color:#fff}.orange{background:#f9ab00;color:#111}.gray{background:#e8eaed;color:#202124}.red{background:#d93025;color:#fff}
+.main{padding:7px;overflow:auto}
+.notice{display:none;background:#fff8e1;border-radius:7px;padding:8px 10px;margin-bottom:7px;font-size:11px}
+.notice.error{background:#fde7e9;color:#b3261e}.notice.ok{background:#e6f4ea;color:#137333}.notice.terminal{font-size:14px;font-weight:800;text-align:center}
+.info{background:#fff;border:1px solid #dfe3e8;border-radius:8px;padding:8px 10px;margin-bottom:7px;font-size:11px}
+.card{display:none;background:#fff;border:1px solid #dfe3e8;border-radius:8px;padding:10px;margin-bottom:7px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.label{font-size:9px;color:#6b7280}.value{font-weight:700;font-size:12px}.ready{color:#188038;font-weight:800}.required{color:#d93025;font-weight:800}
+.cameraPanel{display:none;background:#111;border-radius:9px;padding:8px;margin-bottom:7px;color:#fff}
+.cameraHead{display:flex;justify-content:space-between;align-items:center;font-size:11px;font-weight:800;margin-bottom:6px}
+.live{color:#ff7777;font-weight:900}.timer{font-size:17px;font-weight:900;margin-left:6px}
+.cameraFrame{display:block;width:100%;max-height:430px;aspect-ratio:16/9;object-fit:cover;background:#000;border-radius:7px}
+.cameraControls{display:flex;justify-content:flex-end;margin-top:7px}
+.videoBox{background:#111;border-radius:8px;padding:8px;margin-top:8px;color:#fff}
+.proofVideo{display:block;width:100%;max-height:360px;background:#000;border-radius:6px}
+.controls{display:flex;gap:6px;margin-top:7px;flex-wrap:wrap}
+.empty{text-align:center;padding:35px;color:#6b7280;background:#fff;border:1px solid #dfe3e8;border-radius:8px}
+.small{font-size:10px;height:30px;padding:0 8px}
+#uploadFrame{display:none}
+@media(max-width:600px){
+ body{padding:0}.app{width:100%;min-height:100vh;border-radius:0;border:0}
+ .tools{flex-wrap:wrap}.tools select{flex:1;min-width:130px}
+ .grid{grid-template-columns:1fr}
+ .cameraFrame{max-height:300px}
+}
 </style>
 </head>
 <body>
-<div class="wrap">
-  <div class="head"><div class="brand">🎥 DISPATCH PROOF CAMERA</div><div id="state" class="state">READY</div></div>
-  <div class="main">
-    <video id="preview" autoplay muted playsinline></video>
-    <div id="empty" class="empty">Camera is ready.<br>Click ALLOW CAMERA from Management if permission is required.</div>
-    <div id="rec" class="rec" style="display:none"><span class="live">● RECORDING</span><span id="timer" class="timer">00:00</span></div>
-    <div class="controls">
-      <button id="allow" class="allow" onclick="requestCamera()">ALLOW CAMERA</button>
-      <button id="stop" class="stop" style="display:none" onclick="stopRecording()">■ STOP &amp; SAVE</button>
-    </div>
+<div class="app">
+  <div class="top">
+    <div class="title">DISPATCH PROOF MANAGEMENT</div>
+    <div class="ag">AG</div>
   </div>
-  <div class="foot">SECURE CAMERA BRIDGE • VIDEO IS RETURNED TO DISPATCH PROOF MANAGEMENT</div>
+
+  <div class="tabs">
+    <div id="tabDispatch" class="tab active">🎥 MAKE DISPATCH VIDEO</div>
+    <div id="tabProof" class="tab">🎥 VIDEO PROOF</div>
+  </div>
+
+  <div class="tools">
+    <b>CAMERA</b>
+    <select id="cameraSelect"><option value="">Camera</option></select>
+    <button id="refreshCamera" class="gray">REFRESH CAMERA</button>
+    <button id="testCamera" class="primary">TEST CAMERA</button>
+    <span id="cameraState" class="status">Camera not started</span>
+  </div>
+
+  <div class="scan">
+    <input id="awb" autofocus autocomplete="off" placeholder="SCAN AWB BARCODE...">
+    <button id="scanBtn" class="primary">SCAN</button>
+    <button id="refreshBtn" class="gray">REFRESH</button>
+  </div>
+
+  <div class="main">
+    <div id="notice" class="notice"></div>
+    <div id="info" class="info">
+      Dispatch: scan AWB → order details → recording starts automatically.
+      Scan next AWB to save the previous video and continue.
+    </div>
+
+    <div id="cameraPanel" class="cameraPanel">
+      <div class="cameraHead">
+        <span id="cameraLabel">CAMERA READY</span>
+        <span><span id="live" class="live" style="display:none">● RECORDING</span><span id="timer" class="timer">00:00</span></span>
+      </div>
+      <video id="cameraFrame" class="cameraFrame" autoplay muted playsinline></video>
+      <div class="cameraControls">
+        <button id="stopBtn" class="red">■ STOP &amp; SAVE</button>
+      </div>
+    </div>
+
+    <div id="result" class="card"></div>
+    <div id="empty" class="empty">SCAN AWB TO LOAD ONLY THAT ORDER</div>
+  </div>
 </div>
+
+<iframe id="uploadFrame" name="DP50_UPLOAD_FRAME"></iframe>
+
 <script>
-const SOURCE='DISPATCH_PROOF_CAMERA_BRIDGE';
-let stream=null, recorder=null, chunks=[], startedAt=0, timerHandle=null, session=null;
-const $=id=>document.getElementById(id);
-function send(type,extra){
-  try{window.parent.postMessage(Object.assign({source:SOURCE,type:type},extra||{}),'*')}catch(e){}
+'use strict';
+
+/*
+ * Single-window architecture:
+ * This page is a normal HTTPS top-level page on GitHub Pages.
+ * Therefore getUserMedia() is requested from a real HTTPS origin,
+ * not from Apps Script HTMLService.
+ */
+
+const params = new URLSearchParams(location.search);
+const API_URL = params.get('api') || localStorage.getItem('DP50_API_URL') || '';
+if (API_URL) localStorage.setItem('DP50_API_URL', API_URL);
+
+let mode = 'DISPATCH';
+let stream = null;
+let recorder = null;
+let chunks = [];
+let currentSession = null;
+let nextOrder = null;
+let timerHandle = null;
+let recordStartedAt = 0;
+let cameraReady = false;
+let selectedCameraId = localStorage.getItem('DP50_CAMERA_ID') || '';
+let uploadQueue = 0;
+let lastSaved = null;
+
+const $ = id => document.getElementById(id);
+
+function note(text, kind='') {
+  const e = $('notice');
+  e.textContent = text || '';
+  e.className = 'notice ' + (kind || '');
+  e.style.display = text ? 'block' : 'none';
 }
-function setState(t){$('state').textContent=t}
-function friendlyError(e){
-  const n=e&&e.name||'';
-  if(n==='NotAllowedError'||n==='PermissionDeniedError') return 'Camera permission denied. Allow camera access for this site, then press ALLOW CAMERA.';
-  if(n==='NotFoundError') return 'No camera was found on this device.';
-  if(n==='NotReadableError') return 'Camera is busy or unavailable. Close other camera apps and retry.';
-  if(n==='SecurityError') return 'Camera access is blocked by browser security or permissions policy.';
-  return (e&&e.message)||'Unable to access camera.';
-}
-async function requestCamera(){
-  try{
-    if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia) throw new Error('Camera API is unavailable in this browser.');
-    if(stream) stopTracks();
-    stream=await navigator.mediaDevices.getUserMedia({video:{width:{ideal:1280},height:{ideal:720},facingMode:{ideal:'environment'}},audio:false});
-    $('preview').srcObject=stream;
-    $('empty').style.display='none';
-    $('allow').textContent='CAMERA READY ✓';
-    setState('CAMERA READY ✓');
-    send('CAMERA_READY');
-    if(window.parent!==window) window.parent.postMessage({source:SOURCE,type:'DEVICE_LIST_READY'},'*');
-    return true;
-  }catch(e){
-    setState('CAMERA ERROR');
-    $('empty').style.display='flex';
-    $('empty').innerHTML='<b>'+escapeHtml(friendlyError(e))+'</b><br><span style="display:block;margin-top:10px;font-size:12px">Use the browser site-settings icon to allow Camera and Microphone, then press ALLOW CAMERA.</span>';
-    send('CAMERA_ERROR',{message:friendlyError(e),name:e&&e.name||''});
+
+function requireApi() {
+  if (!API_URL) {
+    note('Apps Script API URL is missing. Open Dispatch Proof from the Google Sheet menu after deploying V50.', 'error');
     return false;
   }
+  return true;
 }
-function stopTracks(){if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}}
-function chooseMime(){
-  const types=['video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm'];
-  for(const t of types){if(window.MediaRecorder&&MediaRecorder.isTypeSupported&&MediaRecorder.isTypeSupported(t)) return t}
+
+function apiGet(action, data, callback) {
+  if (!requireApi()) return;
+
+  const cb = 'DP50_' + Date.now() + '_' + Math.floor(Math.random()*100000);
+  const s = document.createElement('script');
+
+  const q = new URLSearchParams();
+  q.set('dpAction', action);
+  q.set('callback', cb);
+
+  Object.keys(data || {}).forEach(k => {
+    q.set(k, data[k] == null ? '' : String(data[k]));
+  });
+
+  window[cb] = function(result) {
+    try { callback(result); }
+    finally {
+      delete window[cb];
+      s.remove();
+    }
+  };
+
+  s.onerror = function() {
+    delete window[cb];
+    s.remove();
+    note('Apps Script backend request failed. Check the Web App deployment/access.', 'error');
+  };
+
+  s.src = API_URL + (API_URL.indexOf('?') >= 0 ? '&' : '?') + q.toString();
+  document.body.appendChild(s);
+}
+
+function clearResult() {
+  $('result').style.display = 'none';
+  $('result').innerHTML = '';
+  $('empty').style.display = 'block';
+}
+
+function esc(v) {
+  return String(v == null ? '' : v)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;')
+    .replace(/'/g,'&#039;');
+}
+
+function js(v) {
+  return JSON.stringify(String(v == null ? '' : v));
+}
+
+function setMode(next) {
+  if (recorder && recorder.state === 'recording') {
+    note('Recording active. Scan next AWB or press STOP & SAVE.', 'error');
+    return;
+  }
+  mode = next;
+  $('tabDispatch').classList.toggle('active', mode === 'DISPATCH');
+  $('tabProof').classList.toggle('active', mode === 'PROOF');
+  $('info').textContent = mode === 'DISPATCH'
+    ? 'Dispatch: scan AWB → order details → recording starts automatically. Scan next AWB to save the previous video and continue.'
+    : 'Proof: scan AWB → existing Dispatch Video is shown. If a problem status exists, Make Return Video is available.';
+  clearResult();
+  $('awb').focus();
+}
+
+async function refreshCameras() {
+  try {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
+      note('Camera API is unavailable in this browser.', 'error');
+      return;
+    }
+
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const cams = devices.filter(d => d.kind === 'videoinput');
+    const select = $('cameraSelect');
+    select.innerHTML = '';
+
+    if (!cams.length) {
+      const o = document.createElement('option');
+      o.value = '';
+      o.textContent = 'No camera detected';
+      select.appendChild(o);
+      $('cameraState').textContent = 'No camera found';
+      return;
+    }
+
+    cams.forEach((c, i) => {
+      const o = document.createElement('option');
+      o.value = c.deviceId;
+      o.textContent = c.label || ('Camera ' + (i + 1));
+      select.appendChild(o);
+    });
+
+    if (selectedCameraId && cams.some(c => c.deviceId === selectedCameraId)) {
+      select.value = selectedCameraId;
+    } else {
+      selectedCameraId = cams[0].deviceId;
+      select.value = selectedCameraId;
+      localStorage.setItem('DP50_CAMERA_ID', selectedCameraId);
+    }
+
+    $('cameraState').textContent = cams.length + ' camera(s) available';
+  } catch (e) {
+    note('Unable to list cameras: ' + (e.message || e), 'error');
+  }
+}
+
+async function startCamera() {
+  if (!window.isSecureContext) {
+    throw new Error('Camera requires HTTPS. Open the published GitHub Pages URL, not a local file.');
+  }
+
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    throw new Error('Camera API is unavailable in this browser.');
+  }
+
+  if (stream) {
+    stream.getTracks().forEach(t => t.stop());
+    stream = null;
+  }
+
+  const id = $('cameraSelect').value || selectedCameraId;
+
+  const videoConstraints = id
+    ? {deviceId:{exact:id}, width:{ideal:1280}, height:{ideal:720}}
+    : {width:{ideal:1280}, height:{ideal:720}, facingMode:{ideal:'environment'}};
+
+  stream = await navigator.mediaDevices.getUserMedia({
+    video: videoConstraints,
+    audio: true
+  });
+
+  $('cameraFrame').srcObject = stream;
+  $('cameraPanel').style.display = 'block';
+  cameraReady = true;
+  $('cameraState').textContent = 'Camera ready ✓';
+
+  // Labels become available after permission.
+  await refreshCameras();
+}
+
+function cameraError(e) {
+  const n = e && e.name || '';
+  if (n === 'NotAllowedError' || n === 'PermissionDeniedError')
+    return 'Camera permission denied. Allow camera + microphone for this HTTPS page, then press TEST CAMERA again.';
+  if (n === 'NotFoundError')
+    return 'No camera was found on this device.';
+  if (n === 'NotReadableError')
+    return 'Camera is busy. Close other camera apps and retry.';
+  if (n === 'OverconstrainedError')
+    return 'Selected camera cannot use the requested settings. Choose another camera.';
+  return e && e.message ? e.message : 'Unable to access camera.';
+}
+
+async function testCamera() {
+  try {
+    await startCamera();
+    note('Camera ready ✓. Scan AWB to start recording.', 'ok');
+  } catch (e) {
+    note(cameraError(e), 'error');
+  }
+}
+
+function scan() {
+  const v = $('awb').value.trim();
+  if (!v) {
+    note('Please scan AWB.', 'error');
+    return;
+  }
+
+  apiGet('SCAN', {awb:v, mode:mode}, handleScan);
+}
+
+function handleScan(r) {
+  if (!r || !r.found) {
+    note(r && r.message ? r.message : 'AWB not found.', 'error');
+    return;
+  }
+
+  if (r.terminal) {
+    clearResult();
+    $('empty').style.display = 'none';
+    note('This Order ID is already delivered successfully. No video proof is required.', 'terminal');
+    $('awb').value = '';
+    $('awb').focus();
+    return;
+  }
+
+  if (mode === 'DISPATCH') {
+    if (recorder && recorder.state === 'recording') {
+      nextOrder = r;
+      stopRecording();
+      return;
+    }
+
+    showDispatch(r);
+    startRecording(r);
+    return;
+  }
+
+  showProof(r);
+}
+
+function showDispatch(r) {
+  $('empty').style.display = 'none';
+  $('result').innerHTML =
+    '<div class="grid">' +
+      '<div><div class="label">DATE</div><div class="value">' + esc(r.date) + '</div></div>' +
+      '<div><div class="label">ORDER ID</div><div class="value">' + esc(r.orderId) + '</div></div>' +
+      '<div><div class="label">AWB</div><div class="value">' + esc(r.awb) + '</div></div>' +
+      '<div><div class="label">DISPATCH TYPE</div><div class="value">' + esc(r.dispatchType) + '</div></div>' +
+    '</div>' +
+    '<div style="margin-top:8px" class="ready">● RECORDING STARTS AUTOMATICALLY AFTER AWB VERIFICATION</div>';
+  $('result').style.display = 'block';
+}
+
+function showProof(r) {
+  $('empty').style.display = 'none';
+
+  let html =
+    '<div class="grid">' +
+      '<div><div class="label">ORDER ID</div><div class="value">' + esc(r.orderId) + '</div></div>' +
+      '<div><div class="label">AWB</div><div class="value">' + esc(r.awb) + '</div></div>' +
+      '<div><div class="label">LIVE STATUS</div><div class="value">' + esc(r.status || '') + '</div></div>' +
+      '<div><div class="label">DISPATCH VIDEO</div><div class="value ' + (r.dispatchVideo ? 'ready' : 'required') + '">' +
+        (r.dispatchVideo ? 'VIDEO READY' : 'NOT AVAILABLE') +
+      '</div></div>' +
+    '</div>';
+
+  if (r.dispatchVideo) {
+    html +=
+      '<div class="videoBox">' +
+        '<div style="font-weight:800;margin-bottom:6px">DISPATCH VIDEO</div>' +
+        '<video class="proofVideo" controls playsinline src="' + esc(r.dispatchVideo.downloadUrl) + '"></video>' +
+        '<div class="controls">' +
+          '<button class="primary small" onclick="downloadFile(' + js(r.dispatchVideo.fileId) + ')">⬇ DOWNLOAD</button>' +
+          '<button class="green small" onclick="shareFile(' + js(r.dispatchVideo.fileId) + ')">↗ SHARE</button>' +
+        '</div>' +
+      '</div>';
+  }
+
+  if (r.returnVideo) {
+    html +=
+      '<div class="videoBox">' +
+        '<div style="font-weight:800;margin-bottom:6px">RETURN VIDEO • READY</div>' +
+        '<video class="proofVideo" controls playsinline src="' + esc(r.returnVideo.downloadUrl) + '"></video>' +
+        '<div class="controls">' +
+          '<button class="primary small" onclick="downloadFile(' + js(r.returnVideo.fileId) + ')">⬇ DOWNLOAD</button>' +
+          '<button class="green small" onclick="shareFile(' + js(r.returnVideo.fileId) + ')">↗ SHARE</button>' +
+        '</div>' +
+      '</div>';
+  } else {
+    html +=
+      '<div style="margin-top:9px">' +
+        '<span class="required">RETURN VIDEO REQUIRED</span> ' +
+        '<button class="orange" onclick="startReturnRecording(' +
+          js(r.awb) + ',' + js(r.orderId) + ',' + js(r.status) +
+        ')">MAKE RETURN VIDEO</button>' +
+      '</div>';
+  }
+
+  $('result').innerHTML = html;
+  $('result').style.display = 'block';
+}
+
+function chooseMime() {
+  const types = [
+    'video/webm;codecs=vp9,opus',
+    'video/webm;codecs=vp8,opus',
+    'video/webm'
+  ];
+
+  for (const t of types) {
+    if (window.MediaRecorder &&
+        MediaRecorder.isTypeSupported &&
+        MediaRecorder.isTypeSupported(t)) {
+      return t;
+    }
+  }
   return '';
 }
-async function startRecording(s){
-  session=s||{};
-  if(recorder&&recorder.state==='recording') return;
-  if(!stream){const ok=await requestCamera();if(!ok)return}
-  try{
-    chunks=[];
-    const mime=chooseMime();
-    recorder=mime?new MediaRecorder(stream,{mimeType:mime}):new MediaRecorder(stream);
-    recorder.ondataavailable=e=>{if(e.data&&e.data.size)chunks.push(e.data)};
-    recorder.onerror=e=>send('CAMERA_ERROR',{message:'Recorder error.'});
-    recorder.onstop=finishRecording;
-    recorder.start(1000);
-    startedAt=Date.now();
-    $('rec').style.display='block';$('stop').style.display='inline-block';$('allow').style.display='none';
-    setState('RECORDING');updateTimer();
-    send('RECORDING_STARTED',{session:session});
-  }catch(e){send('CAMERA_ERROR',{message:e.message||'Unable to start recording.'});setState('CAMERA ERROR')}
+
+async function startRecording(r) {
+  if (!r) return;
+
+  if (!cameraReady) {
+    try {
+      await startCamera();
+    } catch (e) {
+      note(cameraError(e), 'error');
+      return;
+    }
+  }
+
+  if (recorder && recorder.state === 'recording') return;
+
+  const mime = chooseMime();
+
+  try {
+    recorder = mime
+      ? new MediaRecorder(stream, {
+          mimeType:mime,
+          videoBitsPerSecond:1100000,
+          audioBitsPerSecond:64000
+        })
+      : new MediaRecorder(stream);
+  } catch (e) {
+    note('Unable to start recorder: ' + (e.message || e), 'error');
+    return;
+  }
+
+  currentSession = {
+    awb:String(r.awb || ''),
+    orderId:String(r.orderId || ''),
+    status:String(r.status || ''),
+    videoType:String(r.videoType || mode || 'DISPATCH').toUpperCase()
+  };
+
+  chunks = [];
+  recorder.ondataavailable = e => {
+    if (e.data && e.data.size) chunks.push(e.data);
+  };
+
+  recorder.onerror = () => note('Recorder error.', 'error');
+  recorder.onstop = finishRecording;
+
+  recorder.start(1000);
+  recordStartedAt = Date.now();
+
+  $('cameraPanel').style.display = 'block';
+  $('cameraLabel').textContent =
+    currentSession.videoType === 'RETURN'
+      ? 'MAKE RETURN VIDEO'
+      : 'MAKE DISPATCH VIDEO';
+  $('live').style.display = 'inline';
+  $('timer').textContent = '00:00';
+  updateTimer();
+
+  note('● RECORDING STARTED • Scan next AWB to auto-save and continue.', 'ok');
+  $('awb').value = '';
+  $('awb').focus();
 }
-function updateTimer(){
-  if(timerHandle) clearInterval(timerHandle);
-  timerHandle=setInterval(()=>{const sec=Math.floor((Date.now()-startedAt)/1000);$('timer').textContent=String(Math.floor(sec/60)).padStart(2,'0')+':'+String(sec%60).padStart(2,'0')},250);
+
+function updateTimer() {
+  if (timerHandle) clearInterval(timerHandle);
+  timerHandle = setInterval(() => {
+    if (!recorder || recorder.state !== 'recording') return;
+    const sec = Math.floor((Date.now() - recordStartedAt) / 1000);
+    $('timer').textContent =
+      String(Math.floor(sec / 60)).padStart(2,'0') + ':' +
+      String(sec % 60).padStart(2,'0');
+  }, 250);
 }
-function stopRecording(){
-  if(recorder&&recorder.state==='recording') recorder.stop();
+
+function stopRecording() {
+  if (recorder && recorder.state === 'recording') {
+    recorder.stop();
+  }
 }
-function finishRecording(){
-  if(timerHandle){clearInterval(timerHandle);timerHandle=null}
-  const mime=(chunks[0]&&chunks[0].type)||'video/webm';
-  const blob=new Blob(chunks,{type:mime});
-  const fileName=(session&&session.awb?session.awb:'VIDEO')+'_'+(session&&session.videoType?session.videoType:'DISPATCH')+'_'+Date.now()+'.webm';
-  recorder=null;chunks=[];
-  $('rec').style.display='none';$('stop').style.display='none';$('allow').style.display='inline-block';
-  setState('VIDEO READY');
-  send('VIDEO_READY',{blob:blob,fileName:fileName,session:session});
-  session=null;
+
+function stopManual() {
+  nextOrder = null;
+  stopRecording();
+  note('Stopping recording. Video is being saved in the background...', 'ok');
 }
-window.addEventListener('message',async event=>{
-  const d=event.data||{};
-  if(!d||d.source!=='DISPATCH_PROOF_PARENT')return;
-  if(d.type==='REQUEST_CAMERA') await requestCamera();
-  else if(d.type==='START_RECORDING') await startRecording(d.session||{});
-  else if(d.type==='STOP_RECORDING') stopRecording();
-  else if(d.type==='PING') send('BRIDGE_READY');
+
+function finishRecording() {
+  if (timerHandle) {
+    clearInterval(timerHandle);
+    timerHandle = null;
+  }
+
+  $('live').style.display = 'none';
+  $('timer').textContent = '00:00';
+  $('cameraLabel').textContent = 'CAMERA READY';
+
+  const s = currentSession;
+  const savedChunks = chunks.slice();
+
+  currentSession = null;
+  chunks = [];
+  recorder = null;
+
+  if (!s || !savedChunks.length) {
+    note('VIDEO SAVE ERROR: recorded video is empty.', 'error');
+    if (nextOrder) {
+      const n = nextOrder;
+      nextOrder = null;
+      startRecording(n);
+    }
+    return;
+  }
+
+  const mime = savedChunks[0].type || 'video/webm';
+  const blob = new Blob(savedChunks, {type:mime});
+
+  if (!blob.size) {
+    note('VIDEO SAVE ERROR: recorded video is empty.', 'error');
+    if (nextOrder) {
+      const n = nextOrder;
+      nextOrder = null;
+      startRecording(n);
+    }
+    return;
+  }
+
+  // Keep enough headroom under Apps Script request limits.
+  if (blob.size > 18 * 1024 * 1024) {
+    note('VIDEO TOO LARGE. Keep each recording below 18 MB.', 'error');
+    if (nextOrder) {
+      const n = nextOrder;
+      nextOrder = null;
+      startRecording(n);
+    }
+    return;
+  }
+
+  queueUpload(s, blob);
+
+  // Critical continuous workflow:
+  // next recording starts immediately after the previous recording's
+  // local Blob has been created. Upload is separate.
+  const queued = nextOrder;
+  nextOrder = null;
+  if (queued) startRecording(queued);
+}
+
+function queueUpload(s, blob) {
+  uploadQueue++;
+  note('Saving AWB ' + s.awb + ' in background…', 'ok');
+
+  const reader = new FileReader();
+
+  reader.onerror = () => {
+    uploadQueue--;
+    note('VIDEO SAVE ERROR: unable to read recorded video.', 'error');
+  };
+
+  reader.onload = () => {
+    try {
+      const dataUrl = String(reader.result || '');
+      const comma = dataUrl.indexOf(',');
+      const base64 = comma >= 0 ? dataUrl.slice(comma + 1) : dataUrl;
+
+      const payload = {
+        awb:s.awb,
+        orderId:s.orderId,
+        status:s.status,
+        videoType:s.videoType,
+        fileName:(s.awb || 'VIDEO') + '_' + s.videoType + '_' + Date.now() + '.webm',
+        mimeType:blob.type || 'video/webm',
+        base64:base64
+      };
+
+      submitUpload(payload);
+    } catch (e) {
+      uploadQueue--;
+      note('VIDEO SAVE ERROR: ' + (e.message || e), 'error');
+    }
+  };
+
+  reader.readAsDataURL(blob);
+}
+
+function submitUpload(payload) {
+  /*
+   * Cross-origin form POST:
+   * No CORS/fetch dependency. The form navigates a hidden iframe.
+   * We then poll the backend index until the new file appears.
+   */
+  const form = document.createElement('form');
+  form.method = 'POST';
+  form.action = API_URL;
+  form.target = 'DP50_UPLOAD_FRAME';
+  form.style.display = 'none';
+
+  const input = document.createElement('input');
+  input.type = 'hidden';
+  input.name = 'payload';
+  input.value = JSON.stringify(payload);
+
+  form.appendChild(input);
+  document.body.appendChild(form);
+  form.submit();
+  form.remove();
+
+  // Poll the AWB/type index. The server writes the file and index.
+  pollSaved(payload.awb, payload.videoType, 0);
+}
+
+function pollSaved(awb, type, attempt) {
+  if (attempt >= 30) {
+    uploadQueue = Math.max(0, uploadQueue - 1);
+    note('Upload submitted. Could not confirm the saved file yet. Check Video Proof.', 'error');
+    return;
+  }
+
+  setTimeout(() => {
+    apiGet('GET_RECORD', {awb:awb, videoType:type}, r => {
+      if (r && r.found) {
+        uploadQueue = Math.max(0, uploadQueue - 1);
+        lastSaved = r;
+        note('✓ VIDEO SAVED • ' + awb, 'ok');
+        return;
+      }
+      pollSaved(awb, type, attempt + 1);
+    });
+  }, attempt < 5 ? 1000 : 2000);
+}
+
+async function startReturnRecording(awb, orderId, status) {
+  if (recorder && recorder.state === 'recording') {
+    note('A recording is already active. Stop & Save first.', 'error');
+    return;
+  }
+
+  await startRecording({
+    awb:String(awb),
+    orderId:String(orderId || ''),
+    status:String(status || ''),
+    videoType:'RETURN'
+  });
+}
+
+function downloadFile(id) {
+  apiGet('DOWNLOAD', {fileId:id}, r => {
+    if (r && r.ok && r.url) {
+      window.open(r.url, '_blank', 'noopener');
+    } else {
+      note(r && r.message ? r.message : 'Download link unavailable.', 'error');
+    }
+  });
+}
+
+function shareFile(id) {
+  apiGet('SHARE', {fileId:id}, r => {
+    if (!r || !r.ok) {
+      note(r && r.message ? r.message : 'Share link unavailable.', 'error');
+      return;
+    }
+
+    if (navigator.share) {
+      navigator.share({title:'Video Proof', url:r.url}).catch(()=>{});
+    } else if (navigator.clipboard) {
+      navigator.clipboard.writeText(r.url)
+        .then(() => note('Share link copied.', 'ok'))
+        .catch(() => window.prompt('Copy share link:', r.url));
+    } else {
+      window.prompt('Copy share link:', r.url);
+    }
+  });
+}
+
+$('tabDispatch').addEventListener('click', () => setMode('DISPATCH'));
+$('tabProof').addEventListener('click', () => setMode('PROOF'));
+
+$('refreshCamera').addEventListener('click', refreshCameras);
+$('testCamera').addEventListener('click', testCamera);
+$('scanBtn').addEventListener('click', scan);
+$('refreshBtn').addEventListener('click', () => {
+  if (recorder && recorder.state === 'recording') {
+    note('Recording is active. Scan next AWB or press STOP & SAVE.', 'error');
+    return;
+  }
+  $('awb').value = '';
+  clearResult();
+  note('Cleared — ready for the next AWB scan.', 'ok');
+  $('awb').focus();
 });
-function escapeHtml(v){return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;')}
-setState('BRIDGE READY');
-send('BRIDGE_READY');
+
+$('stopBtn').addEventListener('click', stopManual);
+
+$('awb').addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    scan();
+  }
+});
+
+$('cameraSelect').addEventListener('change', async function() {
+  selectedCameraId = this.value;
+  localStorage.setItem('DP50_CAMERA_ID', selectedCameraId);
+
+  if (stream && !(recorder && recorder.state === 'recording')) {
+    try {
+      await startCamera();
+    } catch (e) {
+      note(cameraError(e), 'error');
+    }
+  }
+});
+
+window.addEventListener('beforeunload', e => {
+  if (recorder && recorder.state === 'recording') {
+    e.preventDefault();
+    e.returnValue = 'Recording is active.';
+  }
+  if (stream) stream.getTracks().forEach(t => t.stop());
+});
+
+(async function init() {
+  if (!API_URL) {
+    note('Open this page from Google Sheet → DISPATCH PROOF → Open Dispatch Proof so the backend URL is supplied.', 'error');
+  } else {
+    apiGet('PING', {}, r => {
+      if (r && r.ok) {
+        $('cameraState').textContent = 'Backend V50 ready ✓';
+      } else {
+        note('Apps Script backend is not responding.', 'error');
+      }
+    });
+  }
+
+  await refreshCameras();
+  $('awb').focus();
+})();
 </script>
 </body>
 </html>
