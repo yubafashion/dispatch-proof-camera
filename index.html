@@ -53,7 +53,7 @@ button{height:36px;border:0;border-radius:7px;padding:0 10px;font-weight:800;cur
 <div class="app">
   <div class="top">
     <div class="title">DISPATCH PROOF MANAGEMENT</div>
-    <div class="ag">V78 NESTED IFRAME</div>
+    <div class="ag">V80 DRIVE WINDOW</div>
   </div>
 
   <div class="tabs">
@@ -78,7 +78,7 @@ button{height:36px;border:0;border-radius:7px;padding:0 10px;font-weight:800;cur
   <div class="main">
     <div id="notice" class="notice"></div>
     <div id="info" class="info">
-      Dispatch: scan AWB → record jitna time chahiye → next AWB ya STOP & SAVE. Koi second limit nahi. Drive popup ki zaroorat nahi.
+      Dispatch: scan AWB → record jitna time chahiye → next AWB ya STOP & SAVE. Pehli click par chhoti Drive save window khulegi — usko packing ke dauran band na karein.
     </div>
 
     <div id="cameraPanel" class="cameraPanel">
@@ -192,24 +192,27 @@ function onBridgeMessage(ev) {
 }
 
 function bootWorker() {
-  if (!API_URL) return;
+  if (!API_URL) return null;
   if (!bridgeListening) {
     window.addEventListener('message', onBridgeMessage);
     bridgeListening = true;
   }
-  if (workerFrame && document.body.contains(workerFrame)) return;
+  if (workerWin && !workerWin.closed) return workerWin;
   workerReady = false;
   workerSource = null;
-  workerFrame = document.createElement('iframe');
-  workerFrame.id = 'dpWorker';
-  workerFrame.setAttribute('title', 'Drive save');
-  workerFrame.style.cssText = 'position:fixed;right:0;bottom:0;width:8px;height:8px;border:0;opacity:0.01;z-index:0';
-  workerFrame.src = API_URL + '?bridge=1&worker=1&t=' + Date.now();
-  document.body.appendChild(workerFrame);
+  const url = API_URL + '?bridge=1&worker=1&t=' + Date.now();
+  try {
+    workerWin = window.open(url, 'DP_DRIVE_SAVE', 'popup=yes,width=440,height=220,scrollbars=no,resizable=yes');
+  } catch (err) {
+    workerWin = null;
+  }
+  return workerWin;
 }
 
 function workerTarget() {
-  return workerSource || null;
+  if (workerSource) return workerSource;
+  if (workerWin && !workerWin.closed) return workerWin;
+  return null;
 }
 
 function ensureWorker() {
@@ -218,21 +221,27 @@ function ensureWorker() {
       resolve();
       return;
     }
-    bootWorker();
+    const opened = bootWorker();
+    if (!opened || opened.closed) {
+      reject(new Error('Browser ne Drive save window block kar di. Address bar mein pop-up Allow karein, phir SCAN / TEST CAMERA / STOP & SAVE dubara dabayein.'));
+      return;
+    }
     let n = 0;
     const t = setInterval(function() {
+      if (workerWin && workerWin.closed) {
+        workerReady = false;
+        workerSource = null;
+      }
       if (workerReady && workerTarget()) {
         clearInterval(t);
         resolve();
-      } else if (++n > 90) {
+      } else if (++n > 120) {
         clearInterval(t);
-        if (workerFrame && workerFrame.parentNode) workerFrame.remove();
-        workerFrame = null;
-        workerSource = null;
         workerReady = false;
-        reject(new Error('Drive save iframe start nahi hui. Code.gs Deploy → New version, phir sheet se Open camera.'));
+        workerSource = null;
+        reject(new Error('Drive save window load nahi hui. Code.gs Deploy → New version, Who has access = Anyone, phir sheet se Open camera.'));
       }
-    }, 200);
+    }, 250);
   });
 }
 
@@ -241,7 +250,7 @@ function workerCall(action, payload, timeoutMs) {
     ensureWorker().then(function() {
       const target = workerTarget();
       if (!target) {
-        reject(new Error('Drive save iframe band ho gayi.'));
+        reject(new Error('Drive save window band ho gayi. Window ko packing ke dauran khula rakhein.'));
         return;
       }
       const id = 'w' + (++bridgeSeq);
@@ -303,7 +312,7 @@ function apiGet(action, data, callback) {
       return;
     }
     note(
-      'Drive save did not answer. Latest Code.gs Deploy New version karein. Title V78 NESTED IFRAME hona chahiye.',
+      'Drive save did not answer. Latest Code.gs Deploy New version karein. Title V80 DRIVE WINDOW hona chahiye.',
       'error'
     );
     if (callback) callback({ ok: false, found: false, message: 'timeout' });
@@ -455,8 +464,9 @@ function cameraError(e) {
 
 async function testCamera() {
   try {
+    bootWorker();
     await startCamera();
-    note('Camera ready ✓. Scan AWB to start recording.', 'ok');
+    note('Camera ready ✓. Scan AWB to start recording. Drive save window khuli rehni chahiye.', 'ok');
   } catch (e) {
     note(cameraError(e), 'error');
   }
@@ -667,6 +677,7 @@ function lookupFast(awb) {
 }
 
 function scan() {
+  bootWorker();
   const v = $('awb').value.trim();
   if (!v) {
     note('Please scan AWB.', 'error');
@@ -913,6 +924,7 @@ function stopRecording() {
 
 function stopManual() {
   nextOrder = null;
+  bootWorker();
   stopRecording();
   note('Recording band. Drive par save start…', 'ok');
 }
@@ -1001,6 +1013,33 @@ function queueUpload(s, blob) {
   reader.readAsDataURL(blob);
 }
 
+function waitMs(ms) {
+  return new Promise(function(resolve) { setTimeout(resolve, ms); });
+}
+
+function jsonpRetry(action, data, timeoutMs, tries) {
+  tries = tries || 3;
+  return new Promise(function(resolve, reject) {
+    var n = 0;
+    function once() {
+      jsonpCall(action, data, timeoutMs).then(function(res) {
+        if (res && res.ok === false && action !== 'SCAN' && action !== 'GET_RECORD' && action !== 'HEALTH') {
+          throw new Error(res.message || action + ' failed');
+        }
+        resolve(res);
+      }).catch(function(err) {
+        n++;
+        if (n >= tries) {
+          reject(err);
+          return;
+        }
+        waitMs(400 * n).then(once);
+      });
+    }
+    once();
+  });
+}
+
 function submitUpload(payload) {
   if (!API_URL) {
     uploadQueue = Math.max(0, uploadQueue - 1);
@@ -1017,24 +1056,19 @@ function submitUpload(payload) {
 
   (async function() {
     try {
-      const size = 35000;
+      await ensureWorker();
+      const size = 70000;
       const total = Math.ceil(raw.length / size);
       const uploadId = 'u' + Date.now() + '_' + Math.floor(Math.random() * 1000000);
       const type = payload.videoType || 'DISPATCH';
-      const parallel = 2;
-      note('Drive save chal rahi hai • AWB ' + payload.awb, 'ok');
-      for (let i = 0; i < total; i += parallel) {
-        const batch = [];
-        for (let j = 0; j < parallel && i + j < total; j++) {
-          const idx = i + j;
-          $('cameraState').textContent = 'Saving ' + payload.awb + ' ' + (idx + 1) + '/' + total;
-          batch.push(workerCall('CHUNK', {
-            uploadId: uploadId,
-            index: String(idx),
-            data: raw.slice(idx * size, (idx + 1) * size)
-          }, 40000));
-        }
-        await Promise.all(batch);
+      note('Drive save chal rahi hai • AWB ' + payload.awb + ' • ' + total + ' parts', 'ok');
+      for (let i = 0; i < total; i++) {
+        $('cameraState').textContent = 'Saving ' + payload.awb + ' ' + (i + 1) + '/' + total;
+        await workerCall('CHUNK', {
+          uploadId: uploadId,
+          index: String(i),
+          data: raw.slice(i * size, (i + 1) * size)
+        }, 45000);
       }
       $('cameraState').textContent = 'Writing Drive file…';
       const res = await workerCall('FINISH', {
@@ -1155,14 +1189,20 @@ window.addEventListener('beforeunload', e => {
 });
 
 (async function init() {
+  await refreshCameras();
   if (API_URL) {
-    $('cameraState').textContent = 'Connecting Drive save…';
-    bootWorker();
+    $('cameraState').textContent = 'TEST CAMERA / SCAN se Drive window kholein';
+    jsonpCall('HEALTH', {}, 15000).then(function(r) {
+      if (r && r.ok) $('cameraState').textContent = 'API ready — TEST CAMERA dabayein';
+      else $('cameraState').textContent = 'Drive save check failed';
+    }).catch(function() {
+      $('cameraState').textContent = 'Drive save check failed';
+      note('Drive API nahi mili. Code.gs Deploy New version, phir sheet se Open camera.', 'error');
+    });
   } else {
     note('Scan works from the Order sheet. To save video to Drive, open camera from Google Sheet → DISPATCH CAMERA → Open camera.', 'ok');
   }
 
-  await refreshCameras();
   $('awb').focus();
 })();
 </script>
