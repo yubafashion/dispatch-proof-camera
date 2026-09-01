@@ -53,7 +53,7 @@ button{height:36px;border:0;border-radius:7px;padding:0 10px;font-weight:800;cur
 <div class="app">
   <div class="top">
     <div class="title">DISPATCH PROOF MANAGEMENT</div>
-    <div class="ag">V77 IFRAME SAVE</div>
+    <div class="ag">V78 NESTED IFRAME</div>
   </div>
 
   <div class="tabs">
@@ -130,6 +130,8 @@ else localStorage.removeItem('DP50_API_URL');
 let bridgeFrame = null;
 let workerFrame = null;
 let workerWin = null;
+let workerSource = null;
+let workerOrigin = '*';
 let workerReady = false;
 let bridgePending = {};
 let bridgeSeq = 0;
@@ -174,7 +176,12 @@ function onBridgeMessage(ev) {
   const d = ev.data;
   if (!d || d.dp !== 1) return;
   if (d.ready) {
-    if (d.worker) workerReady = true;
+    if (d.worker && ev.source) {
+      workerReady = true;
+      workerSource = ev.source;
+      workerOrigin = ev.origin || '*';
+      $('cameraState').textContent = 'Drive save ready ✓';
+    }
     return;
   }
   if (d.id && bridgePending[d.id]) {
@@ -192,19 +199,17 @@ function bootWorker() {
   }
   if (workerFrame && document.body.contains(workerFrame)) return;
   workerReady = false;
+  workerSource = null;
   workerFrame = document.createElement('iframe');
   workerFrame.id = 'dpWorker';
   workerFrame.setAttribute('title', 'Drive save');
-  workerFrame.style.cssText = 'position:fixed;width:1px;height:1px;left:-9999px;border:0;opacity:0';
+  workerFrame.style.cssText = 'position:fixed;right:0;bottom:0;width:8px;height:8px;border:0;opacity:0.01;z-index:0';
   workerFrame.src = API_URL + '?bridge=1&worker=1&t=' + Date.now();
   document.body.appendChild(workerFrame);
 }
 
 function workerTarget() {
-  if (workerFrame && document.body.contains(workerFrame) && workerFrame.contentWindow) {
-    return workerFrame.contentWindow;
-  }
-  return null;
+  return workerSource || null;
 }
 
 function ensureWorker() {
@@ -219,10 +224,11 @@ function ensureWorker() {
       if (workerReady && workerTarget()) {
         clearInterval(t);
         resolve();
-      } else if (++n > 50) {
+      } else if (++n > 90) {
         clearInterval(t);
         if (workerFrame && workerFrame.parentNode) workerFrame.remove();
         workerFrame = null;
+        workerSource = null;
         workerReady = false;
         reject(new Error('Drive save iframe start nahi hui. Code.gs Deploy → New version, phir sheet se Open camera.'));
       }
@@ -252,12 +258,27 @@ function workerCall(action, payload, timeoutMs) {
         }
         resolve(result);
       };
-      target.postMessage({
-        dp: 1,
-        id: id,
-        action: action,
-        payload: payload
-      }, '*');
+      try {
+        target.postMessage({
+          dp: 1,
+          id: id,
+          action: action,
+          payload: payload
+        }, workerOrigin || '*');
+      } catch (err) {
+        try {
+          target.postMessage({
+            dp: 1,
+            id: id,
+            action: action,
+            payload: payload
+          }, '*');
+        } catch (err2) {
+          delete bridgePending[id];
+          clearTimeout(timer);
+          reject(err2);
+        }
+      }
     }).catch(reject);
   });
 }
@@ -282,7 +303,7 @@ function apiGet(action, data, callback) {
       return;
     }
     note(
-      'Drive save did not answer. Latest Code.gs Deploy New version karein. Title V77 IFRAME SAVE hona chahiye.',
+      'Drive save did not answer. Latest Code.gs Deploy New version karein. Title V78 NESTED IFRAME hona chahiye.',
       'error'
     );
     if (callback) callback({ ok: false, found: false, message: 'timeout' });
@@ -1135,7 +1156,7 @@ window.addEventListener('beforeunload', e => {
 
 (async function init() {
   if (API_URL) {
-    $('cameraState').textContent = 'Drive save ready ✓';
+    $('cameraState').textContent = 'Connecting Drive save…';
     bootWorker();
   } else {
     note('Scan works from the Order sheet. To save video to Drive, open camera from Google Sheet → DISPATCH CAMERA → Open camera.', 'ok');
