@@ -53,7 +53,7 @@ button{height:36px;border:0;border-radius:7px;padding:0 10px;font-weight:800;cur
 <div class="app">
   <div class="top">
     <div class="title">DISPATCH PROOF MANAGEMENT</div>
-    <div class="ag">V80 DRIVE WINDOW</div>
+    <div class="ag">V81 SINGLE GOOGLE LOGIN</div>
   </div>
 
   <div class="tabs">
@@ -66,6 +66,7 @@ button{height:36px;border:0;border-radius:7px;padding:0 10px;font-weight:800;cur
     <select id="cameraSelect"><option value="">Camera</option></select>
     <button id="refreshCamera" class="gray">REFRESH CAMERA</button>
     <button id="testCamera" class="primary">TEST CAMERA</button>
+    <a id="openSaveTab" class="primary" target="DP_DRIVE_SAVE" rel="opener" style="display:inline-flex;align-items:center;text-decoration:none;height:36px">OPEN DRIVE SAVE</a>
     <span id="cameraState" class="status">Camera not started</span>
   </div>
 
@@ -78,7 +79,7 @@ button{height:36px;border:0;border-radius:7px;padding:0 10px;font-weight:800;cur
   <div class="main">
     <div id="notice" class="notice"></div>
     <div id="info" class="info">
-      Dispatch: scan AWB → record jitna time chahiye → next AWB ya STOP & SAVE. Pehli click par chhoti Drive save window khulegi — usko packing ke dauran band na karein.
+      Chrome mein sirf sheet wala Google account login rakhein (dusre logout). Phir OPEN DRIVE SAVE dabayein — naya tab band na karein. Uske baad scan AWB → record → STOP & SAVE.
     </div>
 
     <div id="cameraPanel" class="cameraPanel">
@@ -123,9 +124,11 @@ function normalizeApiUrl(raw) {
 
 const params = new URLSearchParams(location.search);
 const API_URL = normalizeApiUrl(params.get('api') || localStorage.getItem('DP50_API_URL') || '');
-const API_VERSION = 'V58_TOP_POSTMESSAGE_20260831';
+const API_VERSION = 'V81_SINGLE_LOGIN';
 if (API_URL) localStorage.setItem('DP50_API_URL', API_URL);
 else localStorage.removeItem('DP50_API_URL');
+
+let SAVE_BASE = API_URL;
 
 let bridgeFrame = null;
 let workerFrame = null;
@@ -159,6 +162,42 @@ function note(text, kind='') {
   e.textContent = text || '';
   e.className = 'notice ' + (kind || '');
   e.style.display = text ? 'block' : 'none';
+}
+
+function apiUrlVariants() {
+  const out = [];
+  const seen = {};
+  function add(u) {
+    const s = String(u || '').replace(/\/+$/, '');
+    if (!s || seen[s]) return;
+    seen[s] = true;
+    out.push(s);
+  }
+  add(API_URL);
+  const m = String(API_URL || '').match(/\/s\/([^/?#]+)\/(exec|dev)/i);
+  if (m) {
+    const id = m[1];
+    const kind = m[2];
+    add('https://script.google.com/macros/s/' + id + '/' + kind);
+    for (let i = 0; i <= 3; i++) {
+      add('https://script.google.com/macros/u/' + i + '/s/' + id + '/' + kind);
+    }
+  }
+  return out;
+}
+
+function workerHref(base) {
+  return (base || SAVE_BASE || API_URL) + '?bridge=1&worker=1&t=' + Date.now();
+}
+
+function syncSaveLink() {
+  const a = $('openSaveTab');
+  if (!a) return;
+  if (SAVE_BASE || API_URL) a.href = workerHref(SAVE_BASE || API_URL);
+}
+
+function multiLoginHelp() {
+  return 'Drive save Page Not Found: Chrome mein kai Google accounts login hain. Sirf sheet wala account rakho (baaki logout) YA Incognito. Phir OPEN DRIVE SAVE dabao. Web app Who has access = Anyone.';
 }
 
 function requireApi() {
@@ -200,9 +239,10 @@ function bootWorker() {
   if (workerWin && !workerWin.closed) return workerWin;
   workerReady = false;
   workerSource = null;
-  const url = API_URL + '?bridge=1&worker=1&t=' + Date.now();
+  const url = workerHref(SAVE_BASE || API_URL);
+  syncSaveLink();
   try {
-    workerWin = window.open(url, 'DP_DRIVE_SAVE', 'popup=yes,width=440,height=220,scrollbars=no,resizable=yes');
+    workerWin = window.open(url, 'DP_DRIVE_SAVE');
   } catch (err) {
     workerWin = null;
   }
@@ -312,7 +352,7 @@ function apiGet(action, data, callback) {
       return;
     }
     note(
-      'Drive save did not answer. Latest Code.gs Deploy New version karein. Title V80 DRIVE WINDOW hona chahiye.',
+      'Drive save did not answer. ' + multiLoginHelp(),
       'error'
     );
     if (callback) callback({ ok: false, found: false, message: 'timeout' });
@@ -335,7 +375,7 @@ function apiGet(action, data, callback) {
   bridgeFrame = document.createElement('iframe');
   bridgeFrame.id = 'dpBridge';
   bridgeFrame.style.cssText = 'position:absolute;width:1px;height:1px;left:-9999px;border:0';
-  bridgeFrame.src = API_URL + '?' + q.toString();
+  bridgeFrame.src = (SAVE_BASE || API_URL) + '?' + q.toString();
   document.body.appendChild(bridgeFrame);
 }
 
@@ -621,9 +661,10 @@ async function lookupAwb(awb, nextMode) {
   return { found: false, message: 'AWB not found: ' + needle };
 }
 
-function jsonpCall(action, data, timeoutMs) {
+function jsonpCall(action, data, timeoutMs, apiBase) {
   return new Promise(function(resolve, reject) {
-    if (!API_URL) {
+    const base = apiBase || SAVE_BASE || API_URL;
+    if (!base) {
       reject(new Error('No API'));
       return;
     }
@@ -657,9 +698,29 @@ function jsonpCall(action, data, timeoutMs) {
     s.onerror = function() {
       /* Google /exec redirect often fires onerror; callback may still run. */
     };
-    s.src = API_URL + '?' + q.toString();
+    s.src = base + '?' + q.toString();
     document.head.appendChild(s);
   });
+}
+
+function probeApi() {
+  const urls = apiUrlVariants();
+  let i = 0;
+  function next() {
+    if (i >= urls.length) return Promise.reject(new Error('no api'));
+    const url = urls[i++];
+    return jsonpCall('HEALTH', {}, 5000, url).then(function(r) {
+      if (r && r.ok) {
+        SAVE_BASE = url;
+        syncSaveLink();
+        return r;
+      }
+      return next();
+    }).catch(function() {
+      return next();
+    });
+  }
+  return next();
 }
 
 function lookupFast(awb) {
@@ -1146,6 +1207,10 @@ $('tabProof').addEventListener('click', () => setMode('PROOF'));
 
 $('refreshCamera').addEventListener('click', refreshCameras);
 $('testCamera').addEventListener('click', testCamera);
+$('openSaveTab').addEventListener('click', function(e) {
+  e.preventDefault();
+  bootWorker();
+});
 $('scanBtn').addEventListener('click', scan);
 $('refreshBtn').addEventListener('click', () => {
   if (recorder && recorder.state === 'recording') {
@@ -1190,16 +1255,19 @@ window.addEventListener('beforeunload', e => {
 
 (async function init() {
   await refreshCameras();
+  syncSaveLink();
   if (API_URL) {
-    $('cameraState').textContent = 'TEST CAMERA / SCAN se Drive window kholein';
-    jsonpCall('HEALTH', {}, 15000).then(function(r) {
-      if (r && r.ok) $('cameraState').textContent = 'API ready — TEST CAMERA dabayein';
+    $('cameraState').textContent = 'Checking Drive API…';
+    probeApi().then(function(r) {
+      if (r && r.ok) $('cameraState').textContent = 'API ready — OPEN DRIVE SAVE dabayein';
       else $('cameraState').textContent = 'Drive save check failed';
     }).catch(function() {
       $('cameraState').textContent = 'Drive save check failed';
-      note('Drive API nahi mili. Code.gs Deploy New version, phir sheet se Open camera.', 'error');
+      note(multiLoginHelp(), 'error');
     });
   } else {
+    const a = $('openSaveTab');
+    if (a) a.style.display = 'none';
     note('Scan works from the Order sheet. To save video to Drive, open camera from Google Sheet → DISPATCH CAMERA → Open camera.', 'ok');
   }
 
