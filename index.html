@@ -1,4 +1,4 @@
-`<!doctype html>
+<!doctype html>
 <html>
 <head>
 <meta charset="utf-8">
@@ -54,7 +54,7 @@ a.green{display:inline-flex;align-items:center;justify-content:center;height:36p
 <div class="app">
   <div class="top">
     <div class="title">DISPATCH PROOF MANAGEMENT</div>
-    <div class="ag">V92 LIVE WINDOW</div>
+    <div class="ag">V93 LIVE WINDOW</div>
   </div>
   <div class="tabs">
     <div id="tabDispatch" class="tab active">🎥 MAKE DISPATCH VIDEO</div>
@@ -65,6 +65,7 @@ a.green{display:inline-flex;align-items:center;justify-content:center;height:36p
     <select id="cameraSelect"><option value="">Camera</option></select>
     <button id="refreshCamera" class="gray">REFRESH CAMERA</button>
     <button id="testCamera" class="primary">TEST CAMERA</button>
+    <button id="connectSheet" class="green">CONNECT SHEET</button>
     <button id="liveWindow" class="green">OPEN LIVE CAMERA</button>
     <button id="pickVideo" class="gray">UPLOAD FILE</button>
     <input id="videoFile" type="file" accept="video/*" style="display:none">
@@ -218,27 +219,37 @@ function ensureWorker() {
       window.addEventListener('message', onBridgeMessage);
       bridgeListening = true;
     }
+    if (workerWin && workerWin.closed) {
+      workerReady = false;
+      workerSource = null;
+      workerWin = null;
+    }
     if (workerReady && (workerSource || (workerWin && !workerWin.closed))) {
       resolve();
       return;
     }
     try {
-      workerWin = window.open(API_URL + '?bridge=1&worker=1&t=' + Date.now(), 'DP_DRIVE_SAVE');
+      workerWin = window.open(API_URL + '?bridge=1&worker=1&v=V93&t=' + Date.now(), 'DP_DRIVE_SAVE', 'width=480,height=260');
     } catch (err) {
       workerWin = null;
     }
     if (!workerWin) {
-      reject(new Error('Drive save pop-up block. Address bar se Allow karein.'));
+      reject(new Error('Chrome ne Drive window block ki. Address bar mein pop-up Allow karein, phir CONNECT SHEET / SCAN dabayein.'));
       return;
     }
     var n = 0;
     var t = setInterval(function() {
       if (workerReady) {
         clearInterval(t);
+        setDriveState('ok');
         resolve();
-      } else if (++n > 80) {
+      } else if (workerWin && workerWin.closed) {
         clearInterval(t);
-        reject(new Error('Drive save window load nahi hui. Web app Who has access = Anyone, New version.'));
+        workerReady = false;
+        reject(new Error('Drive window band ho gayi. CONNECT SHEET dubara dabayein. Window ko packing ke dauran band na karein.'));
+      } else if (++n > 48) {
+        clearInterval(t);
+        reject(new Error('Drive window load nahi hui. Incognito mein sirf sheet wala Google account. Apps Script Deploy → New version, Who has access = Anyone.'));
       }
     }, 250);
   });
@@ -279,6 +290,7 @@ function setDriveState(status, msg) {
   var el = $('driveState');
   if (!el) return;
   if (status === 'ok') el.textContent = 'Sheet ready ✓';
+  else if (status === 'need') el.textContent = 'Sheet: CONNECT / SCAN';
   else if (status === 'fail') el.textContent = 'Sheet offline';
   else el.textContent = 'Sheet check…';
 }
@@ -324,54 +336,8 @@ function jsonpCall(action, data, timeoutMs) {
       cleanup();
       reject(new Error('Drive API link fail. Purani tab band karo. Sheet → Open camera → OPEN LIVE CAMERA.'));
     };
-    s.onload = function() {
-      setTimeout(function() {
-        if (done) return;
-        done = true;
-        cleanup();
-        reject(new Error('Apps Script JSONP nahi de rahi. Editor mein naya Code.gs paste karke Deploy → New version. Who has access = Anyone.'));
-      }, 80);
-    };
     s.src = API_URL + (API_URL.indexOf('?') >= 0 ? '&' : '?') + q.toString();
     document.head.appendChild(s);
-  });
-}
-
-function iframeCall(action, payload, timeoutMs) {
-  return new Promise(function(resolve, reject) {
-    if (!API_URL) {
-      reject(new Error('Drive API missing. Sheet se Open camera use karo.'));
-      return;
-    }
-    if (!bridgeListening) {
-      window.addEventListener('message', onBridgeMessage);
-      bridgeListening = true;
-    }
-    var id = 'i' + (++bridgeSeq) + '_' + Date.now();
-    var iframe = document.createElement('iframe');
-    iframe.setAttribute('title', 'AWB bridge');
-    iframe.style.cssText = 'position:absolute;width:1px;height:1px;left:-9999px;border:0;';
-    var q = new URLSearchParams();
-    q.set('bridge', '1');
-    q.set('rid', id);
-    q.set('dpAction', action);
-    q.set('t', String(Date.now()));
-    Object.keys(payload || {}).forEach(function(k) {
-      q.set(k, payload[k] == null ? '' : String(payload[k]));
-    });
-    var timer = setTimeout(function() {
-      if (!bridgePending[id]) return;
-      delete bridgePending[id];
-      if (iframe.parentNode) iframe.remove();
-      reject(new Error(action + ' timeout'));
-    }, timeoutMs || 18000);
-    bridgePending[id] = function(result) {
-      clearTimeout(timer);
-      if (iframe.parentNode) iframe.remove();
-      resolve(result);
-    };
-    iframe.src = API_URL + (API_URL.indexOf('?') >= 0 ? '&' : '?') + q.toString();
-    document.body.appendChild(iframe);
   });
 }
 
@@ -382,7 +348,7 @@ function isLocalDemo() {
 function gsRun(action, payload, timeoutMs) {
   var act = String(action || '').toUpperCase();
   if (isLocalDemo() && (act === 'HEALTH' || act === 'PING')) {
-    return Promise.resolve({ ok: true, version: 'V92', found: true, demo: true });
+    return Promise.resolve({ ok: true, version: 'V93', found: true, demo: true });
   }
   if (isLocalDemo() && act === 'SCAN') {
     var n = normalizeAwb(payload && payload.awb);
@@ -407,13 +373,14 @@ function gsRun(action, payload, timeoutMs) {
   if (window.google && google.script && google.script.run) {
     return gsRunNative(action, payload, timeoutMs);
   }
-  var act = String(action || '').toUpperCase();
-  if (act === 'CHUNK' || act === 'FINISH' || act === 'UPLOAD') {
-    return workerCall(act, payload, timeoutMs || 180000);
+  if (act === 'CHUNK' || act === 'FINISH' || act === 'UPLOAD' || act === 'SCAN') {
+    return workerCall(act, payload, timeoutMs || (act === 'SCAN' ? 30000 : 180000));
   }
-  var ms = timeoutMs || 16000;
-  return jsonpCall(act, payload || {}, ms).catch(function() {
-    return iframeCall(act, payload || {}, ms);
+  if (act === 'HEALTH' || act === 'PING') {
+    return jsonpCall(act, payload || {}, timeoutMs || 8000);
+  }
+  return jsonpCall(act, payload || {}, timeoutMs || 12000).catch(function() {
+    return workerCall(act, payload, timeoutMs || 30000);
   });
 }
 
@@ -559,7 +526,7 @@ function liveHref(r) {
   var awb = r && r.awb ? String(r.awb) : String($('awb').value || '').trim();
   if (API_URL) {
     var page = 'https://yubafashion.github.io/dispatch-proof-camera/';
-    return page + '?v=V92&api=' + encodeURIComponent(API_URL) + (awb ? '&awb=' + encodeURIComponent(awb) : '');
+    return page + '?v=V93&api=' + encodeURIComponent(API_URL) + (awb ? '&awb=' + encodeURIComponent(awb) : '');
   }
   var base = String(location.href || '').split('#')[0];
   return base + '#live=1&mode=' + encodeURIComponent(mode) + '&awb=' + encodeURIComponent(awb);
@@ -625,31 +592,63 @@ async function testCamera() {
     openLiveWindow();
     return;
   }
+  if (API_URL) connectSheet(true);
   try {
     await startCamera();
-    note('Camera ready ✓. Scan AWB to start recording.', 'ok');
+    note('Camera ready ✓. Ab CONNECT SHEET ya SCAN dabayein — chhoti Drive window khulegi, use band na karein.', 'ok');
   } catch (e) {
     note(cameraError(e), 'error');
   }
 }
 
-function pingDrive() {
-  if (healthPromise) return healthPromise;
-  healthPromise = gsRun('HEALTH', {}, 12000).then(function(r) {
+function connectSheet(quiet) {
+  if (isLocalDemo()) {
+    setDriveState('ok');
+    return Promise.resolve({ ok: true, demo: true });
+  }
+  if (!API_URL) {
+    if (!quiet) note('Drive API missing. Sheet → DISPATCH CAMERA → Open camera → hara button (URL mein api=).', 'error');
+    setDriveState('fail', 'api= missing');
+    return Promise.reject(new Error('api missing'));
+  }
+  note(quiet ? 'Sheet window khol rahe hain…' : 'Sheet se connect… chhoti Drive window ko band na karein.', 'ok');
+  return workerCall('HEALTH', {}, 20000).then(function(r) {
     if (r && (r.ok || r.found)) {
       setDriveState('ok');
-      if (!cameraReady) $('cameraState').textContent = isFramed()
-        ? 'Drive save ready ✓ — OPEN LIVE CAMERA / SCAN nayi window'
-        : 'Drive save ready ✓';
-      else $('cameraState').textContent = 'Camera ready ✓';
+      if (!quiet) note('Sheet ready ✓. Ab AWB scan karein.', 'ok');
+      return r;
+    }
+    throw new Error((r && r.message) || 'Sheet HEALTH fail');
+  }).catch(function(err) {
+    setDriveState('need', err && err.message ? err.message : 'connect fail');
+    if (!quiet) note(err && err.message ? err.message : 'Sheet connect nahi hua.', 'error');
+    throw err;
+  });
+}
+
+function pingDrive() {
+  if (isLocalDemo()) {
+    setDriveState('ok');
+    return Promise.resolve({ ok: true, demo: true });
+  }
+  if (!API_URL) {
+    setDriveState('fail', 'api= missing');
+    return Promise.reject(new Error('api missing'));
+  }
+  if (healthPromise) return healthPromise;
+  healthPromise = jsonpCall('HEALTH', {}, 8000).then(function(r) {
+    if (r && (r.ok || r.found)) {
+      setDriveState('ok');
       return r;
     }
     throw new Error((r && r.message) || 'HEALTH fail');
-  }).catch(function(err) {
+  }).catch(function() {
     healthPromise = null;
-    setDriveState('fail', err && err.message ? err.message : 'HEALTH fail');
-    note('Sheet jawab nahi de rahi. Purani tab band karo. Sheet → DISPATCH CAMERA → Open camera → hara button (URL mein api=). Apps Script Deploy → New version, Who has access = Anyone.', 'error');
-    throw err;
+    if (driveStatus !== 'ok') {
+      setDriveState('need');
+      note('JSONP se sheet nahi mili — yeh normal hai. SCAN ya CONNECT SHEET dabayein. Chrome pop-up Allow karein. Chhoti Drive window band na karein.', 'ok');
+    }
+    return { ok: false, needWorker: true };
   });
   return healthPromise;
 }
@@ -678,19 +677,13 @@ function scan() {
     note('Drive API missing. Yeh tab bookmark se mat kholo. Sheet → DISPATCH CAMERA → Open camera → hara button.', 'error');
     return;
   }
-  if (driveStatus === 'fail') {
-    note(driveError || 'Sheet offline. Hara button se nayi tab kholo, phir SCAN.', 'error');
-    pingDrive();
-    return;
-  }
   scanBusy = true;
   $('scanBtn').disabled = true;
-  note('AWB check…', 'ok');
-  var run = function() {
-    return gsRun('SCAN', { awb: v, mode: mode }, 18000);
-  };
-  var start = driveStatus === 'ok' ? run() : pingDrive().then(run);
-  start.then(handleScan).catch(function(err) {
+  note('AWB check… Drive window khule to use band na karein.', 'ok');
+  gsRun('SCAN', { awb: v, mode: mode }, 30000).then(function(r) {
+    setDriveState('ok');
+    handleScan(r);
+  }).catch(function(err) {
     note(err && err.message ? err.message : 'AWB lookup failed.', 'error');
   }).then(function() {
     scanBusy = false;
@@ -1073,6 +1066,7 @@ $('tabDispatch').addEventListener('click', function() { setMode('DISPATCH'); });
 $('tabProof').addEventListener('click', function() { setMode('PROOF'); });
 $('refreshCamera').addEventListener('click', refreshCameras);
 $('testCamera').addEventListener('click', testCamera);
+$('connectSheet').addEventListener('click', function() { connectSheet(false); });
 $('liveWindow').addEventListener('click', function() { openLiveWindow(lastScan); });
 $('pickVideo').addEventListener('click', function() {
   if (!lastScan || !lastScan.awb) {
