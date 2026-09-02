@@ -42,6 +42,11 @@ button{height:36px;border:0;border-radius:7px;padding:0 10px;font-weight:800;cur
 a.green{display:inline-flex;align-items:center;justify-content:center;height:36px;border-radius:7px;padding:0 10px;font-weight:800;background:#188038;color:#fff;text-decoration:none}
 .frameBanner a.green{height:44px;font-size:14px;margin-top:8px}
 .small{font-size:10px;height:30px;padding:0 8px}
+.modal{display:none;position:fixed;inset:0;background:rgba(20,24,28,.55);z-index:20;padding:16px;overflow:auto}
+.modal.on{display:flex;align-items:center;justify-content:center}
+.modalCard{width:min(720px,100%);background:#111;color:#fff;border-radius:12px;padding:12px;box-shadow:0 12px 40px rgba(0,0,0,.35)}
+.modalHead{display:flex;justify-content:space-between;align-items:center;font-weight:800;margin-bottom:8px}
+.modalCard video,.modalCard iframe{width:100%;max-height:420px;min-height:240px;background:#000;border:0;border-radius:8px}
 @media(max-width:600px){
  body{padding:0}.app{width:100%;min-height:100vh;border-radius:0;border:0}
  .tools{flex-wrap:wrap}.tools select{flex:1;min-width:130px}
@@ -54,7 +59,7 @@ a.green{display:inline-flex;align-items:center;justify-content:center;height:36p
 <div class="app">
   <div class="top">
     <div class="title">DISPATCH PROOF MANAGEMENT</div>
-    <div class="ag">V93 LIVE WINDOW</div>
+    <div class="ag">V99 LIVE WINDOW</div>
   </div>
   <div class="tabs">
     <div id="tabDispatch" class="tab active">🎥 MAKE DISPATCH VIDEO</div>
@@ -65,9 +70,8 @@ a.green{display:inline-flex;align-items:center;justify-content:center;height:36p
     <select id="cameraSelect"><option value="">Camera</option></select>
     <button id="refreshCamera" class="gray">REFRESH CAMERA</button>
     <button id="testCamera" class="primary">TEST CAMERA</button>
-    <button id="connectSheet" class="green">CONNECT SHEET</button>
-    <button id="liveWindow" class="green">OPEN LIVE CAMERA</button>
-    <button id="pickVideo" class="gray">UPLOAD FILE</button>
+    <button id="connectSheet" class="green">SHEET BOX CHECK</button>
+    <button id="liveWindow" class="green" style="display:none">OPEN LIVE CAMERA</button>
     <input id="videoFile" type="file" accept="video/*" style="display:none">
     <span id="cameraState" class="status">Starting…</span>
     <span id="driveState" class="status">Sheet check…</span>
@@ -85,7 +89,7 @@ a.green{display:inline-flex;align-items:center;justify-content:center;height:36p
       <br>
       <a class="green" id="frameLiveBtn" target="_blank" rel="opener" href="#">OPEN LIVE CAMERA — NAYI TAB</a>
     </div>
-    <div id="info" class="info">Is tab mein webcam Allow karein. AWB scan → STOP &amp; SAVE. Camera busy ho to doosri Chrome tab / Zoom band karke TEST CAMERA, ya dropdown se doosri camera.</div>
+    <div id="info" class="info">Title V99 hona chahiye. V93 purani tab BAND karo — wahi computer download karti hai. V99: Drive auto save, computer par file nahi. Decode error fix.</div>
     <div id="cameraPanel" class="cameraPanel">
       <div class="cameraHead">
         <span id="cameraLabel">CAMERA READY</span>
@@ -97,7 +101,17 @@ a.green{display:inline-flex;align-items:center;justify-content:center;height:36p
       </div>
     </div>
     <div id="result" class="card"></div>
-    <div id="empty" class="empty">SCAN AWB TO LOAD ONLY THAT ORDER</div>
+    <div id="empty" class="empty">SCAN AWB — dispatch record, ya VIDEO PROOF tab mein purani video + return</div>
+  </div>
+</div>
+<div id="videoModal" class="modal">
+  <div class="modalCard">
+    <div class="modalHead">
+      <span id="modalTitle">VIDEO READY</span>
+      <button type="button" id="modalClose" class="gray small">✕</button>
+    </div>
+    <div id="modalPlayer"></div>
+    <div class="controls" id="modalActions"></div>
   </div>
 </div>
 <script>
@@ -123,6 +137,7 @@ var driveStatus = 'unknown';
 var driveError = '';
 var healthPromise = null;
 var scanBusy = false;
+var lastEmergency = null;
 
 function $(id) { return document.getElementById(id); }
 
@@ -200,6 +215,7 @@ function onBridgeMessage(ev) {
     workerReady = true;
     workerSource = ev.source;
     workerOrigin = ev.origin || '*';
+    setDriveState('ok');
     return;
   }
   if (d.id && bridgePending[d.id]) {
@@ -209,47 +225,49 @@ function onBridgeMessage(ev) {
   }
 }
 
+function pingSheetBox() {
+  if (!bridgeListening) {
+    window.addEventListener('message', onBridgeMessage);
+    bridgeListening = true;
+  }
+  try {
+    if (window.opener && !window.opener.closed) {
+      window.opener.postMessage({ dp: 1, hello: 1 }, '*');
+    }
+  } catch (e1) {}
+}
+
+function sheetBoxHint() {
+  return 'Drive /exec window mat kholo (Page Not Found). Google Sheet tab mein chhota box "DISPATCH CAMERA — IS BOX KO BAND MAT KARO" khula rakho. Menu se Open camera → OPEN LIVE CAMERA. Purani V93 tab band karo.';
+}
+
 function ensureWorker() {
   return new Promise(function(resolve, reject) {
-    if (!API_URL) {
-      reject(new Error('Sheet menu se Open camera dabayein — Drive API link missing.'));
+    if (isLocalDemo()) {
+      resolve();
       return;
     }
-    if (!bridgeListening) {
-      window.addEventListener('message', onBridgeMessage);
-      bridgeListening = true;
-    }
+    pingSheetBox();
     if (workerWin && workerWin.closed) {
       workerReady = false;
       workerSource = null;
       workerWin = null;
     }
-    if (workerReady && (workerSource || (workerWin && !workerWin.closed))) {
+    if (workerReady && workerSource) {
       resolve();
-      return;
-    }
-    try {
-      workerWin = window.open(API_URL + '?bridge=1&worker=1&v=V93&t=' + Date.now(), 'DP_DRIVE_SAVE', 'width=480,height=260');
-    } catch (err) {
-      workerWin = null;
-    }
-    if (!workerWin) {
-      reject(new Error('Chrome ne Drive window block ki. Address bar mein pop-up Allow karein, phir CONNECT SHEET / SCAN dabayein.'));
       return;
     }
     var n = 0;
     var t = setInterval(function() {
-      if (workerReady) {
+      pingSheetBox();
+      if (workerReady && workerSource) {
         clearInterval(t);
         setDriveState('ok');
         resolve();
-      } else if (workerWin && workerWin.closed) {
+      } else if (++n > 24) {
         clearInterval(t);
-        workerReady = false;
-        reject(new Error('Drive window band ho gayi. CONNECT SHEET dubara dabayein. Window ko packing ke dauran band na karein.'));
-      } else if (++n > 48) {
-        clearInterval(t);
-        reject(new Error('Drive window load nahi hui. Incognito mein sirf sheet wala Google account. Apps Script Deploy → New version, Who has access = Anyone.'));
+        setDriveState('need');
+        reject(new Error(sheetBoxHint()));
       }
     }, 250);
   });
@@ -345,30 +363,131 @@ function isLocalDemo() {
   return pageParams.get('demo') === '1' || location.hostname === '127.0.0.1' || location.hostname === 'localhost';
 }
 
+function demoOrder(awb) {
+  var n = normalizeAwb(awb);
+  if (!n) return { found: false, message: 'Please scan AWB.' };
+  if (n === '1499990000111222') {
+    return {
+      ok: true, found: true, terminal: true, duplicate: false,
+      date: '02-09-2026', orderId: 'YF-CLOSED', awb: n,
+      dispatchType: 'FORWARD', status: 'Delivered', sku: 'NA', store: 'Hotel Midtown',
+      videoType: 'DISPATCH', dispatchVideo: null, returnVideo: null
+    };
+  }
+  return {
+    ok: true, found: true, terminal: false, duplicate: false,
+    date: new Date().toLocaleDateString('en-GB'),
+    orderId: n === '1490840510818035' ? 'YF-88421' : ('YF-' + n.slice(-5)),
+    awb: n,
+    dispatchType: 'FORWARD',
+    status: 'Packed',
+    sku: 'MIDTOWN POLO',
+    store: 'Hotel Midtown',
+    videoType: mode === 'PROOF' ? 'RETURN' : 'DISPATCH',
+    dispatchVideo: null,
+    returnVideo: null
+  };
+}
+
+function idbOpen() {
+  return new Promise(function(resolve, reject) {
+    var req = indexedDB.open('dp_proof_videos', 1);
+    req.onupgradeneeded = function() {
+      var db = req.result;
+      if (!db.objectStoreNames.contains('videos')) db.createObjectStore('videos', { keyPath: 'key' });
+    };
+    req.onsuccess = function() { resolve(req.result); };
+    req.onerror = function() { reject(req.error); };
+  });
+}
+
+function videoKey(awb, type) {
+  return normalizeAwb(awb) + '_' + String(type || 'DISPATCH').toUpperCase();
+}
+
+function saveDemoVideo(s, blob) {
+  var type = String(s.videoType || 'DISPATCH').toUpperCase();
+  if (type !== 'RETURN') type = 'DISPATCH';
+  var rec = {
+    key: videoKey(s.awb, type),
+    awb: normalizeAwb(s.awb),
+    orderId: s.orderId || '',
+    videoType: type,
+    fileName: (s.orderId || 'NA') + '_' + normalizeAwb(s.awb) + '_' + type + fileExtForMime(blob.type),
+    mimeType: blob.type || 'video/webm',
+    blob: blob,
+    savedAt: Date.now()
+  };
+  return idbOpen().then(function(db) {
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction('videos', 'readwrite');
+      tx.objectStore('videos').put(rec);
+      tx.oncomplete = function() { resolve(demoRecFromStore(rec)); };
+      tx.onerror = function() { reject(tx.error); };
+    });
+  });
+}
+
+function demoRecFromStore(rec) {
+  var url = URL.createObjectURL(rec.blob);
+  return {
+    found: true, ok: true,
+    awb: rec.awb,
+    orderId: rec.orderId,
+    videoType: rec.videoType,
+    fileId: rec.key,
+    fileName: rec.fileName,
+    downloadUrl: url,
+    previewUrl: '',
+    url: url,
+    local: true
+  };
+}
+
+function loadDemoVideos(awb) {
+  var n = normalizeAwb(awb);
+  return idbOpen().then(function(db) {
+    return new Promise(function(resolve) {
+      var tx = db.transaction('videos', 'readonly');
+      var store = tx.objectStore('videos');
+      var out = {};
+      var left = 2;
+      function one(type) {
+        var req = store.get(videoKey(n, type));
+        req.onsuccess = function() {
+          if (req.result) out[type] = demoRecFromStore(req.result);
+          if (--left <= 0) resolve(out);
+        };
+        req.onerror = function() { if (--left <= 0) resolve(out); };
+      }
+      one('DISPATCH');
+      one('RETURN');
+    });
+  }).catch(function() { return {}; });
+}
+
+function mergeDemoScan(r) {
+  if (!r || !r.found || r.terminal) return Promise.resolve(r);
+  return loadDemoVideos(r.awb).then(function(vids) {
+    r.dispatchVideo = vids.DISPATCH || null;
+    r.returnVideo = vids.RETURN || null;
+    if (mode === 'DISPATCH' && r.dispatchVideo) r.duplicate = true;
+    return r;
+  });
+}
+
 function gsRun(action, payload, timeoutMs) {
   var act = String(action || '').toUpperCase();
   if (isLocalDemo() && (act === 'HEALTH' || act === 'PING')) {
-    return Promise.resolve({ ok: true, version: 'V93', found: true, demo: true });
+    return Promise.resolve({ ok: true, version: 'V99', found: true, demo: true });
   }
   if (isLocalDemo() && act === 'SCAN') {
-    var n = normalizeAwb(payload && payload.awb);
-    if (n === '1490840510818035') {
-      return Promise.resolve({
-        ok: true,
-        found: true,
-        date: '02-09-2026',
-        orderId: 'YF-88421',
-        awb: n,
-        dispatchType: 'FORWARD',
-        status: 'Packed',
-        sku: 'MIDTOWN POLO',
-        store: 'Hotel Midtown',
-        videoType: 'DISPATCH',
-        duplicate: false,
-        terminal: false
-      });
-    }
-    return Promise.resolve({ found: false, message: 'AWB not found: ' + n });
+    return mergeDemoScan(demoOrder(payload && payload.awb));
+  }
+  if (isLocalDemo() && (act === 'DOWNLOAD' || act === 'SHARE')) {
+    return loadDemoVideos((payload && payload.awb) || '').then(function() {
+      return { ok: true, url: (payload && payload.url) || '' };
+    });
   }
   if (window.google && google.script && google.script.run) {
     return gsRunNative(action, payload, timeoutMs);
@@ -413,8 +532,8 @@ function setMode(next) {
   $('info').textContent = mode === 'DISPATCH'
     ? (isFramed()
       ? 'Is chhote box mein record nahi hota. Hara button nayi tab kholta hai.'
-      : 'Dispatch: webcam Allow → AWB scan → record → next AWB ya STOP & SAVE. Camera busy = doosri tab/Zoom band, TEST CAMERA.')
-    : 'Proof: scan AWB → purani dispatch video yahan khulegi. Return video bhi yahin se.';
+      : 'AWB scan → record. Agla AWB 4–5 sec. Save sirf Drive. Computer download nahi. Wahi AWB = pehle se Drive par.')
+    : 'VIDEO PROOF: AWB scan → purani dispatch video popup (Download + Share). MAKE RETURN VIDEO usi AWB par. Dono ready hon to dono ke Download/Share.';
   clearResult();
   $('awb').focus();
 }
@@ -526,7 +645,7 @@ function liveHref(r) {
   var awb = r && r.awb ? String(r.awb) : String($('awb').value || '').trim();
   if (API_URL) {
     var page = 'https://yubafashion.github.io/dispatch-proof-camera/';
-    return page + '?v=V93&api=' + encodeURIComponent(API_URL) + (awb ? '&awb=' + encodeURIComponent(awb) : '');
+    return page + '?v=V99&api=' + encodeURIComponent(API_URL) + (awb ? '&awb=' + encodeURIComponent(awb) : '');
   }
   var base = String(location.href || '').split('#')[0];
   return base + '#live=1&mode=' + encodeURIComponent(mode) + '&awb=' + encodeURIComponent(awb);
@@ -595,7 +714,7 @@ async function testCamera() {
   if (API_URL) connectSheet(true);
   try {
     await startCamera();
-    note('Camera ready ✓. Ab CONNECT SHEET ya SCAN dabayein — chhoti Drive window khulegi, use band na karein.', 'ok');
+    note('Camera ready ✓. Sheet wala chhota DISPATCH CAMERA box khula rakho. /exec Drive window band karo. Phir SCAN.', 'ok');
   } catch (e) {
     note(cameraError(e), 'error');
   }
@@ -606,22 +725,17 @@ function connectSheet(quiet) {
     setDriveState('ok');
     return Promise.resolve({ ok: true, demo: true });
   }
-  if (!API_URL) {
-    if (!quiet) note('Drive API missing. Sheet → DISPATCH CAMERA → Open camera → hara button (URL mein api=).', 'error');
-    setDriveState('fail', 'api= missing');
-    return Promise.reject(new Error('api missing'));
-  }
-  note(quiet ? 'Sheet window khol rahe hain…' : 'Sheet se connect… chhoti Drive window ko band na karein.', 'ok');
-  return workerCall('HEALTH', {}, 20000).then(function(r) {
+  note(quiet ? 'Sheet box check…' : 'Sheet box se connect… Google Sheet wala chhota box band na karein.', 'ok');
+  return workerCall('HEALTH', {}, 12000).then(function(r) {
     if (r && (r.ok || r.found)) {
       setDriveState('ok');
-      if (!quiet) note('Sheet ready ✓. Ab AWB scan karein.', 'ok');
+      if (!quiet) note('Sheet ready ✓. Ab AWB scan karein. DISPATCH CAMERA box khula rahe.', 'ok');
       return r;
     }
     throw new Error((r && r.message) || 'Sheet HEALTH fail');
   }).catch(function(err) {
     setDriveState('need', err && err.message ? err.message : 'connect fail');
-    if (!quiet) note(err && err.message ? err.message : 'Sheet connect nahi hua.', 'error');
+    if (!quiet) note(err && err.message ? err.message : sheetBoxHint(), 'error');
     throw err;
   });
 }
@@ -644,10 +758,7 @@ function pingDrive() {
     throw new Error((r && r.message) || 'HEALTH fail');
   }).catch(function() {
     healthPromise = null;
-    if (driveStatus !== 'ok') {
-      setDriveState('need');
-      note('JSONP se sheet nahi mili — yeh normal hai. SCAN ya CONNECT SHEET dabayein. Chrome pop-up Allow karein. Chhoti Drive window band na karein.', 'ok');
-    }
+    if (driveStatus !== 'ok' && !workerReady) setDriveState('need');
     return { ok: false, needWorker: true };
   });
   return healthPromise;
@@ -660,27 +771,23 @@ function scan() {
     return;
   }
   if (scanBusy) {
-    note('Pehla AWB check abhi chal raha hai…', 'ok');
+    note('AWB check chal raha hai… 4–5 sec.', 'ok');
     return;
   }
   if (mode === 'DISPATCH' && recorder && recorder.state === 'recording' &&
       currentSession && normalizeAwb(currentSession.awb) === normalizeAwb(v)) {
     stopRecording();
-    note('Wahi AWB. Recording save ho rahi hai…', 'ok');
+    note('Wahi AWB. Recording backend par save ho rahi hai…', 'ok');
     return;
   }
-  if (mode === 'DISPATCH' && recorder && recorder.state === 'recording') {
-    note('Pehli video save ho rahi hai, naya AWB check…', 'ok');
-    stopRecording();
-  }
-  if (!API_URL && !isLocalDemo()) {
-    note('Drive API missing. Yeh tab bookmark se mat kholo. Sheet → DISPATCH CAMERA → Open camera → hara button.', 'error');
-    return;
+  var switching = !!(mode === 'DISPATCH' && recorder && recorder.state === 'recording');
+  if (switching) {
+    note('Naya AWB check… recording abhi chal rahi hai, 4–5 sec mein switch.', 'ok');
   }
   scanBusy = true;
   $('scanBtn').disabled = true;
-  note('AWB check… Drive window khule to use band na karein.', 'ok');
-  gsRun('SCAN', { awb: v, mode: mode }, 30000).then(function(r) {
+  if (!switching) note('AWB check…', 'ok');
+  gsRun('SCAN', { awb: v, mode: mode }, switching ? 8000 : 15000).then(function(r) {
     setDriveState('ok');
     handleScan(r);
   }).catch(function(err) {
@@ -715,7 +822,7 @@ function handleScan(r) {
   }
   if (r.duplicate && mode === 'DISPATCH') {
     showDispatch(r);
-    note('DUPLICATE AWB FOUND. Is AWB ki video pehle se save hai. Dobara record nahi hoga.', 'error');
+    note('Yeh AWB Drive par pehle se save hai. Computer par download/save nahi. Agle parcel ka naya AWB scan karein.', 'ok');
     $('awb').value = '';
     $('awb').focus();
     return;
@@ -742,7 +849,7 @@ function handleScan(r) {
 function showDispatch(r, needsLiveWindow) {
   $('empty').style.display = 'none';
   var statusLine = r.duplicate
-    ? '● DUPLICATE — VIDEO ALREADY SAVED'
+    ? '● DRIVE PAR SAVE HO CHUKI — computer download nahi'
     : (needsLiveWindow
       ? '● IS BOX MEIN RECORD NAHI HOTA — NAYI WINDOW MEIN CAMERA ALLOW KARO'
       : '● RECORDING STARTS AUTOMATICALLY AFTER AWB VERIFICATION');
@@ -759,22 +866,83 @@ function showDispatch(r, needsLiveWindow) {
   $('result').style.display = 'block';
 }
 
+function isDriveFileId(id) {
+  var s = String(id || '');
+  return s.length > 20 && s.indexOf('http') !== 0 && s.indexOf('_') !== 0 && s.indexOf('blob:') !== 0;
+}
+
+function drivePreviewOf(rec) {
+  rec = rec || {};
+  if (rec.previewUrl && /drive\.google\.com\/file\//i.test(rec.previewUrl)) return rec.previewUrl;
+  if (isDriveFileId(rec.fileId)) return 'https://drive.google.com/file/d/' + encodeURIComponent(rec.fileId) + '/preview';
+  return '';
+}
+
+function driveShareOf(rec) {
+  rec = rec || {};
+  if (rec.url && /drive\.google\.com/i.test(rec.url) && rec.url.indexOf('export=download') < 0) return rec.url;
+  if (isDriveFileId(rec.fileId)) return 'https://drive.google.com/file/d/' + encodeURIComponent(rec.fileId) + '/view';
+  return rec.url || rec.downloadUrl || '';
+}
+
 function videoBox(title, rec) {
   if (!rec) return '';
-  var preview = rec.previewUrl || rec.url || '';
-  var src = rec.downloadUrl || '';
+  var preview = drivePreviewOf(rec);
+  var blobSrc = (rec.downloadUrl && String(rec.downloadUrl).indexOf('blob:') === 0) ? rec.downloadUrl : '';
+  var fid = rec.fileId || '';
+  var share = driveShareOf(rec);
+  var player = preview
+    ? '<iframe class="proofVideo" src="' + esc(preview) + '" allow="autoplay; encrypted-media" allowfullscreen></iframe>'
+    : (blobSrc ? '<video class="proofVideo" controls playsinline src="' + esc(blobSrc) + '"></video>' : '<div class="ready">VIDEO READY (Drive)</div>');
   return (
     '<div class="videoBox">' +
-      '<div style="font-weight:800;margin-bottom:6px">' + esc(title) + '</div>' +
-      (preview
-        ? '<iframe class="proofVideo" src="' + esc(preview) + '" allow="autoplay" allowfullscreen></iframe>'
-        : '<video class="proofVideo" controls playsinline src="' + esc(src) + '"></video>') +
+      '<div style="font-weight:800;margin-bottom:6px">' + esc(title) + ' • READY</div>' +
+      player +
       '<div class="controls">' +
-        '<button class="primary small" onclick="downloadFile(' + js(rec.fileId) + ')">⬇ DOWNLOAD</button>' +
-        '<button class="green small" onclick="shareFile(' + js(rec.fileId) + ')">↗ SHARE</button>' +
+        '<button class="green small" type="button" onclick="copyLink(' + js(share) + ')">↗ SHARE</button>' +
       '</div>' +
     '</div>'
   );
+}
+
+function copyLink(url) {
+  url = String(url || '');
+  if (/export=download/i.test(url)) {
+    var m = url.match(/[?&]id=([^&]+)/);
+    if (m) url = 'https://drive.google.com/file/d/' + decodeURIComponent(m[1]) + '/view';
+  }
+  if (!url || url.indexOf('blob:') === 0) {
+    note('Video Drive par auto save. Computer par file nahi rakhenge.', 'ok');
+    return;
+  }
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(url).then(function() { note('Drive link copy. Computer par file save nahi hui.', 'ok'); })
+      .catch(function() { window.prompt('Drive link copy karein (Save As nahi):', url); });
+  } else {
+    window.prompt('Drive link copy karein (Save As nahi):', url);
+  }
+}
+
+function openVideoPopup(title, fileId, src, preview) {
+  $('modalTitle').textContent = title + ' • VIDEO READY';
+  var player = $('modalPlayer');
+  var prev = preview || (isDriveFileId(fileId) ? ('https://drive.google.com/file/d/' + encodeURIComponent(fileId) + '/preview') : '');
+  if (prev) {
+    player.innerHTML = '<iframe class="proofVideo" src="' + esc(prev) + '" allow="autoplay; encrypted-media" allowfullscreen></iframe>';
+  } else if (src && String(src).indexOf('blob:') === 0) {
+    player.innerHTML = '<video class="proofVideo" controls autoplay playsinline src="' + esc(src) + '"></video>';
+  } else {
+    player.innerHTML = '<p>Video Drive par hai. Extra window nahi kholenge.</p>';
+  }
+  var share = prev ? prev.replace('/preview', '/view') : '';
+  $('modalActions').innerHTML =
+    '<button class="green" type="button" onclick="copyLink(' + js(share) + ')">↗ SHARE</button>';
+  $('videoModal').className = 'modal on';
+}
+
+function closeVideoPopup() {
+  $('videoModal').className = 'modal';
+  $('modalPlayer').innerHTML = '';
 }
 
 function showProof(r) {
@@ -789,14 +957,14 @@ function showProof(r) {
       '</div></div>' +
     '</div>';
   if (r.dispatchVideo) html += videoBox('DISPATCH VIDEO', r.dispatchVideo);
-  else html += '<div style="margin-top:9px" class="required">Dispatch video index mein nahi mili.</div>';
+  else html += '<div style="margin-top:9px" class="required">Is AWB ki dispatch video abhi save nahi hui. Pehle MAKE DISPATCH VIDEO tab se record karein.</div>';
   if (r.returnVideo) {
-    html += videoBox('RETURN VIDEO • READY', r.returnVideo);
+    html += videoBox('RETURN VIDEO', r.returnVideo);
   } else {
     html +=
       '<div style="margin-top:9px">' +
         '<span class="required">RETURN VIDEO REQUIRED</span> ' +
-        '<button class="orange" onclick="startReturnRecording(' +
+        '<button class="orange" type="button" onclick="startReturnRecording(' +
           js(r.awb) + ',' + js(r.orderId) + ',' + js(r.status) +
         ')">MAKE RETURN VIDEO</button></div>';
   }
@@ -869,14 +1037,14 @@ async function startRecording(r) {
   };
   recorder.onerror = function() { note('Recorder error.', 'error'); };
   recorder.onstop = finishRecording;
-  recorder.start(1000);
+  try { recorder.start(250); } catch (e2) { recorder.start(1000); }
   recordStartedAt = Date.now();
   $('cameraPanel').style.display = 'block';
   $('cameraLabel').textContent = currentSession.videoType === 'RETURN' ? 'MAKE RETURN VIDEO' : 'MAKE DISPATCH VIDEO';
   $('live').style.display = 'inline';
   $('timer').textContent = '00:00';
   updateTimer();
-  note('● RECORDING. Next AWB scan saves this video in background.', 'ok');
+  note('● RECORDING ' + currentSession.awb + '. Agla AWB scan karo — 4–5 sec mein nayi recording. Purani backend par dheere save.', 'ok');
   $('awb').value = '';
   $('awb').focus();
 }
@@ -892,7 +1060,10 @@ function updateTimer() {
 }
 
 function stopRecording() {
-  if (recorder && recorder.state === 'recording') recorder.stop();
+  if (recorder && recorder.state === 'recording') {
+    try { recorder.requestData(); } catch (e1) {}
+    recorder.stop();
+  }
 }
 
 function stopManual() {
@@ -928,70 +1099,81 @@ function finishRecording() {
     kickWaitingOrder();
     return;
   }
-  queueUpload(s, blob);
-  var queued = nextOrder;
+  var queued = nextOrder || waitingOrder;
   nextOrder = null;
-  if (queued) startRecording(queued);
-  else kickWaitingOrder();
+  waitingOrder = null;
+  if (queued) {
+    showDispatch(queued, false);
+    void startRecording(queued);
+  }
+  queueUpload(s, blob);
 }
 
-function downloadLocalCopy(fileName, blob) {
-  if (!blob) return;
-  try {
-    var a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = fileName || ('dispatch-video-' + Date.now() + '.mp4');
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(function() { URL.revokeObjectURL(a.href); }, 60000);
-  } catch (ignore) {}
+function blobToWebSafeBase64(blob) {
+  return blob.arrayBuffer().then(function(buf) {
+    var bytes = new Uint8Array(buf);
+    var bin = '';
+    var step = 0x8000;
+    var i;
+    for (i = 0; i < bytes.length; i += step) {
+      bin += String.fromCharCode.apply(null, bytes.subarray(i, Math.min(i + step, bytes.length)));
+    }
+    return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+  });
 }
 
 function queueUpload(s, blob) {
+  var fileName = (s.orderId || 'NA') + '_' + s.awb + '_' + (s.videoType || 'DISPATCH') + fileExtForMime(blob.type);
+  lastEmergency = { fileName: fileName, blob: blob };
   uploadQueue++;
-  note('Saving AWB ' + s.awb + ' in background…', 'ok');
-  var reader = new FileReader();
-  reader.onerror = function() {
+  note('Drive par save… computer download nahi. AWB ' + s.awb, 'ok');
+  if (isLocalDemo()) {
+    saveDemoVideo(s, blob).then(function(rec) {
+      uploadQueue = Math.max(0, uploadQueue - 1);
+      savedAwbs[normalizeAwb(s.awb)] = true;
+      $('cameraState').textContent = 'Saved ✓';
+      note('✓ VIDEO SAVED • ' + rec.fileName, 'ok');
+      if (String(s.videoType || '').toUpperCase() === 'RETURN' || mode === 'PROOF') {
+        gsRun('SCAN', { awb: s.awb, mode: 'PROOF' }, 15000).then(showProof);
+      }
+    }).catch(function(err) {
+      uploadQueue = Math.max(0, uploadQueue - 1);
+      $('cameraState').textContent = 'Save failed';
+      note('VIDEO SAVE ERROR: ' + (err && err.message ? err.message : err), 'error');
+    });
+    return;
+  }
+  blobToWebSafeBase64(blob).then(function(b64) {
+    submitUpload({
+      awb: s.awb,
+      orderId: s.orderId,
+      status: s.status,
+      videoType: s.videoType,
+      fileName: fileName,
+      mimeType: blob.type || 'video/webm',
+      base64: b64
+    }, s);
+  }).catch(function(e) {
     uploadQueue--;
-    note('VIDEO SAVE ERROR: unable to read recorded video.', 'error');
-  };
-  reader.onload = function() {
-    try {
-      var dataUrl = String(reader.result || '');
-      var comma = dataUrl.indexOf(',');
-      var base64 = comma >= 0 ? dataUrl.slice(comma + 1) : dataUrl;
-      submitUpload({
-        awb: s.awb,
-        orderId: s.orderId,
-        status: s.status,
-        videoType: s.videoType,
-        fileName: (s.awb || 'VIDEO') + '_' + s.videoType + '_' + Date.now() + fileExtForMime(blob.type),
-        mimeType: blob.type || 'video/mp4',
-        base64: base64
-      }, blob);
-    } catch (e) {
-      uploadQueue--;
-      note('VIDEO SAVE ERROR: ' + (e.message || e), 'error');
-    }
-  };
-  reader.readAsDataURL(blob);
+    $('cameraState').textContent = 'Save failed';
+    note('VIDEO SAVE ERROR: ' + (e.message || e) + ' — computer par download nahi kiya.', 'error');
+  });
 }
 
-function submitUpload(payload, blob) {
-  var raw = String(payload.base64 || '');
+function submitUpload(payload, session) {
+  var raw = String(payload.base64 || '').replace(/[^A-Za-z0-9\-_]/g, '');
   if (!raw) {
     uploadQueue = Math.max(0, uploadQueue - 1);
-    note('VIDEO SAVE ERROR: empty video data.', 'error');
+    note('VIDEO SAVE ERROR: empty video data. Computer download nahi.', 'error');
     return;
   }
   (async function() {
     try {
-      var size = 70000;
+      var size = 8000;
       var total = Math.ceil(raw.length / size);
       var uploadId = 'u' + Date.now() + '_' + Math.floor(Math.random() * 1000000);
       var type = payload.videoType || 'DISPATCH';
-      note('Drive save chal rahi hai • AWB ' + payload.awb + ' • ' + total + ' parts', 'ok');
+      note('Drive save • AWB ' + payload.awb + ' • ' + total + ' parts. Koi folder nahi khulega.', 'ok');
       for (var i = 0; i < total; i++) {
         $('cameraState').textContent = 'Saving ' + payload.awb + ' ' + (i + 1) + '/' + total;
         var chunkRes = await gsRun('CHUNK', {
@@ -1008,21 +1190,23 @@ function submitUpload(payload, blob) {
         awb: payload.awb || '',
         orderId: payload.orderId || '',
         videoType: type,
-        mimeType: payload.mimeType || 'video/mp4',
+        mimeType: payload.mimeType || 'video/webm',
         fileName: payload.fileName || ''
       }, 180000);
       uploadQueue = Math.max(0, uploadQueue - 1);
       if (!res || !res.ok || !res.fileId) {
-        throw new Error((res && res.message) || 'Drive par file nahi bani');
+        throw new Error((res && res.message) || 'Drive par file nahi bani. Sheet box khula rakho.');
       }
       savedAwbs[normalizeAwb(payload.awb)] = true;
       $('cameraState').textContent = 'Saved ✓';
-      note('✓ VIDEO SAVED TO DRIVE • ' + payload.awb, 'ok');
+      note('✓ DRIVE SAVE • ' + (res.fileName || payload.fileName), 'ok');
+      if (String(type).toUpperCase() === 'RETURN' || mode === 'PROOF') {
+        gsRun('SCAN', { awb: payload.awb, mode: 'PROOF' }, 20000).then(showProof);
+      }
     } catch (err) {
       uploadQueue = Math.max(0, uploadQueue - 1);
       $('cameraState').textContent = 'Save failed';
-      downloadLocalCopy(payload.fileName, blob);
-      note('VIDEO SAVE ERROR: ' + (err.message || err) + ' — video is computer par download ho gayi.', 'error');
+      note('VIDEO SAVE ERROR: ' + (err.message || err) + ' — computer par video nahi bheji. Sheet box khula rakho.', 'error');
     }
   })();
 }
@@ -1040,26 +1224,13 @@ async function startReturnRecording(awb, orderId, status) {
   });
 }
 
-function downloadFile(id) {
-  gsRun('DOWNLOAD', { fileId: id }, 25000).then(function(r) {
-    if (r && r.ok && r.url) window.open(r.url, '_blank', 'noopener');
-    else note(r && r.message ? r.message : 'Download link unavailable.', 'error');
-  }).catch(function(err) { note(err.message || 'Download failed', 'error'); });
+function downloadFile(id, localUrl) {
+  if (isDriveFileId(id)) copyLink('https://drive.google.com/file/d/' + encodeURIComponent(id) + '/view');
+  else copyLink(localUrl || '');
 }
 
-function shareFile(id) {
-  gsRun('SHARE', { fileId: id }, 25000).then(function(r) {
-    if (!r || !r.ok) {
-      note(r && r.message ? r.message : 'Share link unavailable.', 'error');
-      return;
-    }
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(r.url).then(function() { note('Share link copied.', 'ok'); })
-        .catch(function() { window.prompt('Copy share link:', r.url); });
-    } else {
-      window.prompt('Copy share link:', r.url);
-    }
-  }).catch(function(err) { note(err.message || 'Share failed', 'error'); });
+function shareFile(id, localUrl) {
+  downloadFile(id, localUrl);
 }
 
 $('tabDispatch').addEventListener('click', function() { setMode('DISPATCH'); });
@@ -1068,28 +1239,6 @@ $('refreshCamera').addEventListener('click', refreshCameras);
 $('testCamera').addEventListener('click', testCamera);
 $('connectSheet').addEventListener('click', function() { connectSheet(false); });
 $('liveWindow').addEventListener('click', function() { openLiveWindow(lastScan); });
-$('pickVideo').addEventListener('click', function() {
-  if (!lastScan || !lastScan.awb) {
-    note('Pehle AWB scan karein, phir UPLOAD FILE.', 'error');
-    return;
-  }
-  $('videoFile').click();
-});
-$('videoFile').addEventListener('change', function() {
-  var f = this.files && this.files[0];
-  this.value = '';
-  if (!f) return;
-  if (f.size > 18 * 1024 * 1024) {
-    note('VIDEO TOO LARGE. Keep each file below 18 MB.', 'error');
-    return;
-  }
-  queueUpload({
-    awb: String(lastScan.awb || ''),
-    orderId: String(lastScan.orderId || ''),
-    status: String(lastScan.status || ''),
-    videoType: String(lastScan.videoType || 'DISPATCH').toUpperCase()
-  }, f);
-});
 $('scanBtn').addEventListener('click', scan);
 $('refreshBtn').addEventListener('click', function() {
   if (recorder && recorder.state === 'recording') {
@@ -1102,6 +1251,10 @@ $('refreshBtn').addEventListener('click', function() {
   $('awb').focus();
 });
 $('stopBtn').addEventListener('click', stopManual);
+$('modalClose').addEventListener('click', closeVideoPopup);
+$('videoModal').addEventListener('click', function(e) {
+  if (e.target === $('videoModal')) closeVideoPopup();
+});
 $('awb').addEventListener('keydown', function(e) {
   if (e.key === 'Enter') { e.preventDefault(); scan(); }
 });
@@ -1154,11 +1307,13 @@ window.addEventListener('beforeunload', function(e) {
       handleScan(pending);
     } else if (hp.awb || qAwb) {
       $('awb').value = hp.awb || qAwb;
-      if (API_URL || isLocalDemo()) scan();
+      if (isLocalDemo() || API_URL) scan();
     }
   }
-  if (API_URL || isLocalDemo()) pingDrive();
-  else setDriveState('fail', 'api= missing');
+  pingSheetBox();
+  setInterval(pingSheetBox, 2000);
+  if (isLocalDemo()) pingDrive();
+  else if (API_URL) pingDrive();
   $('awb').focus();
 })();
 </script>
