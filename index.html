@@ -54,7 +54,7 @@ a.green{display:inline-flex;align-items:center;justify-content:center;height:36p
 <div class="app">
   <div class="top">
     <div class="title">DISPATCH PROOF MANAGEMENT</div>
-    <div class="ag">V89 LIVE WINDOW</div>
+    <div class="ag">V90 LIVE WINDOW</div>
   </div>
   <div class="tabs">
     <div id="tabDispatch" class="tab active">🎥 MAKE DISPATCH VIDEO</div>
@@ -83,7 +83,7 @@ a.green{display:inline-flex;align-items:center;justify-content:center;height:36p
       <br>
       <a class="green" id="frameLiveBtn" target="_blank" rel="opener" href="#">OPEN LIVE CAMERA — NAYI TAB</a>
     </div>
-    <div id="info" class="info">Sheet ke chhote dialog mein record nahi hota. OPEN LIVE CAMERA / SCAN nayi window kholta hai. Wahan webcam Allow, phir AWB scan → STOP &amp; SAVE. Drive save ke liye sheet wala box khula rehne do.</div>
+    <div id="info" class="info">Is tab mein webcam Allow karein. AWB scan → STOP &amp; SAVE. Camera busy ho to doosri Chrome tab / Zoom band karke TEST CAMERA, ya dropdown se doosri camera.</div>
     <div id="cameraPanel" class="cameraPanel">
       <div class="cameraHead">
         <span id="cameraLabel">CAMERA READY</span>
@@ -344,7 +344,9 @@ function setMode(next) {
   $('tabDispatch').classList.toggle('active', mode === 'DISPATCH');
   $('tabProof').classList.toggle('active', mode === 'PROOF');
   $('info').textContent = mode === 'DISPATCH'
-    ? 'Dispatch: scan AWB → record jitna time chahiye → next AWB ya STOP & SAVE.'
+    ? (isFramed()
+      ? 'Is chhote box mein record nahi hota. Hara button nayi tab kholta hai.'
+      : 'Dispatch: webcam Allow → AWB scan → record → next AWB ya STOP & SAVE. Camera busy = doosri tab/Zoom band, TEST CAMERA.')
     : 'Proof: scan AWB → purani dispatch video yahan khulegi. Return video bhi yahin se.';
   clearResult();
   $('awb').focus();
@@ -384,19 +386,52 @@ async function refreshCameras() {
   }
 }
 
+function stopStream() {
+  if (!stream) return;
+  stream.getTracks().forEach(function(t) {
+    try { t.stop(); } catch (e) {}
+  });
+  stream = null;
+  if ($('cameraFrame')) $('cameraFrame').srcObject = null;
+}
+
 async function startCamera() {
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
     throw new Error('Camera API is unavailable in this browser.');
   }
-  if (stream) {
-    stream.getTracks().forEach(function(t) { t.stop(); });
-    stream = null;
-  }
+  stopStream();
+  cameraReady = false;
   var id = $('cameraSelect').value || selectedCameraId;
-  var videoConstraints = id
-    ? {deviceId:{exact:id}, width:{ideal:960}, height:{ideal:540}}
-    : {width:{ideal:960}, height:{ideal:540}, facingMode:{ideal:'environment'}};
-  stream = await navigator.mediaDevices.getUserMedia({ video: videoConstraints, audio: true });
+  var otherIds = [];
+  var opts = $('cameraSelect') ? $('cameraSelect').options : [];
+  var i;
+  for (i = 0; i < opts.length; i++) {
+    if (opts[i].value && opts[i].value !== id) otherIds.push(opts[i].value);
+  }
+  var attempts = [];
+  if (id) {
+    attempts.push({ video: { deviceId: { exact: id }, width: { ideal: 960 }, height: { ideal: 540 } }, audio: true });
+    attempts.push({ video: { deviceId: { exact: id } }, audio: false });
+    attempts.push({ video: { deviceId: { ideal: id } }, audio: true });
+    attempts.push({ video: { deviceId: { ideal: id } }, audio: false });
+  }
+  otherIds.forEach(function(oid) {
+    attempts.push({ video: { deviceId: { exact: oid } }, audio: false });
+  });
+  attempts.push({ video: { width: { ideal: 960 }, height: { ideal: 540 } }, audio: true });
+  attempts.push({ video: true, audio: false });
+  var lastErr = null;
+  for (i = 0; i < attempts.length; i++) {
+    try {
+      stream = await navigator.mediaDevices.getUserMedia(attempts[i]);
+      lastErr = null;
+      break;
+    } catch (e) {
+      lastErr = e;
+      stopStream();
+    }
+  }
+  if (!stream) throw lastErr || new Error('Unable to access camera.');
   $('cameraFrame').srcObject = stream;
   $('cameraPanel').style.display = 'block';
   cameraReady = true;
@@ -424,7 +459,7 @@ function liveHref(r) {
   var awb = r && r.awb ? String(r.awb) : String($('awb').value || '').trim();
   if (API_URL) {
     var page = 'https://yubafashion.github.io/dispatch-proof-camera/';
-    return page + '?v=V89&api=' + encodeURIComponent(API_URL) + (awb ? '&awb=' + encodeURIComponent(awb) : '');
+    return page + '?v=V90&api=' + encodeURIComponent(API_URL) + (awb ? '&awb=' + encodeURIComponent(awb) : '');
   }
   var base = String(location.href || '').split('#')[0];
   return base + '#live=1&mode=' + encodeURIComponent(mode) + '&awb=' + encodeURIComponent(awb);
@@ -479,7 +514,8 @@ function cameraError(e) {
   if (n === 'NotAllowedError' || n === 'PermissionDeniedError')
     return 'Is chhote box mein Chrome camera band rakhta hai. OPEN LIVE CAMERA dabayein, ya AWB scan karke UPLOAD FILE use karein.';
   if (n === 'NotFoundError') return 'No camera was found on this device.';
-  if (n === 'NotReadableError') return 'Camera busy hai. Doosri camera apps band karein.';
+  if (n === 'NotReadableError')
+    return 'Camera busy / lock. Doosri Chrome tab of this camera, Zoom, Meet band karo. Dropdown se doosri camera chuno, TEST CAMERA dabao. Kreo Owl ho to USB nikaal ke dubara lagaao.';
   if (n === 'OverconstrainedError') return 'Selected camera cannot use the requested settings.';
   return e && e.message ? e.message : 'Unable to access camera.';
 }
@@ -969,14 +1005,20 @@ window.addEventListener('beforeunload', function(e) {
     try {
       await startCamera();
       note('Camera ready ✓. Scan AWB to start recording.', 'ok');
-    } catch (e) {
-      note(cameraError(e), 'error');
+    } catch (e1) {
+      await new Promise(function(res) { setTimeout(res, 700); });
+      try {
+        await startCamera();
+        note('Camera ready ✓. Scan AWB to start recording.', 'ok');
+      } catch (e) {
+        note(cameraError(e), 'error');
+      }
     }
     var pending = takePending();
     if (pending && pending.found) {
       handleScan(pending);
-    } else if (hp.awb) {
-      $('awb').value = hp.awb;
+    } else if (hp.awb || qAwb) {
+      $('awb').value = hp.awb || qAwb;
       scan();
     }
   }
