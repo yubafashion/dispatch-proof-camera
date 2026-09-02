@@ -1,4 +1,4 @@
-<!doctype html>
+`<!doctype html>
 <html>
 <head>
 <meta charset="utf-8">
@@ -54,7 +54,7 @@ a.green{display:inline-flex;align-items:center;justify-content:center;height:36p
 <div class="app">
   <div class="top">
     <div class="title">DISPATCH PROOF MANAGEMENT</div>
-    <div class="ag">V90 LIVE WINDOW</div>
+    <div class="ag">V92 LIVE WINDOW</div>
   </div>
   <div class="tabs">
     <div id="tabDispatch" class="tab active">🎥 MAKE DISPATCH VIDEO</div>
@@ -69,6 +69,7 @@ a.green{display:inline-flex;align-items:center;justify-content:center;height:36p
     <button id="pickVideo" class="gray">UPLOAD FILE</button>
     <input id="videoFile" type="file" accept="video/*" style="display:none">
     <span id="cameraState" class="status">Starting…</span>
+    <span id="driveState" class="status">Sheet check…</span>
   </div>
   <div class="scan">
     <input id="awb" autofocus autocomplete="off" placeholder="SCAN AWB BARCODE...">
@@ -117,6 +118,10 @@ try { selectedCameraId = localStorage.getItem('DP50_CAMERA_ID') || ''; } catch (
 var uploadQueue = 0;
 var savedAwbs = {};
 var lastScan = null;
+var driveStatus = 'unknown';
+var driveError = '';
+var healthPromise = null;
+var scanBusy = false;
 
 function $(id) { return document.getElementById(id); }
 
@@ -268,28 +273,40 @@ function workerCall(action, payload, timeoutMs) {
   });
 }
 
+function setDriveState(status, msg) {
+  driveStatus = status;
+  driveError = msg || '';
+  var el = $('driveState');
+  if (!el) return;
+  if (status === 'ok') el.textContent = 'Sheet ready ✓';
+  else if (status === 'fail') el.textContent = 'Sheet offline';
+  else el.textContent = 'Sheet check…';
+}
+
 function jsonpCall(action, data, timeoutMs) {
   return new Promise(function(resolve, reject) {
     if (!API_URL) {
       reject(new Error('Drive API missing. Sheet se Open camera use karo.'));
       return;
     }
-    var cb = 'DP89j' + (++bridgeSeq) + '_' + Date.now();
+    var cb = 'DP92j' + (++bridgeSeq) + '_' + Date.now();
     var q = new URLSearchParams();
     q.set('dpAction', action);
     q.set('callback', cb);
     q.set('transport', 'jsonp');
+    q.set('t', String(Date.now()));
     Object.keys(data || {}).forEach(function(k) {
       q.set(k, data[k] == null ? '' : String(data[k]));
     });
     var s = document.createElement('script');
+    s.async = true;
     var done = false;
     var timer = setTimeout(function() {
       if (done) return;
       done = true;
       cleanup();
-      reject(new Error(action + ' timeout'));
-    }, timeoutMs || 25000);
+      reject(new Error(action + ' timeout — sheet jawab nahi diya. Deploy New version (Anyone) aur sheet se hara button se kholo.'));
+    }, timeoutMs || 18000);
     function cleanup() {
       clearTimeout(timer);
       try { delete window[cb]; } catch (e1) { window[cb] = function() {}; }
@@ -301,12 +318,92 @@ function jsonpCall(action, data, timeoutMs) {
       cleanup();
       resolve(res);
     };
-    s.src = API_URL + '?' + q.toString();
+    s.onerror = function() {
+      if (done) return;
+      done = true;
+      cleanup();
+      reject(new Error('Drive API link fail. Purani tab band karo. Sheet → Open camera → OPEN LIVE CAMERA.'));
+    };
+    s.onload = function() {
+      setTimeout(function() {
+        if (done) return;
+        done = true;
+        cleanup();
+        reject(new Error('Apps Script JSONP nahi de rahi. Editor mein naya Code.gs paste karke Deploy → New version. Who has access = Anyone.'));
+      }, 80);
+    };
+    s.src = API_URL + (API_URL.indexOf('?') >= 0 ? '&' : '?') + q.toString();
     document.head.appendChild(s);
   });
 }
 
+function iframeCall(action, payload, timeoutMs) {
+  return new Promise(function(resolve, reject) {
+    if (!API_URL) {
+      reject(new Error('Drive API missing. Sheet se Open camera use karo.'));
+      return;
+    }
+    if (!bridgeListening) {
+      window.addEventListener('message', onBridgeMessage);
+      bridgeListening = true;
+    }
+    var id = 'i' + (++bridgeSeq) + '_' + Date.now();
+    var iframe = document.createElement('iframe');
+    iframe.setAttribute('title', 'AWB bridge');
+    iframe.style.cssText = 'position:absolute;width:1px;height:1px;left:-9999px;border:0;';
+    var q = new URLSearchParams();
+    q.set('bridge', '1');
+    q.set('rid', id);
+    q.set('dpAction', action);
+    q.set('t', String(Date.now()));
+    Object.keys(payload || {}).forEach(function(k) {
+      q.set(k, payload[k] == null ? '' : String(payload[k]));
+    });
+    var timer = setTimeout(function() {
+      if (!bridgePending[id]) return;
+      delete bridgePending[id];
+      if (iframe.parentNode) iframe.remove();
+      reject(new Error(action + ' timeout'));
+    }, timeoutMs || 18000);
+    bridgePending[id] = function(result) {
+      clearTimeout(timer);
+      if (iframe.parentNode) iframe.remove();
+      resolve(result);
+    };
+    iframe.src = API_URL + (API_URL.indexOf('?') >= 0 ? '&' : '?') + q.toString();
+    document.body.appendChild(iframe);
+  });
+}
+
+function isLocalDemo() {
+  return pageParams.get('demo') === '1' || location.hostname === '127.0.0.1' || location.hostname === 'localhost';
+}
+
 function gsRun(action, payload, timeoutMs) {
+  var act = String(action || '').toUpperCase();
+  if (isLocalDemo() && (act === 'HEALTH' || act === 'PING')) {
+    return Promise.resolve({ ok: true, version: 'V92', found: true, demo: true });
+  }
+  if (isLocalDemo() && act === 'SCAN') {
+    var n = normalizeAwb(payload && payload.awb);
+    if (n === '1490840510818035') {
+      return Promise.resolve({
+        ok: true,
+        found: true,
+        date: '02-09-2026',
+        orderId: 'YF-88421',
+        awb: n,
+        dispatchType: 'FORWARD',
+        status: 'Packed',
+        sku: 'MIDTOWN POLO',
+        store: 'Hotel Midtown',
+        videoType: 'DISPATCH',
+        duplicate: false,
+        terminal: false
+      });
+    }
+    return Promise.resolve({ found: false, message: 'AWB not found: ' + n });
+  }
   if (window.google && google.script && google.script.run) {
     return gsRunNative(action, payload, timeoutMs);
   }
@@ -314,7 +411,10 @@ function gsRun(action, payload, timeoutMs) {
   if (act === 'CHUNK' || act === 'FINISH' || act === 'UPLOAD') {
     return workerCall(act, payload, timeoutMs || 180000);
   }
-  return jsonpCall(act, payload || {}, timeoutMs || 25000);
+  var ms = timeoutMs || 16000;
+  return jsonpCall(act, payload || {}, ms).catch(function() {
+    return iframeCall(act, payload || {}, ms);
+  });
 }
 
 function esc(v) {
@@ -459,7 +559,7 @@ function liveHref(r) {
   var awb = r && r.awb ? String(r.awb) : String($('awb').value || '').trim();
   if (API_URL) {
     var page = 'https://yubafashion.github.io/dispatch-proof-camera/';
-    return page + '?v=V90&api=' + encodeURIComponent(API_URL) + (awb ? '&awb=' + encodeURIComponent(awb) : '');
+    return page + '?v=V92&api=' + encodeURIComponent(API_URL) + (awb ? '&awb=' + encodeURIComponent(awb) : '');
   }
   var base = String(location.href || '').split('#')[0];
   return base + '#live=1&mode=' + encodeURIComponent(mode) + '&awb=' + encodeURIComponent(awb);
@@ -533,10 +633,35 @@ async function testCamera() {
   }
 }
 
+function pingDrive() {
+  if (healthPromise) return healthPromise;
+  healthPromise = gsRun('HEALTH', {}, 12000).then(function(r) {
+    if (r && (r.ok || r.found)) {
+      setDriveState('ok');
+      if (!cameraReady) $('cameraState').textContent = isFramed()
+        ? 'Drive save ready ✓ — OPEN LIVE CAMERA / SCAN nayi window'
+        : 'Drive save ready ✓';
+      else $('cameraState').textContent = 'Camera ready ✓';
+      return r;
+    }
+    throw new Error((r && r.message) || 'HEALTH fail');
+  }).catch(function(err) {
+    healthPromise = null;
+    setDriveState('fail', err && err.message ? err.message : 'HEALTH fail');
+    note('Sheet jawab nahi de rahi. Purani tab band karo. Sheet → DISPATCH CAMERA → Open camera → hara button (URL mein api=). Apps Script Deploy → New version, Who has access = Anyone.', 'error');
+    throw err;
+  });
+  return healthPromise;
+}
+
 function scan() {
   var v = $('awb').value.trim();
   if (!v) {
     note('Please scan AWB.', 'error');
+    return;
+  }
+  if (scanBusy) {
+    note('Pehla AWB check abhi chal raha hai…', 'ok');
     return;
   }
   if (mode === 'DISPATCH' && recorder && recorder.state === 'recording' &&
@@ -549,9 +674,28 @@ function scan() {
     note('Pehli video save ho rahi hai, naya AWB check…', 'ok');
     stopRecording();
   }
+  if (!API_URL && !isLocalDemo()) {
+    note('Drive API missing. Yeh tab bookmark se mat kholo. Sheet → DISPATCH CAMERA → Open camera → hara button.', 'error');
+    return;
+  }
+  if (driveStatus === 'fail') {
+    note(driveError || 'Sheet offline. Hara button se nayi tab kholo, phir SCAN.', 'error');
+    pingDrive();
+    return;
+  }
+  scanBusy = true;
+  $('scanBtn').disabled = true;
   note('AWB check…', 'ok');
-  gsRun('SCAN', { awb: v, mode: mode }, 45000).then(handleScan).catch(function(err) {
+  var run = function() {
+    return gsRun('SCAN', { awb: v, mode: mode }, 18000);
+  };
+  var start = driveStatus === 'ok' ? run() : pingDrive().then(run);
+  start.then(handleScan).catch(function(err) {
     note(err && err.message ? err.message : 'AWB lookup failed.', 'error');
+  }).then(function() {
+    scanBusy = false;
+    $('scanBtn').disabled = false;
+    $('awb').focus();
   });
 }
 
@@ -1002,37 +1146,25 @@ window.addEventListener('beforeunload', function(e) {
     $('frameBanner').style.display = 'none';
     var hp = hashParams();
     if (hp.mode === 'PROOF' || hp.mode === 'DISPATCH') setMode(hp.mode);
-    try {
-      await startCamera();
-      note('Camera ready ✓. Scan AWB to start recording.', 'ok');
-    } catch (e1) {
-      await new Promise(function(res) { setTimeout(res, 700); });
-      try {
-        await startCamera();
-        note('Camera ready ✓. Scan AWB to start recording.', 'ok');
-      } catch (e) {
-        note(cameraError(e), 'error');
-      }
+    if (!API_URL && !isLocalDemo()) {
+      setDriveState('fail', 'api= missing');
+      note('Drive link missing. Yeh tab bookmark se mat kholo. Sheet → DISPATCH CAMERA → Open camera → hara button. URL mein api= hona chahiye.', 'error');
+      $('cameraState').textContent = 'Sheet se kholo (api= missing)';
+    } else {
+      setDriveState('unknown');
+      note('Pehle TEST CAMERA dabayein (webcam Allow). Camera busy ho to is page ki purani tab band karo.', 'ok');
+      $('cameraState').textContent = 'TEST CAMERA dabayein';
     }
     var pending = takePending();
     if (pending && pending.found) {
       handleScan(pending);
     } else if (hp.awb || qAwb) {
       $('awb').value = hp.awb || qAwb;
-      scan();
+      if (API_URL || isLocalDemo()) scan();
     }
   }
-  gsRun('HEALTH', {}, 20000).then(function(r) {
-    if (r && r.ok && !cameraReady) $('cameraState').textContent = isFramed()
-      ? 'Drive save ready ✓ — OPEN LIVE CAMERA / SCAN nayi window'
-      : 'Drive save ready ✓';
-    else if (r && r.ok && cameraReady) $('cameraState').textContent = 'Camera ready ✓';
-  }).catch(function() {
-    if (!cameraReady) {
-      $('cameraState').textContent = 'Drive Allow pending';
-      note('Drive Allow pending. White page Reload mat karo. Dialog band karke menu: 1. Allow Drive / Allow link (nayi tab).', 'error');
-    }
-  });
+  if (API_URL || isLocalDemo()) pingDrive();
+  else setDriveState('fail', 'api= missing');
   $('awb').focus();
 })();
 </script>
