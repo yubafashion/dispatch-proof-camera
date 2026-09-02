@@ -1,9 +1,11 @@
 <!doctype html>
+<!-- FILE 2 + FILE 3 : Camera UI V114 — Code.gs is alag file, isme mat paste karo -->
 <html>
 <head>
 <meta charset="utf-8">
+<meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
-<title>DISPATCH PROOF MANAGEMENT</title>
+<title>DISPATCH PROOF V114</title>
 <style>
 *{box-sizing:border-box}
 html,body{margin:0;width:100%;height:100%;font-family:Arial,sans-serif;background:#e9edf2;color:#202124}
@@ -11,7 +13,7 @@ body{padding:8px;overflow:auto}
 .app{width:min(980px,100%);min-height:calc(100vh - 16px);margin:0 auto;background:#f4f6f8;border:1px solid #cfd5dc;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,.12);overflow:hidden}
 .top{background:#fff;padding:8px 10px;border-bottom:1px solid #d9dee5;text-align:center}
 .title{font-size:18px;font-weight:800;line-height:1.1}
-.ag{font-size:10px;font-weight:800;letter-spacing:1.5px;color:#5f6368;margin-top:2px}
+.ag{font-size:15px;font-weight:900;letter-spacing:1px;color:#d93025;margin-top:4px}
 .tabs{display:flex;background:#fff;border-bottom:1px solid #d9dee5}
 .tab{flex:1;text-align:center;padding:9px 5px;font-size:12px;font-weight:800;cursor:pointer}
 .tab.active{background:#202124;color:#fff}
@@ -45,6 +47,9 @@ button{height:36px;border:0;border-radius:7px;padding:0 10px;font-weight:800;cur
 .frameBanner{display:none;background:#e6f4ea;border:1px solid #137333;border-radius:8px;padding:10px;margin-bottom:7px;font-size:13px;font-weight:700;text-align:center}
 a.green{display:inline-flex;align-items:center;justify-content:center;height:36px;border-radius:7px;padding:0 10px;font-weight:800;background:#188038;color:#fff;text-decoration:none}
 .frameBanner a.green{height:44px;font-size:14px;margin-top:8px}
+.hardbar{background:#fff8e1;border-bottom:3px solid #d93025;padding:10px 12px;text-align:center;font-size:13px;font-weight:700}
+.hardbar a{display:inline-block;margin-top:8px;background:#d93025;color:#fff!important;text-decoration:none;padding:12px 18px;border-radius:8px;font-weight:800}
+#jsErr{display:none;background:#d93025;color:#fff;padding:8px;margin-bottom:8px;font-size:12px;white-space:pre-wrap;text-align:left}
 .small{font-size:10px;height:30px;padding:0 8px}
 .modal{display:none;position:fixed;inset:0;background:rgba(20,24,28,.55);z-index:20;padding:12px;overflow:auto}
 .modal.on{display:flex;align-items:center;justify-content:center}
@@ -58,12 +63,78 @@ a.green{display:inline-flex;align-items:center;justify-content:center;height:36p
  .cameraFrame{max-height:300px}
 }
 </style>
+<script>
+window.DP_VER = 'V114';
+window.DP_PAGE = 'https://yubafashion.github.io/dispatch-proof-camera/';
+window.dpReady = false;
+window.onerror = function (msg, src, line) {
+  var b = document.getElementById('jsErr');
+  if (b) {
+    b.style.display = 'block';
+    b.textContent = 'JS ERROR: ' + msg + ' (line ' + line + ')';
+  }
+  return false;
+};
+function DP_show(t, bad) {
+  var e = document.getElementById('notice');
+  if (e) {
+    e.style.display = 'block';
+    e.className = 'notice ' + (bad ? 'error' : 'ok');
+    e.textContent = t;
+  }
+  var s = document.getElementById('cameraState');
+  if (s) s.textContent = t;
+}
+function DP_openLive() {
+  var url = window.DP_PAGE + '?v=' + window.DP_VER + '&t=' + Date.now();
+  var a = document.createElement('a');
+  a.href = url;
+  a.target = 'DP_CAM_' + window.DP_VER;
+  a.rel = 'opener';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  DP_show('Live camera tab kholi — title V114 hona chahiye. V99 tab Close.', false);
+}
+function DP_bootTest() {
+  DP_show('TEST CAMERA click V114 — wait…', false);
+  if (window.dpReady) return true;
+  var framed = false;
+  try { framed = window.self !== window.top; } catch (e) { framed = true; }
+  if (framed) {
+    DP_openLive();
+    return false;
+  }
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    DP_show('Is browser mein camera API nahi. Upar RED link dabao.', true);
+    return false;
+  }
+  navigator.mediaDevices.getUserMedia({ video: true, audio: false }).then(function (s) {
+    var v = document.getElementById('cameraFrame');
+    var p = document.getElementById('cameraPanel');
+    if (p) p.style.display = 'block';
+    if (v) {
+      v.srcObject = s;
+      if (v.play) v.play();
+    }
+    DP_show('Camera ready V114', false);
+  }).catch(function (err) {
+    DP_show('Camera: ' + ((err && err.name) || '') + ' ' + ((err && err.message) || err), true);
+  });
+  return false;
+}
+</script>
 </head>
 <body>
+<div class="hardbar">
+  <div id="jsErr"></div>
+  <div id="jsWarn">Agar yahan <b>V114</b> nahi likha — GitHub Pages <b>index.html</b> abhi purana hai (live site abhi V112 de rahi thi). File 3 dubara commit karo. Sheet box mein TEST CAMERA nahi hoti.</div>
+  <a id="hardLiveLink" href="https://yubafashion.github.io/dispatch-proof-camera/?v=V114" target="DP_CAM_V114" rel="opener">LIVE CAMERA KHOLIYE — YE LINK BINA JS KE CHALTI HAI</a>
+</div>
 <div class="app">
   <div class="top">
     <div class="title">DISPATCH PROOF MANAGEMENT</div>
-    <div class="ag">V112 LIVE WINDOW — V99 TAB BAND KARO</div>
+    <div class="ag">V114 LIVE WINDOW — V99 / V112 TAB BAND KARO</div>
   </div>
   <div class="tabs">
     <div id="tabDispatch" class="tab active">🎥 MAKE DISPATCH VIDEO</div>
@@ -72,18 +143,18 @@ a.green{display:inline-flex;align-items:center;justify-content:center;height:36p
   <div class="tools">
     <b>CAMERA</b>
     <select id="cameraSelect"><option value="">Camera</option></select>
-    <button id="refreshCamera" class="gray">REFRESH CAMERA</button>
-    <button id="testCamera" class="primary">TEST CAMERA</button>
-    <button id="connectSheet" class="green">SHEET BOX CHECK</button>
-    <button id="liveWindow" class="green" style="display:none">OPEN LIVE CAMERA</button>
+    <button type="button" id="refreshCamera" class="gray">REFRESH CAMERA</button>
+    <button type="button" id="testCamera" class="primary" onclick="return DP_bootTest()">TEST CAMERA</button>
+    <button type="button" id="connectSheet" class="green">SHEET BOX CHECK</button>
+    <button type="button" id="liveWindow" class="green" style="display:none">OPEN LIVE CAMERA</button>
     <input id="videoFile" type="file" accept="video/*" style="display:none">
     <span id="cameraState" class="status">Starting…</span>
     <span id="driveState" class="status">Sheet check…</span>
   </div>
   <div class="scan">
     <input id="awb" autofocus autocomplete="off" placeholder="SCAN AWB BARCODE...">
-    <button id="scanBtn" class="primary">SCAN</button>
-    <button id="refreshBtn" class="gray">REFRESH</button>
+    <button type="button" id="scanBtn" class="primary">SCAN</button>
+    <button type="button" id="refreshBtn" class="gray">REFRESH</button>
   </div>
   <div class="main">
     <div id="notice" class="notice"></div>
@@ -91,9 +162,9 @@ a.green{display:inline-flex;align-items:center;justify-content:center;height:36p
       Is chhote sheet box mein Chrome webcam band rakhta hai.<br>
       Packing ke liye yeh green button dabayein — camera nayi window mein khulegi.
       <br>
-      <a class="green" id="frameLiveBtn" target="_blank" rel="opener" href="#">OPEN LIVE CAMERA — NAYI TAB</a>
+      <a class="green" id="frameLiveBtn" href="https://yubafashion.github.io/dispatch-proof-camera/?v=V114" target="DP_CAM_V114" rel="opener">OPEN LIVE CAMERA — NAYI TAB</a>
     </div>
-    <div id="info" class="info">Title <b>V112</b>. Drive error tab Close. TEST CAMERA ka JS fix — buttons ab kaam karein.</div>
+    <div id="info" class="info">Title <b>V114</b> dikhna chahiye. Sheet box mein SCAN/TEST nahi hota — RED link ya GitHub tab. Drive “unable to open file” Close.</div>
     <div id="cameraPanel" class="cameraPanel">
       <div class="cameraHead">
         <span id="cameraLabel">CAMERA READY</span>
@@ -486,7 +557,7 @@ function mergeDemoScan(r) {
 function gsRun(action, payload, timeoutMs) {
   var act = String(action || '').toUpperCase();
   if (isLocalDemo() && (act === 'HEALTH' || act === 'PING')) {
-    return Promise.resolve({ ok: true, version: 'V112', found: true, demo: true });
+    return Promise.resolve({ ok: true, version: 'V114', found: true, demo: true });
   }
   if (isLocalDemo() && act === 'SCAN') {
     return mergeDemoScan(demoOrder(payload && payload.awb));
@@ -744,13 +815,15 @@ function hashParams() {
 
 function liveHref(r) {
   var awb = r && r.awb ? String(r.awb) : String($('awb').value || '').trim();
-  if (API_URL) {
-    var page = 'https://yubafashion.github.io/dispatch-proof-camera/';
-    return page + '?v=V112&t=' + Date.now() + '&api=' + encodeURIComponent(API_URL) +
-      (awb ? '&awb=' + encodeURIComponent(awb) : '');
-  }
-  var base = String(location.href || '').split('#')[0];
-  return base + '#live=1&mode=' + encodeURIComponent(mode) + '&awb=' + encodeURIComponent(awb);
+  var page = isLocalDemo()
+    ? String(location.href || '').split('#')[0].split('?')[0]
+    : 'https://yubafashion.github.io/dispatch-proof-camera/';
+  var join = page.indexOf('?') >= 0 ? '&' : '?';
+  var u = page + join + 'v=V114&t=' + Date.now();
+  if (API_URL) u += '&api=' + encodeURIComponent(API_URL);
+  if (awb) u += '&awb=' + encodeURIComponent(awb);
+  if (isLocalDemo() && u.indexOf('demo=') < 0) u += '&demo=1';
+  return u;
 }
 
 function openLiveWindow(r) {
@@ -758,24 +831,22 @@ function openLiveWindow(r) {
   function go(url) {
     var a = document.createElement('a');
     a.href = url;
-    a.target = '_blank';
+    a.target = 'DP_CAM_V114';
     a.rel = 'opener';
     document.body.appendChild(a);
     a.click();
     a.remove();
-    note('Camera nayi tab mein khuli (GitHub). White userCodeAppPanel mat use karo. Wahan webcam Allow karein.', 'ok');
-  }
-  if (window.google && google.script && google.script.run) {
-    google.script.run
-      .withSuccessHandler(function(url) {
-        if (url) go(url);
-        else go(liveHref(r || lastScan));
-      })
-      .withFailureHandler(function() { go(liveHref(r || lastScan)); })
-      .getLiveCameraUrl((r && r.awb) || (lastScan && lastScan.awb) || $('awb').value);
-    return true;
+    note('Camera nayi GitHub tab: V114. Purani V99 tab Close. Drive error tab Close.', 'ok');
   }
   go(liveHref(r || lastScan));
+  if (window.google && google.script && google.script.run) {
+    google.script.run
+      .withSuccessHandler(function (url) {
+        if (url) go(url);
+      })
+      .withFailureHandler(function () {})
+      .getLiveCameraUrl((r && r.awb) || (lastScan && lastScan.awb) || $('awb').value);
+  }
   return true;
 }
 
@@ -808,18 +879,20 @@ function cameraError(e) {
   return e && e.message ? e.message : 'Unable to access camera.';
 }
 
-async function testCamera() {
+function testCamera() {
+  note('TEST CAMERA V114 — camera maang rahi hai…', 'ok');
+  $('cameraState').textContent = 'TEST CAMERA…';
   if (isFramed()) {
+    note('Yeh sheet box hai — camera yahan band hai. GitHub tab khol raha hoon (V114).', 'ok');
     openLiveWindow();
     return;
   }
   if (API_URL) connectSheet(true);
-  try {
-    await startCamera();
-    note('Camera ready ✓. Sheet wala chhota DISPATCH CAMERA box khula rakho. /exec Drive window band karo. Phir SCAN.', 'ok');
-  } catch (e) {
+  startCamera().then(function () {
+    note('Camera ready ✓ V114. Sheet wala chhota DISPATCH CAMERA box khula rakho. /exec Drive window band karo. Phir SCAN.', 'ok');
+  }).catch(function (e) {
     note(cameraError(e), 'error');
-  }
+  });
 }
 
 function connectSheet(quiet) {
@@ -1576,47 +1649,59 @@ function shareFile(id, localUrl) {
   downloadFile(id, localUrl);
 }
 
-$('tabDispatch').addEventListener('click', function() { setMode('DISPATCH'); });
-$('tabProof').addEventListener('click', function() { setMode('PROOF'); });
-$('refreshCamera').addEventListener('click', refreshCameras);
-$('testCamera').addEventListener('click', testCamera);
-$('connectSheet').addEventListener('click', function() { connectSheet(false); });
-$('liveWindow').addEventListener('click', function() { openLiveWindow(lastScan); });
-$('scanBtn').addEventListener('click', scan);
-$('refreshBtn').addEventListener('click', function() {
-  if (recorder && recorder.state === 'recording') {
-    note('Recording is active. Scan next AWB or press STOP & SAVE.', 'error');
-    return;
+try {
+  $('tabDispatch').addEventListener('click', function() { setMode('DISPATCH'); });
+  $('tabProof').addEventListener('click', function() { setMode('PROOF'); });
+  $('refreshCamera').addEventListener('click', refreshCameras);
+  $('testCamera').addEventListener('click', testCamera);
+  $('connectSheet').addEventListener('click', function() { connectSheet(false); });
+  $('liveWindow').addEventListener('click', function() { openLiveWindow(lastScan); });
+  $('scanBtn').addEventListener('click', scan);
+  $('refreshBtn').addEventListener('click', function() {
+    if (recorder && recorder.state === 'recording') {
+      note('Recording is active. Scan next AWB or press STOP & SAVE.', 'error');
+      return;
+    }
+    $('awb').value = '';
+    clearResult();
+    note('Cleared — ready for the next AWB scan.', 'ok');
+    $('awb').focus();
+  });
+  $('stopBtn').addEventListener('click', stopManual);
+  $('modalClose').addEventListener('click', closeVideoPopup);
+  $('videoModal').addEventListener('click', function(e) {
+    if (e.target === $('videoModal')) closeVideoPopup();
+  });
+  $('result').addEventListener('click', onProofClick);
+  $('modalActions').addEventListener('click', onProofClick);
+  $('awb').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') { e.preventDefault(); scan(); }
+  });
+  $('cameraSelect').addEventListener('change', async function() {
+    selectedCameraId = this.value;
+    try { localStorage.setItem('DP50_CAMERA_ID', selectedCameraId); } catch (e3) {}
+    if (stream && !(recorder && recorder.state === 'recording')) {
+      try { await startCamera(); } catch (e) { note(cameraError(e), 'error'); }
+    }
+  });
+  window.addEventListener('beforeunload', function(e) {
+    if (recorder && recorder.state === 'recording') {
+      e.preventDefault();
+      e.returnValue = 'Recording is active.';
+    }
+    if (stream) stream.getTracks().forEach(function(t) { t.stop(); });
+  });
+  window.dpReady = true;
+  var warn = $('jsWarn');
+  if (warn) warn.style.display = 'none';
+} catch (bindErr) {
+  window.dpReady = false;
+  var je = $('jsErr');
+  if (je) {
+    je.style.display = 'block';
+    je.textContent = 'BIND ERROR: ' + bindErr;
   }
-  $('awb').value = '';
-  clearResult();
-  note('Cleared — ready for the next AWB scan.', 'ok');
-  $('awb').focus();
-});
-$('stopBtn').addEventListener('click', stopManual);
-$('modalClose').addEventListener('click', closeVideoPopup);
-$('videoModal').addEventListener('click', function(e) {
-  if (e.target === $('videoModal')) closeVideoPopup();
-});
-$('result').addEventListener('click', onProofClick);
-$('modalActions').addEventListener('click', onProofClick);
-$('awb').addEventListener('keydown', function(e) {
-  if (e.key === 'Enter') { e.preventDefault(); scan(); }
-});
-$('cameraSelect').addEventListener('change', async function() {
-  selectedCameraId = this.value;
-  try { localStorage.setItem('DP50_CAMERA_ID', selectedCameraId); } catch (e3) {}
-  if (stream && !(recorder && recorder.state === 'recording')) {
-    try { await startCamera(); } catch (e) { note(cameraError(e), 'error'); }
-  }
-});
-window.addEventListener('beforeunload', function(e) {
-  if (recorder && recorder.state === 'recording') {
-    e.preventDefault();
-    e.returnValue = 'Recording is active.';
-  }
-  if (stream) stream.getTracks().forEach(function(t) { t.stop(); });
-});
+}
 
 (async function init() {
   var qAwb = pageParams.get('awb');
