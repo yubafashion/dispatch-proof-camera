@@ -1,16 +1,16 @@
 <!doctype html>
-<!-- FILE 2 + FILE 3 : Camera UI V134 — Code.gs is alag file, isme mat paste karo -->
+<!-- FILE 2 + FILE 3 : Camera UI V135 — Code.gs is alag file, isme mat paste karo -->
 <html>
 <head>
 <meta charset="utf-8">
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
-<title>DISPATCH PROOF V134</title>
+<title>DISPATCH PROOF V135</title>
 <style>
 *{box-sizing:border-box}
 html,body{margin:0;width:100%;min-height:640px;height:auto;overflow:auto;font-family:Arial,sans-serif;background:#e9edf2;color:#202124}
 body{padding:6px}
-.app{width:min(980px,100%);margin:0 auto;background:#f4f6f8;border:1px solid #cfd5dc;border-radius:10px;overflow:visible;min-height:640px}
+.app{width:min(1100px,100%);margin:0 auto;background:#f4f6f8;border:1px solid #cfd5dc;border-radius:10px;overflow:visible;min-height:720px}
 .top{background:#fff;padding:4px 8px;border-bottom:1px solid #d9dee5;text-align:center}
 .title{font-size:15px;font-weight:800;line-height:1.1}
 .ag{font-size:10px;font-weight:600;color:#6b7280}
@@ -37,8 +37,8 @@ button{height:32px;border:0;border-radius:6px;padding:0 10px;font-weight:800;cur
 .cameraHead{display:flex;justify-content:space-between;align-items:center;font-size:11px;font-weight:800;margin-bottom:4px}
 .live{color:#ff7777;font-weight:900}.timer{font-size:16px;font-weight:900;margin-left:6px}
 .cameraWrap{position:relative}
-.cameraFrame{display:block;width:100%;max-height:160px;aspect-ratio:16/9;object-fit:cover;background:#000;border-radius:6px}
-body.returnMode .cameraFrame{max-height:140px}
+.cameraFrame{display:block;width:100%;height:min(52vh,520px);min-height:380px;object-fit:contain;background:#000;border-radius:6px}
+body.returnMode .cameraFrame{height:min(42vh,420px);min-height:300px}
 #camFlash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;border-radius:6px;transition:opacity .08s}
 #camFlash.on{opacity:.8}
 .cameraControls{display:flex;justify-content:flex-end;align-items:center;gap:8px;margin-top:5px}
@@ -67,11 +67,11 @@ a.green{display:inline-flex;align-items:center;justify-content:center;height:36p
 @media(max-width:600px){
  body{padding:0}.app{width:100%;border-radius:0;border:0}
  .tools{flex-wrap:wrap}.tools select{flex:1;min-width:120px}
- .cameraFrame{max-height:140px}
+ .cameraFrame{height:min(42vh,320px);min-height:220px}
 }
 </style>
 <script>
-window.DP_VER = 'V134';
+window.DP_VER = 'V135';
 window.DP_PAGE = 'https://yubafashion.github.io/dispatch-proof-camera/';
 window.dpReady = false;
 window.onerror = function (msg, src, line) {
@@ -82,7 +82,7 @@ window.onerror = function (msg, src, line) {
 </script>
 </head>
 <body>
-<div id="boot" style="padding:10px 12px;font-family:Arial,sans-serif;font-weight:800;background:#202124;color:#fff">DISPATCH PROOF V134 — teen tabs. Agar yeh line ke neeche khali hai to Camera.html Save + Deploy New version.</div>
+<div id="boot" style="padding:10px 12px;font-family:Arial,sans-serif;font-weight:800;background:#202124;color:#fff">DISPATCH PROOF V135 — teen tabs. Agar yeh line ke neeche khali hai to Camera.html Save + Deploy New version.</div>
 <div id="jsErr"></div>
 <div class="app">
   <div class="top">
@@ -103,7 +103,7 @@ window.onerror = function (msg, src, line) {
     <button type="button" id="liveWindow" class="green" style="display:none">OPEN LIVE CAMERA</button>
     <span id="cameraState" class="status">Ready</span>
     <span id="driveState" class="status"></span>
-    <span class="status" style="margin-left:auto">v134</span>
+    <span class="status" style="margin-left:auto">v135</span>
   </div>
   <div class="scan">
     <input id="awb" autofocus autocomplete="off" placeholder="SCAN AWB BARCODE...">
@@ -115,7 +115,7 @@ window.onerror = function (msg, src, line) {
     <div id="frameBanner" class="frameBanner">
       Keep this sheet box open. The packing camera opens in a new tab.
       <br>
-      <a class="green" id="frameLiveBtn" href="https://yubafashion.github.io/dispatch-proof-camera/?v=V134" target="DP_CAM_V134" rel="opener">Open packing camera</a>
+      <a class="green" id="frameLiveBtn" href="https://yubafashion.github.io/dispatch-proof-camera/?v=V135" target="DP_CAM_V135" rel="opener">Open packing camera</a>
     </div>
     <div id="info" class="info"></div>
     <div id="cameraPanel" class="cameraPanel">
@@ -630,7 +630,7 @@ function demoOrder(awb) {
 function gsRun(action, payload, timeoutMs) {
   var act = String(action || '').toUpperCase();
   if (isLocalDemo() && (act === 'HEALTH' || act === 'PING')) {
-    return Promise.resolve({ ok: true, version: 'V134', found: true, demo: true });
+    return Promise.resolve({ ok: true, version: 'V135', found: true, demo: true });
   }
   if (isLocalDemo() && act === 'SCAN') {
     return Promise.resolve(demoOrder(payload && payload.awb));
@@ -1162,7 +1162,7 @@ function liveHref(r) {
     ? String(location.href || '').split('#')[0].split('?')[0]
     : (window.DP_PAGE || 'https://yubafashion.github.io/dispatch-proof-camera/');
   var join = page.indexOf('?') >= 0 ? '&' : '?';
-  var u = page + join + 'v=V134&t=' + Date.now();
+  var u = page + join + 'v=V135&t=' + Date.now();
   if (API_URL) u += '&api=' + encodeURIComponent(API_URL);
   if (awb) u += '&awb=' + encodeURIComponent(awb);
   if (isLocalDemo() && u.indexOf('demo=') < 0) u += '&demo=1';
@@ -1172,7 +1172,7 @@ function liveHref(r) {
 function openLiveWindow(r) {
   var a = document.createElement('a');
   a.href = liveHref(r || lastScan);
-  a.target = 'DP_CAM_V134';
+  a.target = 'DP_CAM_V135';
   a.rel = 'opener';
   document.body.appendChild(a);
   a.click();
