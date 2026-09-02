@@ -1,11 +1,11 @@
 <!doctype html>
-<!-- FILE 2 + FILE 3 : Camera UI V115 — Code.gs is alag file, isme mat paste karo -->
+<!-- FILE 2 + FILE 3 : Camera UI V116 — Code.gs is alag file, isme mat paste karo -->
 <html>
 <head>
 <meta charset="utf-8">
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
-<title>DISPATCH PROOF V115</title>
+<title>DISPATCH PROOF V116</title>
 <style>
 *{box-sizing:border-box}
 html,body{margin:0;width:100%;height:100%;font-family:Arial,sans-serif;background:#e9edf2;color:#202124}
@@ -64,7 +64,7 @@ a.green{display:inline-flex;align-items:center;justify-content:center;height:36p
 }
 </style>
 <script>
-window.DP_VER = 'V115';
+window.DP_VER = 'V116';
 window.DP_PAGE = 'https://yubafashion.github.io/dispatch-proof-camera/';
 window.dpReady = false;
 window.onerror = function (msg, src, line) {
@@ -94,10 +94,10 @@ function DP_openLive() {
   document.body.appendChild(a);
   a.click();
   a.remove();
-  DP_show('Live camera tab kholi — title V115 hona chahiye. V99 tab Close.', false);
+  DP_show('Live camera tab kholi — title V116 hona chahiye. V99 tab Close.', false);
 }
 function DP_bootTest() {
-  DP_show('TEST CAMERA click V115 — wait…', false);
+  DP_show('TEST CAMERA click V116 — wait…', false);
   if (window.dpReady) return true;
   var framed = false;
   try { framed = window.self !== window.top; } catch (e) { framed = true; }
@@ -117,7 +117,7 @@ function DP_bootTest() {
       v.srcObject = s;
       if (v.play) v.play();
     }
-    DP_show('Camera ready V115', false);
+    DP_show('Camera ready V116', false);
   }).catch(function (err) {
     DP_show('Camera: ' + ((err && err.name) || '') + ' ' + ((err && err.message) || err), true);
   });
@@ -146,7 +146,7 @@ function DP_bootTest() {
     <input id="videoFile" type="file" accept="video/*" style="display:none">
     <span id="cameraState" class="status">Ready</span>
     <span id="driveState" class="status"></span>
-    <span class="status" style="margin-left:auto">v115</span>
+    <span class="status" style="margin-left:auto">v116</span>
   </div>
   <div class="scan">
     <input id="awb" autofocus autocomplete="off" placeholder="SCAN AWB BARCODE...">
@@ -158,7 +158,7 @@ function DP_bootTest() {
     <div id="frameBanner" class="frameBanner">
       Keep this sheet box open. The packing camera opens in a new tab.
       <br>
-      <a class="green" id="frameLiveBtn" href="https://yubafashion.github.io/dispatch-proof-camera/?v=V115" target="DP_CAM_V115" rel="opener">Open packing camera</a>
+      <a class="green" id="frameLiveBtn" href="https://yubafashion.github.io/dispatch-proof-camera/?v=V116" target="DP_CAM_V116" rel="opener">Open packing camera</a>
     </div>
     <div id="info" class="info">Scan AWB to record. Stop &amp; Save writes the video to Drive. Same AWB will show as already recorded once save starts.</div>
     <div id="cameraPanel" class="cameraPanel">
@@ -190,6 +190,8 @@ function DP_bootTest() {
 
 var mode = 'DISPATCH';
 var stream = null;
+var packTimer = null;
+var recordStream = null;
 var recorder = null;
 var recorderMime = '';
 var chunks = [];
@@ -553,7 +555,7 @@ function mergeDemoScan(r) {
 function gsRun(action, payload, timeoutMs) {
   var act = String(action || '').toUpperCase();
   if (isLocalDemo() && (act === 'HEALTH' || act === 'PING')) {
-    return Promise.resolve({ ok: true, version: 'V115', found: true, demo: true });
+    return Promise.resolve({ ok: true, version: 'V116', found: true, demo: true });
   }
   if (isLocalDemo() && act === 'SCAN') {
     return mergeDemoScan(demoOrder(payload && payload.awb));
@@ -765,6 +767,7 @@ async function refreshCameras() {
 }
 
 function stopStream() {
+  stopPackStream();
   if (!stream) return;
   stream.getTracks().forEach(function(t) {
     try { t.stop(); } catch (e) {}
@@ -788,15 +791,17 @@ async function startCamera() {
   }
   var attempts = [];
   if (id) {
-    attempts.push({ video: { deviceId: { exact: id }, width: { ideal: 960 }, height: { ideal: 540 } }, audio: true });
+    attempts.push({ video: { deviceId: { exact: id }, width: { ideal: 640 }, height: { ideal: 360 }, frameRate: { ideal: 12, max: 15 } }, audio: true });
+    attempts.push({ video: { deviceId: { exact: id }, width: { ideal: 640 }, height: { ideal: 360 } }, audio: false });
+    attempts.push({ video: { deviceId: { exact: id } }, audio: true });
     attempts.push({ video: { deviceId: { exact: id } }, audio: false });
     attempts.push({ video: { deviceId: { ideal: id } }, audio: true });
     attempts.push({ video: { deviceId: { ideal: id } }, audio: false });
   }
   otherIds.forEach(function(oid) {
-    attempts.push({ video: { deviceId: { exact: oid } }, audio: false });
+    attempts.push({ video: { deviceId: { exact: oid }, width: { ideal: 640 }, height: { ideal: 360 } }, audio: false });
   });
-  attempts.push({ video: { width: { ideal: 960 }, height: { ideal: 540 } }, audio: true });
+  attempts.push({ video: { width: { ideal: 640 }, height: { ideal: 360 }, frameRate: { ideal: 12 } }, audio: true });
   attempts.push({ video: true, audio: false });
   var lastErr = null;
   for (i = 0; i < attempts.length; i++) {
@@ -839,7 +844,7 @@ function liveHref(r) {
     ? String(location.href || '').split('#')[0].split('?')[0]
     : 'https://yubafashion.github.io/dispatch-proof-camera/';
   var join = page.indexOf('?') >= 0 ? '&' : '?';
-  var u = page + join + 'v=V115&t=' + Date.now();
+  var u = page + join + 'v=V116&t=' + Date.now();
   if (API_URL) u += '&api=' + encodeURIComponent(API_URL);
   if (awb) u += '&awb=' + encodeURIComponent(awb);
   if (isLocalDemo() && u.indexOf('demo=') < 0) u += '&demo=1';
@@ -851,12 +856,12 @@ function openLiveWindow(r) {
   function go(url) {
     var a = document.createElement('a');
     a.href = url;
-    a.target = 'DP_CAM_V115';
+    a.target = 'DP_CAM_V116';
     a.rel = 'opener';
     document.body.appendChild(a);
     a.click();
     a.remove();
-    note('Camera nayi GitHub tab: V115. Purani V99 tab Close. Drive error tab Close.', 'ok');
+    note('Camera nayi GitHub tab: V116. Purani V99 tab Close. Drive error tab Close.', 'ok');
   }
   go(liveHref(r || lastScan));
   if (window.google && google.script && google.script.run) {
@@ -900,16 +905,16 @@ function cameraError(e) {
 }
 
 function testCamera() {
-  note('TEST CAMERA V115 — camera maang rahi hai…', 'ok');
+  note('TEST CAMERA V116 — camera maang rahi hai…', 'ok');
   $('cameraState').textContent = 'TEST CAMERA…';
   if (isFramed()) {
-    note('Yeh sheet box hai — camera yahan band hai. GitHub tab khol raha hoon (V115).', 'ok');
+    note('Yeh sheet box hai — camera yahan band hai. GitHub tab khol raha hoon (V116).', 'ok');
     openLiveWindow();
     return;
   }
   if (API_URL) connectSheet(true);
   startCamera().then(function () {
-    note('Camera ready ✓ V115. Sheet wala chhota DISPATCH CAMERA box khula rakho. /exec Drive window band karo. Phir SCAN.', 'ok');
+    note('Camera ready ✓ V116. Sheet wala chhota DISPATCH CAMERA box khula rakho. /exec Drive window band karo. Phir SCAN.', 'ok');
   }).catch(function (e) {
     note(cameraError(e), 'error');
   });
@@ -1369,14 +1374,12 @@ function showProof(r) {
 
 function chooseMime() {
   var types = [
-    'video/mp4;codecs=avc1.42001E,mp4a.40.2',
-    'video/mp4;codecs=avc1.42E01E,mp4a.40.2',
-    'video/mp4;codecs=avc1,mp4a.40.2',
-    'video/mp4',
-    'video/webm;codecs=h264,opus',
-    'video/webm;codecs=vp9,opus',
     'video/webm;codecs=vp8,opus',
-    'video/webm'
+    'video/webm;codecs=vp8',
+    'video/webm;codecs=vp9,opus',
+    'video/webm',
+    'video/mp4;codecs=avc1.42001E,mp4a.40.2',
+    'video/mp4'
   ];
   for (var i = 0; i < types.length; i++) {
     if (window.MediaRecorder && MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(types[i])) {
@@ -1384,6 +1387,42 @@ function chooseMime() {
     }
   }
   return '';
+}
+
+function stopPackStream() {
+  if (packTimer) {
+    clearInterval(packTimer);
+    packTimer = null;
+  }
+  if (recordStream) {
+    recordStream.getTracks().forEach(function(t) {
+      if (t.kind === 'video') {
+        try { t.stop(); } catch (e) {}
+      }
+    });
+    recordStream = null;
+  }
+}
+
+function startPackStream() {
+  stopPackStream();
+  var src = $('cameraFrame');
+  if (!src || !stream) return stream;
+  var canvas = document.createElement('canvas');
+  canvas.width = 640;
+  canvas.height = 360;
+  var ctx = canvas.getContext('2d', { alpha: false });
+  function draw() {
+    try { ctx.drawImage(src, 0, 0, 640, 360); } catch (e) {}
+  }
+  draw();
+  packTimer = setInterval(draw, 90);
+  if (!canvas.captureStream) return stream;
+  recordStream = canvas.captureStream(12);
+  stream.getAudioTracks().forEach(function(t) {
+    try { recordStream.addTrack(t); } catch (e2) {}
+  });
+  return recordStream;
 }
 
 function fileExtForMime(mime) {
@@ -1410,15 +1449,20 @@ async function startRecording(r) {
     }
   }
   if (recorder && recorder.state === 'recording') return;
+  var recStream = startPackStream() || stream;
   var mime = chooseMime();
   recorderMime = mime;
   try {
     recorder = mime
-      ? new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 220000, audioBitsPerSecond: 24000 })
-      : new MediaRecorder(stream);
+      ? new MediaRecorder(recStream, { mimeType: mime, videoBitsPerSecond: 110000, audioBitsPerSecond: 12000 })
+      : new MediaRecorder(recStream, { videoBitsPerSecond: 110000, audioBitsPerSecond: 12000 });
   } catch (e) {
-    note('Unable to start recorder: ' + (e.message || e), 'error');
-    return;
+    try {
+      recorder = new MediaRecorder(recStream);
+    } catch (e2) {
+      note('Unable to start recorder: ' + (e2.message || e2), 'error');
+      return;
+    }
   }
   currentSession = {
     awb: String(r.awb || ''),
@@ -1524,6 +1568,7 @@ function queueUpload(s, blob) {
   lastEmergency = { fileName: fileName, blob: blob };
   if (String(s.videoType || 'DISPATCH').toUpperCase() !== 'RETURN') {
     lockDispatchAwb(s.awb);
+    gsRun('MARK_PENDING', { awb: s.awb, orderId: s.orderId }, 8000).catch(function() {});
   }
   saveDemoVideo(s, blob).catch(function() {});
   uploadQueue++;
@@ -1566,49 +1611,21 @@ function submitUpload(payload, session) {
   var raw = String(payload.base64 || '').replace(/[^A-Za-z0-9\-_]/g, '');
   if (!raw) {
     uploadQueue = Math.max(0, uploadQueue - 1);
-    note('VIDEO SAVE ERROR: empty video data. Computer download nahi.', 'error');
+    note('VIDEO SAVE ERROR: empty video data.', 'error');
     return;
   }
   (async function() {
-    try {
-      var size = 48000;
-      var total = Math.ceil(raw.length / size);
-      var uploadId = 'u' + Date.now() + '_' + Math.floor(Math.random() * 1000000);
-      var type = payload.videoType || 'DISPATCH';
-      note('Saving AWB ' + payload.awb + ' to Drive…', 'ok');
-      var next = 0;
-      var done = 0;
-      async function pump() {
-        while (next < total) {
-          var i = next++;
-          var chunkRes = await gsRun('CHUNK', {
-            uploadId: uploadId,
-            index: String(i),
-            data: raw.slice(i * size, (i + 1) * size),
-            awb: payload.awb || '',
-            orderId: payload.orderId || '',
-            total: String(total)
-          }, 60000);
-          if (chunkRes && chunkRes.ok === false) throw new Error(chunkRes.message || 'chunk failed');
-          done++;
-          $('cameraState').textContent = 'Saving ' + payload.awb + ' ' + done + '/' + total;
-        }
-      }
-      await Promise.all([pump(), pump(), pump(), pump(), pump(), pump()]);
-      $('cameraState').textContent = 'Writing Drive file…';
-      var res = await gsRun('FINISH', {
-        uploadId: uploadId,
-        total: String(total),
-        awb: payload.awb || '',
-        orderId: payload.orderId || '',
-        videoType: type,
-        mimeType: payload.mimeType || 'video/webm',
-        fileName: payload.fileName || '',
-        replaceDispatch: payload.replaceDispatch ? '1' : ''
-      }, 180000);
+    var type = payload.videoType || 'DISPATCH';
+    function finishOk(res) {
       uploadQueue = Math.max(0, uploadQueue - 1);
+      if (res && res.closed) {
+        uploadQueue = Math.max(0, uploadQueue - 1);
+        $('cameraState').textContent = 'Closed';
+        note(res.message || 'Order is on Closed sheet.', 'terminal');
+        return;
+      }
       if (res && res.duplicate) {
-        $('cameraState').textContent = 'Drive par pehle se file';
+        $('cameraState').textContent = 'Already on Drive';
         showAlreadyRecorded({
           found: true,
           awb: payload.awb,
@@ -1625,7 +1642,7 @@ function submitUpload(payload, session) {
         return;
       }
       if (!res || !res.ok || !res.fileId) {
-        throw new Error((res && res.message) || 'Drive par file nahi bani. Sheet box khula rakho.');
+        throw new Error((res && res.message) || 'Drive file not created. Keep the sheet box open.');
       }
       if (String(type).toUpperCase() !== 'RETURN') lockDispatchAwb(payload.awb);
       $('cameraState').textContent = 'Saved ✓';
@@ -1634,6 +1651,64 @@ function submitUpload(payload, session) {
       if (String(type).toUpperCase() === 'RETURN' || mode === 'PROOF') {
         gsRun('SCAN', { awb: payload.awb, mode: 'PROOF' }, 20000).then(showProof);
       }
+    }
+    try {
+      gsRun('MARK_PENDING', { awb: payload.awb, orderId: payload.orderId }, 8000).catch(function() {});
+      $('cameraState').textContent = 'Saving…';
+      note('Saving AWB ' + payload.awb + ' to Drive…', 'ok');
+      var res = null;
+      if (raw.length <= 900000) {
+        try {
+          res = await gsRun('UPLOAD', {
+            awb: payload.awb,
+            orderId: payload.orderId,
+            videoType: type,
+            mimeType: payload.mimeType || 'video/webm',
+            fileName: payload.fileName || '',
+            base64: raw,
+            replaceDispatch: payload.replaceDispatch ? '1' : ''
+          }, 120000);
+        } catch (upErr) {
+          res = null;
+        }
+      }
+      var oneShot = res && (res.ok || res.duplicate || res.closed || res.fileId);
+      if (!oneShot) {
+        var size = 90000;
+        var total = Math.ceil(raw.length / size);
+        var uploadId = 'u' + Date.now() + '_' + Math.floor(Math.random() * 1000000);
+        var next = 0;
+        var done = 0;
+        async function pump() {
+          while (next < total) {
+            var i = next++;
+            var chunkRes = await gsRun('CHUNK', {
+              uploadId: uploadId,
+              index: String(i),
+              data: raw.slice(i * size, (i + 1) * size),
+              awb: payload.awb || '',
+              orderId: payload.orderId || '',
+              total: String(total)
+            }, 60000);
+            if (chunkRes && chunkRes.ok === false) throw new Error(chunkRes.message || 'chunk failed');
+            done++;
+            $('cameraState').textContent = 'Saving ' + done + '/' + total;
+          }
+        }
+        await Promise.all([pump(), pump(), pump(), pump(), pump(), pump(), pump(), pump()]);
+        $('cameraState').textContent = 'Writing Drive file…';
+        res = await gsRun('FINISH', {
+          uploadId: uploadId,
+          total: String(total),
+          awb: payload.awb || '',
+          orderId: payload.orderId || '',
+          videoType: type,
+          mimeType: payload.mimeType || 'video/webm',
+          fileName: payload.fileName || '',
+          replaceDispatch: payload.replaceDispatch ? '1' : ''
+        }, 180000);
+      }
+      finishOk(res);
     } catch (err) {
       uploadQueue = Math.max(0, uploadQueue - 1);
       $('cameraState').textContent = 'Save failed';
