@@ -1,16 +1,17 @@
 <!doctype html>
-<!-- FILE 2 + FILE 3 : Camera UI V135 — Code.gs is alag file, isme mat paste karo -->
+<!-- FILE 2 + FILE 3 : Camera UI V137 — Code.gs is alag file, isme mat paste karo -->
 <html>
 <head>
 <meta charset="utf-8">
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
-<title>DISPATCH PROOF V135</title>
+<title>DISPATCH PROOF V137</title>
 <style>
 *{box-sizing:border-box}
-html,body{margin:0;width:100%;min-height:640px;height:auto;overflow:auto;font-family:Arial,sans-serif;background:#e9edf2;color:#202124}
-body{padding:6px}
-.app{width:min(1100px,100%);margin:0 auto;background:#f4f6f8;border:1px solid #cfd5dc;border-radius:10px;overflow:visible;min-height:720px}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;font-family:Arial,sans-serif;background:#111;color:#202124}
+body{padding:0}
+.app{width:100%;height:100%;margin:0;background:#f4f6f8;border:0;border-radius:0;overflow:hidden;display:flex;flex-direction:column;min-height:0}
+.top,.tabs,.tools,.scan{flex:0 0 auto}
 .top{background:#fff;padding:4px 8px;border-bottom:1px solid #d9dee5;text-align:center}
 .title{font-size:15px;font-weight:800;line-height:1.1}
 .ag{font-size:10px;font-weight:600;color:#6b7280}
@@ -27,36 +28,41 @@ select{height:30px;min-width:140px;max-width:220px;border:1px solid #aeb7c4;bord
 #awb{flex:1;min-width:0;height:36px;border:1px solid #aeb7c4;border-radius:6px;padding:0 10px;font-size:16px;outline:none}
 button{height:32px;border:0;border-radius:6px;padding:0 10px;font-weight:800;cursor:pointer}
 .primary{background:#1a73e8;color:#fff}.green{background:#188038;color:#fff}.orange{background:#f9ab00;color:#111}.gray{background:#e8eaed;color:#202124}.red{background:#d93025;color:#fff}
-.main{padding:4px 6px}
-.notice{display:none;border-radius:6px;padding:4px 8px;margin-bottom:4px;font-size:12px;font-weight:700}
+.main{flex:1;display:flex;flex-direction:column;min-height:0;padding:4px 6px;overflow:hidden}
+.notice{display:none;border-radius:6px;padding:4px 8px;margin-bottom:4px;font-size:12px;font-weight:700;flex:0 0 auto}
 .notice.error{background:#fde7e9;color:#b3261e}.notice.ok{background:#e6f4ea;color:#137333}.notice.terminal{background:#fde7e9;color:#b3261e;text-align:center}
 .info,#empty,#videoModal{display:none !important}
-.card{display:none;background:#fff;border:1px solid #dfe3e8;border-radius:6px;padding:5px 8px;margin-bottom:4px;font-size:13px;font-weight:700;line-height:1.35}
+.card{display:none;background:#fff;border:1px solid #dfe3e8;border-radius:6px;padding:5px 8px;margin-bottom:4px;font-size:13px;font-weight:700;line-height:1.35;flex:0 0 auto}
 .ready{color:#188038}.required{color:#d93025}
-.cameraPanel{display:none;background:#111;border-radius:8px;padding:5px;color:#fff}
-.cameraHead{display:flex;justify-content:space-between;align-items:center;font-size:11px;font-weight:800;margin-bottom:4px}
+.cameraPanel{display:none;flex:1;min-height:0;background:#111;border-radius:8px;padding:5px;color:#fff;flex-direction:column}
+.cameraPanel[style*="block"]{display:flex !important}
+.cameraHead{display:flex;justify-content:space-between;align-items:center;font-size:11px;font-weight:800;margin-bottom:4px;flex:0 0 auto}
 .live{color:#ff7777;font-weight:900}.timer{font-size:16px;font-weight:900;margin-left:6px}
-.cameraWrap{position:relative}
-.cameraFrame{display:block;width:100%;height:min(52vh,520px);min-height:380px;object-fit:contain;background:#000;border-radius:6px}
-body.returnMode .cameraFrame{height:min(42vh,420px);min-height:300px}
-#camFlash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;border-radius:6px;transition:opacity .08s}
+.cameraWrap{position:relative;flex:1;min-height:0;background:#000;border-radius:6px;overflow:hidden}
+.cameraFrame{display:block;width:100%;background:#000}
+.cameraWrap .cameraFrame{position:absolute;inset:0;height:100%;max-height:none !important;min-height:0 !important;object-fit:cover;border-radius:0}
+#camFlash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:2}
 #camFlash.on{opacity:.8}
-.cameraControls{display:flex;justify-content:flex-end;align-items:center;gap:8px;margin-top:5px}
+.cameraControls{display:flex;justify-content:flex-end;align-items:center;gap:8px;margin-top:5px;flex:0 0 auto}
 .shotCount{margin-right:auto;font-size:12px;font-weight:800;color:#f9ab00}
 button.busy{filter:brightness(1.25);transform:scale(.97);box-shadow:0 0 0 3px #fff inset}
-.photoBook{display:none;background:#fff;border:1px solid #dfe3e8;border-radius:6px;padding:5px 8px;margin-top:4px}
+.photoBook{display:none;background:#fff;border:1px solid #dfe3e8;border-radius:6px;padding:5px 8px;margin-top:4px;flex:0 0 auto}
 .photoBookHead{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px;font-weight:800}
 .photoBookHead button{height:28px;font-size:11px}
-.proofPanel{display:none;padding:2px 0 8px}
+.proofPanel{display:none;padding:2px 0 8px;overflow:auto;flex:1}
 .proofCard{background:#fff;border:1px solid #dfe3e8;border-radius:6px;padding:8px;margin-bottom:6px}
 .proofCard b{display:block;font-size:13px;margin-bottom:4px}
 .muted{font-size:12px;color:#5f6368;font-weight:600}
-.proofCard button{margin:6px 6px 0 0}
-body.libraryMode{overflow:auto}
+.proofCard button{margin:6px 6px 0 0;min-width:132px}
+button:disabled{opacity:.45;cursor:not-allowed}
+body.libraryMode{overflow:auto;height:auto;background:#e9edf2}
+body.libraryMode .app{height:auto;min-height:100%;overflow:visible}
+body.libraryMode .main{overflow:auto;flex:none}
 body.libraryMode .cameraPanel,body.libraryMode #photoBook,body.libraryMode #returnClip{display:none !important}
 body.libraryMode .camOnly{display:none !important}
 body.libraryMode #proofPanel{display:block}
-#libPlayWrap{margin-top:6px;background:#111;border-radius:8px;padding:6px}
+#libPlayWrap{margin-top:6px;background:#111;border-radius:8px;padding:6px;position:relative;height:min(52vh,420px)}
+#libPlayWrap .cameraFrame{position:absolute}
 .thumbs{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
 .thumbs img{width:56px;height:56px;object-fit:cover;border-radius:4px;background:#111;border:2px solid #188038}
 .again{height:26px;font-size:11px;margin-left:8px;vertical-align:middle}
@@ -65,13 +71,11 @@ a.green{display:inline-flex;align-items:center;justify-content:center;height:36p
 .frameBanner a.green{height:40px;font-size:14px;margin-top:6px}
 #jsErr{display:none;position:fixed;left:8px;right:8px;top:8px;z-index:30;background:#d93025;color:#fff;padding:8px;font-size:12px;white-space:pre-wrap;border-radius:8px}
 @media(max-width:600px){
- body{padding:0}.app{width:100%;border-radius:0;border:0}
  .tools{flex-wrap:wrap}.tools select{flex:1;min-width:120px}
- .cameraFrame{height:min(42vh,320px);min-height:220px}
 }
 </style>
 <script>
-window.DP_VER = 'V135';
+window.DP_VER = 'V137';
 window.DP_PAGE = 'https://yubafashion.github.io/dispatch-proof-camera/';
 window.dpReady = false;
 window.onerror = function (msg, src, line) {
@@ -82,7 +86,7 @@ window.onerror = function (msg, src, line) {
 </script>
 </head>
 <body>
-<div id="boot" style="padding:10px 12px;font-family:Arial,sans-serif;font-weight:800;background:#202124;color:#fff">DISPATCH PROOF V135 — teen tabs. Agar yeh line ke neeche khali hai to Camera.html Save + Deploy New version.</div>
+<div id="boot" style="padding:10px 12px;font-family:Arial,sans-serif;font-weight:800;background:#202124;color:#fff">DISPATCH PROOF V137 — teen tabs. Agar yeh line ke neeche khali hai to Camera.html Save + Deploy New version.</div>
 <div id="jsErr"></div>
 <div class="app">
   <div class="top">
@@ -103,7 +107,7 @@ window.onerror = function (msg, src, line) {
     <button type="button" id="liveWindow" class="green" style="display:none">OPEN LIVE CAMERA</button>
     <span id="cameraState" class="status">Ready</span>
     <span id="driveState" class="status"></span>
-    <span class="status" style="margin-left:auto">v135</span>
+    <span class="status" style="margin-left:auto">v137</span>
   </div>
   <div class="scan">
     <input id="awb" autofocus autocomplete="off" placeholder="SCAN AWB BARCODE...">
@@ -115,7 +119,7 @@ window.onerror = function (msg, src, line) {
     <div id="frameBanner" class="frameBanner">
       Keep this sheet box open. The packing camera opens in a new tab.
       <br>
-      <a class="green" id="frameLiveBtn" href="https://yubafashion.github.io/dispatch-proof-camera/?v=V135" target="DP_CAM_V135" rel="opener">Open packing camera</a>
+      <a class="green" id="frameLiveBtn" href="https://yubafashion.github.io/dispatch-proof-camera/?v=V137" target="DP_CAM_V137" rel="opener">Open packing camera</a>
     </div>
     <div id="info" class="info"></div>
     <div id="cameraPanel" class="cameraPanel">
@@ -157,8 +161,8 @@ window.onerror = function (msg, src, line) {
     </div>
     <div id="proofPanel" class="proofPanel">
       <div id="proofDispatch" class="proofCard"></div>
-      <div id="proofPhotos" class="proofCard"></div>
       <div id="proofReturn" class="proofCard"></div>
+      <div id="proofPhotos" class="proofCard"></div>
       <div id="libPlayWrap" class="cameraWrap" style="display:none">
         <video id="libVideo" class="cameraFrame" controls playsinline></video>
         <iframe id="libIframe" class="cameraFrame" style="display:none;border:0" allow="autoplay; fullscreen" title="Proof video"></iframe>
@@ -630,7 +634,7 @@ function demoOrder(awb) {
 function gsRun(action, payload, timeoutMs) {
   var act = String(action || '').toUpperCase();
   if (isLocalDemo() && (act === 'HEALTH' || act === 'PING')) {
-    return Promise.resolve({ ok: true, version: 'V135', found: true, demo: true });
+    return Promise.resolve({ ok: true, version: 'V137', found: true, demo: true });
   }
   if (isLocalDemo() && act === 'SCAN') {
     return Promise.resolve(demoOrder(payload && payload.awb));
@@ -740,7 +744,7 @@ function hideReviewClip() {
 function showReviewClip(rec, title) {
   rec = rec || {};
   lastReviewRec = rec;
-  $('cameraPanel').style.display = 'block';
+  $('cameraPanel').style.display = 'flex';
   $('live').style.display = 'none';
   $('cameraLabel').textContent = title || 'DISPATCH VIDEO READY';
   if ($('playClipBtn')) $('playClipBtn').style.display = 'inline-block';
@@ -811,7 +815,7 @@ async function playReviewClip() {
 
 function keepIdleCamera() {
   hideReviewClip();
-  $('cameraPanel').style.display = 'block';
+  $('cameraPanel').style.display = 'flex';
   $('live').style.display = 'none';
   $('timer').textContent = '00:00';
   $('cameraLabel').textContent = mode === 'RETURN' ? 'MAKE RETURN VIDEO' : 'CAMERA READY';
@@ -972,43 +976,65 @@ function showLibrary(r) {
   if ($('returnClip')) $('returnClip').style.display = 'none';
   if ($('proofPanel')) $('proofPanel').style.display = 'block';
   $('empty').style.display = 'none';
-  $('result').style.display = 'none';
   var n = normalizeAwb(r.awb);
   var disp = r.dispatchVideo || (scanMemo[n] && scanMemo[n].dispatchVideo) || null;
   var ret = r.returnVideo || (scanMemo[n] && scanMemo[n].returnVideo) || null;
   var photos = localPhotos(r.awb);
+  var dOk = clipOk(disp);
+  var rOk = clipOk(ret);
+  var pOk = photos.length > 0;
   var dEl = $('proofDispatch');
   var pEl = $('proofPhotos');
   var rEl = $('proofReturn');
-  if (dEl) {
-    dEl.innerHTML = clipOk(disp)
-      ? '<b>DISPATCH VIDEO · READY</b><div class="muted">' + esc(disp.fileName || '') + '</div>' +
-        '<button type="button" class="primary" id="libPlayDispatch">PLAY</button>' +
-        '<button type="button" class="green" id="libDlDispatch">DOWNLOAD</button>'
-      : '<b>DISPATCH VIDEO</b><div class="muted">Abhi nahi bani</div>';
+  function need(kind) {
+    note('Is AWB ki ' + kind + ' abhi nahi bani.', 'error');
   }
-  if (pEl) {
-    pEl.innerHTML = photos.length
-      ? '<b>RETURN PHOTOS · ' + photos.length + '</b><div class="thumbs">' + photos.map(function(im, idx) {
-          return '<img alt="" src="' + esc(im.thumb || im.url || '') + '">';
-        }).join('') + '</div>' +
-        '<button type="button" class="green" id="libDlZip">DOWNLOAD ZIP (' + photos.length + ')</button>'
-      : '<b>RETURN PHOTOS</b><div class="muted">Abhi koi photo nahi</div>';
+  if (dEl) {
+    dEl.innerHTML =
+      '<b>DISPATCH VIDEO</b>' +
+      '<div class="muted">' + (dOk ? esc(disp.fileName || 'READY') : 'Abhi nahi bani') + '</div>' +
+      '<button type="button" class="primary" id="libPlayDispatch"' + (dOk ? '' : ' disabled') + '>PLAY</button>' +
+      '<button type="button" class="green" id="libDlDispatch">DOWNLOAD</button>';
   }
   if (rEl) {
-    rEl.innerHTML = clipOk(ret)
-      ? '<b>RETURN VIDEO · READY</b><div class="muted">' + esc(ret.fileName || '') + '</div>' +
-        '<button type="button" class="primary" id="libPlayReturn">PLAY</button>' +
-        '<button type="button" class="green" id="libDlReturn">DOWNLOAD</button>'
-      : '<b>RETURN VIDEO</b><div class="muted">Abhi nahi bani — MAKE RETURN VIDEO par record karein</div>';
+    rEl.innerHTML =
+      '<b>RETURN VIDEO</b>' +
+      '<div class="muted">' + (rOk ? esc(ret.fileName || 'READY') : 'Abhi nahi bani') + '</div>' +
+      '<button type="button" class="primary" id="libPlayReturn"' + (rOk ? '' : ' disabled') + '>PLAY</button>' +
+      '<button type="button" class="green" id="libDlReturn">DOWNLOAD</button>';
   }
-  if ($('libPlayDispatch')) $('libPlayDispatch').onclick = function() { playLibClip(disp, 'DISPATCH VIDEO READY'); };
-  if ($('libDlDispatch')) $('libDlDispatch').onclick = function() { downloadClip(disp, 'DISPATCH.webm').catch(function(e) { note(String(e.message || e), 'error'); }); };
-  if ($('libPlayReturn')) $('libPlayReturn').onclick = function() { playLibClip(ret, 'RETURN VIDEO READY'); };
-  if ($('libDlReturn')) $('libDlReturn').onclick = function() { downloadClip(ret, 'RETURN.webm').catch(function(e) { note(String(e.message || e), 'error'); }); };
-  if ($('libDlZip')) $('libDlZip').onclick = function() { downloadPhotoBook().catch(function(e) { note(String(e.message || e), 'error'); }); };
-  lineStatus('VIDEO PROOF · AWB ' + esc(r.awb || '') + (r.orderId ? (' · ' + esc(r.orderId)) : '') + ' · camera band');
-  $('result').style.display = 'block';
+  if (pEl) {
+    pEl.innerHTML =
+      '<b>IMAGES</b>' +
+      '<div class="muted">' + (pOk ? (photos.length + ' photo') : 'Abhi koi image nahi') + '</div>' +
+      (pOk ? ('<div class="thumbs">' + photos.map(function(im) {
+        return '<img alt="" src="' + esc(im.thumb || im.url || '') + '">';
+      }).join('') + '</div>') : '') +
+      '<button type="button" class="green" id="libDlZip">DOWNLOAD ZIP' + (pOk ? (' (' + photos.length + ')') : '') + '</button>';
+  }
+  if ($('libPlayDispatch')) $('libPlayDispatch').onclick = function() {
+    if (!dOk) { need('dispatch video'); return; }
+    playLibClip(disp, 'DISPATCH VIDEO');
+  };
+  if ($('libDlDispatch')) $('libDlDispatch').onclick = function() {
+    if (!dOk) { need('dispatch video'); return; }
+    downloadClip(disp, 'DISPATCH.webm').catch(function(e) { note(String(e.message || e), 'error'); });
+  };
+  if ($('libPlayReturn')) $('libPlayReturn').onclick = function() {
+    if (!rOk) { need('return video'); return; }
+    playLibClip(ret, 'RETURN VIDEO');
+  };
+  if ($('libDlReturn')) $('libDlReturn').onclick = function() {
+    if (!rOk) { need('return video'); return; }
+    downloadClip(ret, 'RETURN.webm').catch(function(e) { note(String(e.message || e), 'error'); });
+  };
+  if ($('libDlZip')) $('libDlZip').onclick = function() {
+    if (!pOk) { need('images'); return; }
+    downloadPhotoBook().catch(function(e) { note(String(e.message || e), 'error'); });
+  };
+  var oid = r.orderId && normalizeAwb(r.orderId) !== n ? (' · ' + esc(r.orderId)) : '';
+  lineStatus('VIDEO PROOF · AWB ' + esc(r.awb || '') + oid);
+  note('Teen DOWNLOAD: dispatch video, return video, images ZIP.', 'ok');
 }
 
 function setMode(next) {
@@ -1150,7 +1176,7 @@ function attachCameraStream_(s) {
   v.muted = true;
   v.playsInline = true;
   v.play().catch(function () {});
-  $('cameraPanel').style.display = 'block';
+  $('cameraPanel').style.display = 'flex';
   cameraReady = true;
   $('cameraState').textContent = 'Camera ready ✓';
   refreshCameras().catch(function() {});
@@ -1162,7 +1188,7 @@ function liveHref(r) {
     ? String(location.href || '').split('#')[0].split('?')[0]
     : (window.DP_PAGE || 'https://yubafashion.github.io/dispatch-proof-camera/');
   var join = page.indexOf('?') >= 0 ? '&' : '?';
-  var u = page + join + 'v=V135&t=' + Date.now();
+  var u = page + join + 'v=V137&t=' + Date.now();
   if (API_URL) u += '&api=' + encodeURIComponent(API_URL);
   if (awb) u += '&awb=' + encodeURIComponent(awb);
   if (isLocalDemo() && u.indexOf('demo=') < 0) u += '&demo=1';
@@ -1172,7 +1198,7 @@ function liveHref(r) {
 function openLiveWindow(r) {
   var a = document.createElement('a');
   a.href = liveHref(r || lastScan);
-  a.target = 'DP_CAM_V135';
+  a.target = 'DP_CAM_V137';
   a.rel = 'opener';
   document.body.appendChild(a);
   a.click();
@@ -1321,11 +1347,12 @@ function lookupAwb(n, m) {
   } else if (m === 'LIBRARY') {
     lastProofOrder = { awb: n, orderId: n, status: '' };
     hidePackingCamera();
-    note('VIDEO PROOF — camera band. Purani files yahin dikhengi.', 'ok');
+    showLibrary({ awb: n, orderId: n, found: true, dispatchVideo: (scanMemo[n] || {}).dispatchVideo, returnVideo: (scanMemo[n] || {}).returnVideo, returnImages: localPhotos(n) });
+    note('VIDEO PROOF — Drive se files aa rahi hain…', 'ok');
   } else {
     lastProofOrder = { awb: n, orderId: n, status: '' };
     $('empty').style.display = 'none';
-    $('cameraPanel').style.display = 'block';
+    $('cameraPanel').style.display = 'flex';
     $('cameraLabel').textContent = 'MAKE RETURN VIDEO';
     $('snapBtn').style.display = 'inline-block';
     if ($('recReturnBtn')) $('recReturnBtn').style.display = 'inline-block';
@@ -1334,7 +1361,8 @@ function lookupAwb(n, m) {
     if (!cameraReady) startCamera().catch(function(e) { note(cameraError(e), 'error'); });
   }
 
-  gsRun('SCAN', { awb: n, mode: backendMode(m) }, SCAN_MS).then(function(r) {
+  var wait = (m === 'LIBRARY') ? 12000 : SCAN_MS;
+  gsRun('SCAN', { awb: n, mode: backendMode(m) }, wait).then(function(r) {
     if (seq !== lookupSeq) return;
     setDriveState('ok');
     applyFastScan(r, n, m, started);
@@ -1342,6 +1370,16 @@ function lookupAwb(n, m) {
     if (seq !== lookupSeq) return;
     if (m === 'DISPATCH' && recorder && currentSession && normalizeAwb(currentSession.awb) === n) {
       note('Recording ' + n + ' — sheet check timed out, packing continues. Scan next anytime.', 'ok');
+      return;
+    }
+    if (m === 'LIBRARY' || m === 'RETURN') {
+      applyFastScan({
+        ok: true, found: true, awb: n, orderId: (scanMemo[n] && scanMemo[n].orderId) || n,
+        dispatchVideo: (scanMemo[n] && scanMemo[n].dispatchVideo) || null,
+        returnVideo: (scanMemo[n] && scanMemo[n].returnVideo) || null,
+        returnImages: localPhotos(n)
+      }, n, m, started);
+      note('Sheet check slow. DOWNLOAD cards yahin hain — SCAN dobara try karo.', 'error');
       return;
     }
     if (!started) note('AWB lookup failed. Scan again.', 'error');
@@ -1394,7 +1432,7 @@ function applyFastScan(r, n, m, started) {
   if (currentSession && normalizeAwb(currentSession.awb) === n && r.orderId) {
     currentSession.orderId = r.orderId;
     showDispatch(r, false);
-    $('cameraPanel').style.display = 'block';
+    $('cameraPanel').style.display = 'flex';
     $('live').style.display = 'inline';
     note('Recording ' + n + (r.orderId && r.orderId !== n ? (' · ' + r.orderId) : '') + '. Scan next anytime.', 'ok');
   }
@@ -1443,7 +1481,7 @@ function setSnapBusy(on, label) {
 }
 
 function setReturnCameraButtons(recording) {
-  $('cameraPanel').style.display = 'block';
+  $('cameraPanel').style.display = 'flex';
   if (recording) {
     $('snapBtn').style.display = 'none';
     if ($('recReturnBtn')) $('recReturnBtn').style.display = 'none';
@@ -1529,7 +1567,7 @@ function capturePhoto() {
       if (!cameraReady) {
         try { await startCamera(); }
         catch (camErr) {
-          $('cameraPanel').style.display = 'block';
+          $('cameraPanel').style.display = 'flex';
         }
       }
       flashCapture();
@@ -1662,7 +1700,7 @@ async function startRecording(r) {
   try { recorder.start(1000); } catch (e2) { recorder.start(); }
   recordStartedAt = Date.now();
   if (currentSession.videoType !== 'RETURN') lockDispatchAwb(currentSession.awb);
-  $('cameraPanel').style.display = 'block';
+  $('cameraPanel').style.display = 'flex';
   if (currentSession.videoType === 'RETURN') {
     $('snapBtn').style.display = 'none';
     if ($('recReturnBtn')) $('recReturnBtn').style.display = 'none';
