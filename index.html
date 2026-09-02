@@ -1,11 +1,11 @@
 <!doctype html>
-<!-- FILE 2 + FILE 3 : Camera UI V116 — Code.gs is alag file, isme mat paste karo -->
+<!-- FILE 2 + FILE 3 : Camera UI V117 — Code.gs is alag file, isme mat paste karo -->
 <html>
 <head>
 <meta charset="utf-8">
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
-<title>DISPATCH PROOF V116</title>
+<title>DISPATCH PROOF V117</title>
 <style>
 *{box-sizing:border-box}
 html,body{margin:0;width:100%;height:100%;font-family:Arial,sans-serif;background:#e9edf2;color:#202124}
@@ -29,7 +29,8 @@ button{height:36px;border:0;border-radius:7px;padding:0 10px;font-weight:800;cur
 .notice{display:none;background:#fff8e1;border-radius:7px;padding:8px 10px;margin-bottom:7px;font-size:11px}
 .notice.error{background:#fde7e9;color:#b3261e}.notice.ok{background:#e6f4ea;color:#137333}.notice.terminal{font-size:14px;font-weight:800;text-align:center}
 .info{background:#fff;border:1px solid #dfe3e8;border-radius:8px;padding:8px 10px;margin-bottom:7px;font-size:11px}
-.empty{font-size:12px;color:#6b7280;padding:16px 10px;text-align:center}
+.thumbs{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.thumbs a,.thumbs img{display:block;width:88px;height:88px;object-fit:cover;border-radius:6px;background:#111;border:1px solid #dfe3e8}
 .card{display:none;background:#fff;border:1px solid #dfe3e8;border-radius:8px;padding:10px;margin-bottom:7px}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
 .label{font-size:9px;color:#6b7280}.value{font-weight:700;font-size:12px}.ready{color:#188038;font-weight:800}.required{color:#d93025;font-weight:800}
@@ -64,7 +65,7 @@ a.green{display:inline-flex;align-items:center;justify-content:center;height:36p
 }
 </style>
 <script>
-window.DP_VER = 'V116';
+window.DP_VER = 'V117';
 window.DP_PAGE = 'https://yubafashion.github.io/dispatch-proof-camera/';
 window.dpReady = false;
 window.onerror = function (msg, src, line) {
@@ -94,10 +95,10 @@ function DP_openLive() {
   document.body.appendChild(a);
   a.click();
   a.remove();
-  DP_show('Live camera tab kholi — title V116 hona chahiye. V99 tab Close.', false);
+  DP_show('Live camera tab kholi — title V117 hona chahiye. V99 tab Close.', false);
 }
 function DP_bootTest() {
-  DP_show('TEST CAMERA click V116 — wait…', false);
+  DP_show('TEST CAMERA click V117 — wait…', false);
   if (window.dpReady) return true;
   var framed = false;
   try { framed = window.self !== window.top; } catch (e) { framed = true; }
@@ -117,7 +118,7 @@ function DP_bootTest() {
       v.srcObject = s;
       if (v.play) v.play();
     }
-    DP_show('Camera ready V116', false);
+    DP_show('Camera ready V117', false);
   }).catch(function (err) {
     DP_show('Camera: ' + ((err && err.name) || '') + ' ' + ((err && err.message) || err), true);
   });
@@ -146,7 +147,7 @@ function DP_bootTest() {
     <input id="videoFile" type="file" accept="video/*" style="display:none">
     <span id="cameraState" class="status">Ready</span>
     <span id="driveState" class="status"></span>
-    <span class="status" style="margin-left:auto">v116</span>
+    <span class="status" style="margin-left:auto">v117</span>
   </div>
   <div class="scan">
     <input id="awb" autofocus autocomplete="off" placeholder="SCAN AWB BARCODE...">
@@ -158,9 +159,9 @@ function DP_bootTest() {
     <div id="frameBanner" class="frameBanner">
       Keep this sheet box open. The packing camera opens in a new tab.
       <br>
-      <a class="green" id="frameLiveBtn" href="https://yubafashion.github.io/dispatch-proof-camera/?v=V116" target="DP_CAM_V116" rel="opener">Open packing camera</a>
+      <a class="green" id="frameLiveBtn" href="https://yubafashion.github.io/dispatch-proof-camera/?v=V117" target="DP_CAM_V117" rel="opener">Open packing camera</a>
     </div>
-    <div id="info" class="info">Scan AWB to record. Stop &amp; Save writes the video to Drive. Same AWB will show as already recorded once save starts.</div>
+    <div id="info" class="info">Scan AWB to record dispatch. Video Proof: capture return photos and a return video on the same camera.</div>
     <div id="cameraPanel" class="cameraPanel">
       <div class="cameraHead">
         <span id="cameraLabel">CAMERA READY</span>
@@ -168,7 +169,8 @@ function DP_bootTest() {
       </div>
       <video id="cameraFrame" class="cameraFrame" autoplay muted playsinline></video>
       <div class="cameraControls">
-        <button id="stopBtn" class="red">■ STOP &amp; SAVE</button>
+        <button type="button" id="snapBtn" class="orange" style="display:none">CAPTURE PHOTO</button>
+        <button type="button" id="stopBtn" class="red">■ STOP &amp; SAVE</button>
       </div>
     </div>
     <div id="result" class="card"></div>
@@ -198,6 +200,8 @@ var chunks = [];
 var currentSession = null;
 var nextOrder = null;
 var waitingOrder = null;
+var lookupSeq = 0;
+var recorderStopping = false;
 var timerHandle = null;
 var recordStartedAt = 0;
 var cameraReady = false;
@@ -555,7 +559,7 @@ function mergeDemoScan(r) {
 function gsRun(action, payload, timeoutMs) {
   var act = String(action || '').toUpperCase();
   if (isLocalDemo() && (act === 'HEALTH' || act === 'PING')) {
-    return Promise.resolve({ ok: true, version: 'V116', found: true, demo: true });
+    return Promise.resolve({ ok: true, version: 'V117', found: true, demo: true });
   }
   if (isLocalDemo() && act === 'SCAN') {
     return mergeDemoScan(demoOrder(payload && payload.awb));
@@ -726,8 +730,8 @@ function setMode(next) {
   $('info').textContent = mode === 'DISPATCH'
     ? (isFramed()
       ? 'Keep this box open. Open the packing camera from the green button.'
-      : 'Scan AWB to record. A Drive file (or a save in progress) counts as already recorded.')
-    : 'Video Proof: play the dispatch clip, or make a return video on the same camera.';
+      : 'Scan AWB to record. Lookups use the Drive proof sheet, not the Order workbook.')
+    : 'Return proof needs photos and a video. Capture photos, then record the return clip.';
   clearResult();
   $('awb').focus();
 }
@@ -844,7 +848,7 @@ function liveHref(r) {
     ? String(location.href || '').split('#')[0].split('?')[0]
     : 'https://yubafashion.github.io/dispatch-proof-camera/';
   var join = page.indexOf('?') >= 0 ? '&' : '?';
-  var u = page + join + 'v=V116&t=' + Date.now();
+  var u = page + join + 'v=V117&t=' + Date.now();
   if (API_URL) u += '&api=' + encodeURIComponent(API_URL);
   if (awb) u += '&awb=' + encodeURIComponent(awb);
   if (isLocalDemo() && u.indexOf('demo=') < 0) u += '&demo=1';
@@ -856,12 +860,12 @@ function openLiveWindow(r) {
   function go(url) {
     var a = document.createElement('a');
     a.href = url;
-    a.target = 'DP_CAM_V116';
+    a.target = 'DP_CAM_V117';
     a.rel = 'opener';
     document.body.appendChild(a);
     a.click();
     a.remove();
-    note('Camera nayi GitHub tab: V116. Purani V99 tab Close. Drive error tab Close.', 'ok');
+    note('Camera nayi GitHub tab: V117. Purani V99 tab Close. Drive error tab Close.', 'ok');
   }
   go(liveHref(r || lastScan));
   if (window.google && google.script && google.script.run) {
@@ -905,16 +909,16 @@ function cameraError(e) {
 }
 
 function testCamera() {
-  note('TEST CAMERA V116 — camera maang rahi hai…', 'ok');
+  note('TEST CAMERA V117 — camera maang rahi hai…', 'ok');
   $('cameraState').textContent = 'TEST CAMERA…';
   if (isFramed()) {
-    note('Yeh sheet box hai — camera yahan band hai. GitHub tab khol raha hoon (V116).', 'ok');
+    note('Yeh sheet box hai — camera yahan band hai. GitHub tab khol raha hoon (V117).', 'ok');
     openLiveWindow();
     return;
   }
   if (API_URL) connectSheet(true);
   startCamera().then(function () {
-    note('Camera ready ✓ V116. Sheet wala chhota DISPATCH CAMERA box khula rakho. /exec Drive window band karo. Phir SCAN.', 'ok');
+    note('Camera ready ✓ V117. Sheet wala chhota DISPATCH CAMERA box khula rakho. /exec Drive window band karo. Phir SCAN.', 'ok');
   }).catch(function (e) {
     note(cameraError(e), 'error');
   });
@@ -970,32 +974,34 @@ function scan() {
     note('Please scan AWB.', 'error');
     return;
   }
-  if (scanBusy) {
-    note('AWB check chal raha hai… 4–5 sec.', 'ok');
-    return;
-  }
+  var n = normalizeAwb(v);
   if (mode === 'DISPATCH' && recorder && recorder.state === 'recording' &&
-      currentSession && normalizeAwb(currentSession.awb) === normalizeAwb(v)) {
+      currentSession && normalizeAwb(currentSession.awb) === n) {
     stopRecording();
-    note('Yeh AWB ki recording save ho rahi hai. Drive par file mile to ALREADY, warna dubara record.', 'ok');
+    note('This AWB is saving to Drive.', 'ok');
     return;
   }
-  var switching = !!(mode === 'DISPATCH' && recorder && recorder.state === 'recording');
-  if (switching) {
-    note('Naya AWB check…', 'ok');
+  if (mode === 'DISPATCH' && recorder && recorder.state === 'recording') {
+    recorderStopping = true;
+    $('awb').value = '';
+    note('Previous clip saving. Looking up ' + n + '…', 'ok');
+    stopRecording();
+    lookupAwb(n, mode);
+    return;
   }
-  scanBusy = true;
-  $('scanBtn').disabled = true;
-  if (!switching) note('AWB check…', 'ok');
-  gsRun('SCAN', { awb: v, mode: mode }, switching ? 8000 : 15000).then(function(r) {
+  lookupAwb(n, mode);
+}
+
+function lookupAwb(n, m) {
+  var seq = ++lookupSeq;
+  note('Looking up AWB…', 'ok');
+  gsRun('SCAN', { awb: n, mode: m || mode }, 20000).then(function(r) {
+    if (seq !== lookupSeq) return;
     setDriveState('ok');
     handleScan(r);
   }).catch(function(err) {
-    note(err && err.message ? err.message : 'AWB lookup failed.', 'error');
-  }).then(function() {
-    scanBusy = false;
-    $('scanBtn').disabled = false;
-    $('awb').focus();
+    if (seq !== lookupSeq) return;
+    note(err && err.message ? err.message : 'AWB lookup failed. Scan again.', 'error');
   });
 }
 
@@ -1043,7 +1049,12 @@ function handleScan(r) {
     }
     if (recorder && recorder.state === 'recording') {
       waitingOrder = r;
+      recorderStopping = true;
       stopRecording();
+      return;
+    }
+    if (recorderStopping) {
+      waitingOrder = r;
       return;
     }
     showDispatch(r, false);
@@ -1333,12 +1344,15 @@ function onProofClick(e) {
     var p = lastProofOrder || lastScan || {};
     startReturnRecording(p.awb, p.orderId, p.status);
   }
+  if (act === 'snap') capturePhoto();
+  if (act === 'returnStation') openReturnStation();
 }
 
 function showProof(r) {
   loadDemoVideos(r.awb).then(function(local) {
     r.dispatchVideo = mergePlayRec(r.dispatchVideo, local.DISPATCH);
     r.returnVideo = mergePlayRec(r.returnVideo, local.RETURN);
+    var imgs = r.returnImages || [];
     proofRecs = {};
     lastProofOrder = { awb: r.awb, orderId: r.orderId, status: r.status };
     lastScan = r;
@@ -1347,27 +1361,38 @@ function showProof(r) {
       '<div class="grid">' +
         '<div><div class="label">ORDER ID</div><div class="value">' + esc(r.orderId) + '</div></div>' +
         '<div><div class="label">AWB</div><div class="value">' + esc(r.awb) + '</div></div>' +
-        '<div><div class="label">LIVE STATUS</div><div class="value">' + esc(r.status || '') + '</div></div>' +
-        '<div><div class="label">DISPATCH VIDEO</div><div class="value ' + (r.dispatchVideo ? 'ready' : 'required') + '">' +
-          (r.dispatchVideo ? 'VIDEO READY' : 'NOT AVAILABLE') +
-        '</div></div>' +
+        '<div><div class="label">RETURN PHOTOS</div><div class="value ' + (imgs.length ? 'ready' : 'required') + '">' +
+          (imgs.length ? imgs.length + ' SAVED' : 'REQUIRED') + '</div></div>' +
+        '<div><div class="label">RETURN VIDEO</div><div class="value ' + (r.returnVideo ? 'ready' : 'required') + '">' +
+          (r.returnVideo ? 'VIDEO READY' : 'REQUIRED') + '</div></div>' +
       '</div>';
     if (r.dispatchVideo) html += videoBox('DISPATCH VIDEO', r.dispatchVideo, 'DISPATCH');
-    else html += '<div style="margin-top:9px" class="required">Is AWB ki dispatch video abhi save nahi hui. Pehle MAKE DISPATCH VIDEO tab se record karein.</div>';
-    if (r.returnVideo) {
-      html += videoBox('RETURN VIDEO', r.returnVideo, 'RETURN');
-    } else {
-      html +=
-        '<div style="margin-top:9px">' +
-          '<span class="required">RETURN VIDEO REQUIRED</span> ' +
-          '<button class="orange" type="button" data-act="return">MAKE RETURN VIDEO</button></div>';
-    }
+    html +=
+      '<div style="margin-top:10px">' +
+        '<div class="label">RETURN PHOTOS</div>' +
+        (imgs.length
+          ? '<div class="thumbs">' + imgs.map(function(im) {
+              var id = im.fileId || '';
+              var href = im.url || (id ? ('https://drive.google.com/file/d/' + id + '/view') : '');
+              var src = id ? ('https://drive.google.com/thumbnail?id=' + encodeURIComponent(id) + '&sz=w200') : '';
+              return '<a href="' + esc(href) + '" target="_blank" rel="noopener">' +
+                (src ? '<img alt="return photo" src="' + esc(src) + '">' : 'photo') + '</a>';
+            }).join('') + '</div>'
+          : '<div class="required" style="margin-top:6px">No return photos yet.</div>') +
+        '<div class="controls">' +
+          '<button class="orange" type="button" data-act="snap">CAPTURE PHOTO</button>' +
+          '<button class="gray" type="button" data-act="returnStation">OPEN CAMERA</button>' +
+        '</div>' +
+      '</div>';
+    if (r.returnVideo) html += videoBox('RETURN VIDEO', r.returnVideo, 'RETURN');
+    html +=
+      '<div class="controls" style="margin-top:10px">' +
+        '<button class="orange" type="button" data-act="return">RECORD RETURN VIDEO</button>' +
+      '</div>';
     $('result').innerHTML = html;
     $('result').style.display = 'block';
-    if (r.dispatchVideo) {
-      hydrateProof('DISPATCH', false);
-      openSmallProof('DISPATCH', false);
-    }
+    $('snapBtn').style.display = 'inline-block';
+    if (r.dispatchVideo) hydrateProof('DISPATCH', false);
     if (r.returnVideo) hydrateProof('RETURN', false);
   });
 }
@@ -1426,7 +1451,10 @@ function startPackStream() {
 }
 
 function fileExtForMime(mime) {
-  return /mp4/i.test(String(mime || '')) ? '.mp4' : '.webm';
+  var t = String(mime || '');
+  if (/jpeg|jpg/i.test(t)) return '.jpg';
+  if (/png/i.test(t)) return '.png';
+  return /mp4/i.test(t) ? '.mp4' : '.webm';
 }
 
 async function startRecording(r) {
@@ -1481,6 +1509,8 @@ async function startRecording(r) {
   recordStartedAt = Date.now();
   if (currentSession.videoType !== 'RETURN') lockDispatchAwb(currentSession.awb);
   $('cameraPanel').style.display = 'block';
+  $('snapBtn').style.display = currentSession.videoType === 'RETURN' ? 'inline-block' : 'none';
+  $('stopBtn').style.display = 'inline-block';
   $('cameraLabel').textContent = currentSession.videoType === 'RETURN' ? 'MAKE RETURN VIDEO' : 'MAKE DISPATCH VIDEO';
   $('live').style.display = 'inline';
   $('timer').textContent = '00:00';
@@ -1520,30 +1550,40 @@ function finishRecording() {
   $('cameraLabel').textContent = 'CAMERA READY';
   var s = currentSession;
   var savedChunks = chunks.slice();
+  var queued = nextOrder || waitingOrder;
+  nextOrder = null;
+  waitingOrder = null;
+  recorderStopping = false;
   currentSession = null;
   chunks = [];
   recorder = null;
   if (!s || !savedChunks.length) {
     note('VIDEO SAVE ERROR: recorded video is empty.', 'error');
-    kickWaitingOrder();
+    if (queued && queued.found) {
+      showDispatch(queued, false);
+      void startRecording(queued);
+    }
     return;
   }
   var mime = savedChunks[0].type || recorderMime || 'video/mp4';
   var blob = new Blob(savedChunks, {type: mime});
   if (!blob.size) {
     note('VIDEO SAVE ERROR: recorded video is empty.', 'error');
-    kickWaitingOrder();
+    if (queued && queued.found) {
+      showDispatch(queued, false);
+      void startRecording(queued);
+    }
     return;
   }
   if (blob.size > 18 * 1024 * 1024) {
     note('VIDEO TOO LARGE. Keep each recording below 18 MB.', 'error');
-    kickWaitingOrder();
+    if (queued && queued.found) {
+      showDispatch(queued, false);
+      void startRecording(queued);
+    }
     return;
   }
-  var queued = nextOrder || waitingOrder;
-  nextOrder = null;
-  waitingOrder = null;
-  if (queued) {
+  if (queued && queued.found) {
     showDispatch(queued, false);
     void startRecording(queued);
   }
@@ -1564,9 +1604,11 @@ function blobToWebSafeBase64(blob) {
 }
 
 function queueUpload(s, blob) {
-  var fileName = (s.orderId || 'NA') + '_' + s.awb + '_' + (s.videoType || 'DISPATCH') + fileExtForMime(blob.type);
+  var kind = String(s.videoType || 'DISPATCH').toUpperCase();
+  var fileName = (s.orderId || 'NA') + '_' + s.awb + '_' + kind +
+    (kind === 'RETURN_IMG' ? ('_' + Date.now()) : '') + fileExtForMime(blob.type);
   lastEmergency = { fileName: fileName, blob: blob };
-  if (String(s.videoType || 'DISPATCH').toUpperCase() !== 'RETURN') {
+  if (kind === 'DISPATCH') {
     lockDispatchAwb(s.awb);
     gsRun('MARK_PENDING', { awb: s.awb, orderId: s.orderId }, 8000).catch(function() {});
   }
@@ -1576,10 +1618,10 @@ function queueUpload(s, blob) {
   if (isLocalDemo()) {
     saveDemoVideo(s, blob).then(function(rec) {
       uploadQueue = Math.max(0, uploadQueue - 1);
-      if (String(s.videoType || '').toUpperCase() !== 'RETURN') lockDispatchAwb(s.awb);
+      if (kind === 'DISPATCH') lockDispatchAwb(s.awb);
       $('cameraState').textContent = 'Saved ✓';
       note('✓ VIDEO SAVED • ' + rec.fileName, 'ok');
-      if (String(s.videoType || '').toUpperCase() === 'RETURN' || mode === 'PROOF') {
+      if (kind === 'RETURN' || kind === 'RETURN_IMG' || mode === 'PROOF') {
         gsRun('SCAN', { awb: s.awb, mode: 'PROOF' }, 15000).then(showProof);
       }
     }).catch(function(err) {
@@ -1648,7 +1690,7 @@ function submitUpload(payload, session) {
       $('cameraState').textContent = 'Saved ✓';
       note('Saved to Drive • ' + (res.fileName || payload.fileName) +
         (res.folderPath ? (' • ' + res.folderPath) : ''), 'ok');
-      if (String(type).toUpperCase() === 'RETURN' || mode === 'PROOF') {
+      if (String(type).toUpperCase() === 'RETURN' || String(type).toUpperCase() === 'RETURN_IMG' || mode === 'PROOF') {
         gsRun('SCAN', { awb: payload.awb, mode: 'PROOF' }, 20000).then(showProof);
       }
     }
@@ -1719,30 +1761,88 @@ function submitUpload(payload, session) {
   })();
 }
 
+function capturePhoto() {
+  var p = lastProofOrder || lastScan || {};
+  var awb = String(p.awb || $('awb').value || '').trim();
+  var orderId = String(p.orderId || '');
+  if (!awb) {
+    note('Scan the AWB in Video Proof first, then capture photos.', 'error');
+    return;
+  }
+  if (recorder && recorder.state === 'recording') {
+    note('Stop the return video first, then capture photos.', 'error');
+    return;
+  }
+  (async function() {
+    try {
+      if (!cameraReady) await startCamera();
+      $('cameraPanel').style.display = 'block';
+      $('snapBtn').style.display = 'inline-block';
+      $('cameraLabel').textContent = 'RETURN PHOTO';
+      var v = $('cameraFrame');
+      var w = Math.min(1280, v.videoWidth || 1280);
+      var h = Math.min(720, v.videoHeight || 720);
+      if (!w || !h) { w = 1280; h = 720; }
+      var c = document.createElement('canvas');
+      c.width = w;
+      c.height = h;
+      c.getContext('2d').drawImage(v, 0, 0, w, h);
+      c.toBlob(function(blob) {
+        if (!blob || !blob.size) {
+          note('Photo capture failed. Keep the camera on and try again.', 'error');
+          return;
+        }
+        note('Saving return photo to Drive…', 'ok');
+        queueUpload({
+          awb: awb,
+          orderId: orderId,
+          status: p.status || '',
+          videoType: 'RETURN_IMG'
+        }, blob);
+      }, 'image/jpeg', 0.8);
+    } catch (e) {
+      note(cameraError(e), 'error');
+    }
+  })();
+}
+
+function openReturnStation() {
+  closeVideoPopup();
+  var p = lastProofOrder || lastScan || {};
+  var awb = String(p.awb || '').trim();
+  if (!awb) {
+    note('Scan the AWB in Video Proof first.', 'error');
+    return;
+  }
+  $('empty').style.display = 'none';
+  $('cameraPanel').style.display = 'block';
+  $('snapBtn').style.display = 'inline-block';
+  $('stopBtn').style.display = 'inline-block';
+  $('cameraLabel').textContent = 'RETURN PHOTO / VIDEO';
+  note('Return proof: capture photos, then record a short video and press Stop & Save.', 'ok');
+  if (!cameraReady) {
+    startCamera().catch(function(e) { note(cameraError(e), 'error'); });
+  }
+}
+
 function startReturnRecording(awb, orderId, status) {
   closeVideoPopup();
   awb = String(awb || (lastProofOrder && lastProofOrder.awb) || (lastScan && lastScan.awb) || '');
   orderId = String(orderId || (lastProofOrder && lastProofOrder.orderId) || (lastScan && lastScan.orderId) || '');
   status = String(status || (lastProofOrder && lastProofOrder.status) || (lastScan && lastScan.status) || '');
   if (!awb) {
-    note('Pehle AWB scan karein, phir MAKE RETURN VIDEO.', 'error');
+    note('Scan the AWB in Video Proof first, then record the return video.', 'error');
     return;
   }
   if (recorder && recorder.state === 'recording') {
-    note('Recording already chal rahi hai. STOP & SAVE, ya agla AWB.', 'error');
+    note('A recording is already running. Press Stop & Save.', 'error');
     return;
   }
-  note('RETURN recording — camera dispatch jaisi. STOP & SAVE se Drive par save.', 'ok');
+  lastProofOrder = { awb: awb, orderId: orderId, status: status };
   $('cameraPanel').style.display = 'block';
-  $('cameraLabel').textContent = 'MAKE RETURN VIDEO';
+  $('snapBtn').style.display = 'inline-block';
   $('empty').style.display = 'none';
   $('result').style.display = 'block';
-  $('result').innerHTML =
-    '<div class="grid">' +
-      '<div><div class="label">ORDER ID</div><div class="value">' + esc(orderId) + '</div></div>' +
-      '<div><div class="label">AWB</div><div class="value">' + esc(awb) + '</div></div>' +
-    '</div>' +
-    '<div style="margin-top:8px" class="ready">● RETURN RECORDING START — STOP &amp; SAVE jaise dispatch</div>';
   return startRecording({
     awb: awb,
     orderId: orderId,
@@ -1779,6 +1879,7 @@ try {
     $('awb').focus();
   });
   $('stopBtn').addEventListener('click', stopManual);
+  if ($('snapBtn')) $('snapBtn').addEventListener('click', capturePhoto);
   $('modalClose').addEventListener('click', closeVideoPopup);
   $('videoModal').addEventListener('click', function(e) {
     if (e.target === $('videoModal')) closeVideoPopup();
