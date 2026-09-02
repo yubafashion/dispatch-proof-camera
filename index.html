@@ -1,132 +1,88 @@
 <!doctype html>
-<!-- FILE 2 + FILE 3 : Camera UI V117 — Code.gs is alag file, isme mat paste karo -->
+<!-- FILE 2 + FILE 3 : Camera UI V134 — Code.gs is alag file, isme mat paste karo -->
 <html>
 <head>
 <meta charset="utf-8">
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
-<title>DISPATCH PROOF V117</title>
+<title>DISPATCH PROOF V134</title>
 <style>
 *{box-sizing:border-box}
-html,body{margin:0;width:100%;height:100%;font-family:Arial,sans-serif;background:#e9edf2;color:#202124}
-body{padding:8px;overflow:auto}
-.app{width:min(980px,100%);min-height:calc(100vh - 16px);margin:0 auto;background:#f4f6f8;border:1px solid #cfd5dc;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,.12);overflow:hidden}
-.top{background:#fff;padding:8px 10px;border-bottom:1px solid #d9dee5;text-align:center}
-.title{font-size:18px;font-weight:800;line-height:1.1}
-.ag{font-size:11px;font-weight:600;letter-spacing:.4px;color:#6b7280;margin-top:4px}
+html,body{margin:0;width:100%;min-height:640px;height:auto;overflow:auto;font-family:Arial,sans-serif;background:#e9edf2;color:#202124}
+body{padding:6px}
+.app{width:min(980px,100%);margin:0 auto;background:#f4f6f8;border:1px solid #cfd5dc;border-radius:10px;overflow:visible;min-height:640px}
+.top{background:#fff;padding:4px 8px;border-bottom:1px solid #d9dee5;text-align:center}
+.title{font-size:15px;font-weight:800;line-height:1.1}
+.ag{font-size:10px;font-weight:600;color:#6b7280}
 .tabs{display:flex;background:#fff;border-bottom:1px solid #d9dee5}
-.tab{flex:1;text-align:center;padding:9px 5px;font-size:12px;font-weight:800;cursor:pointer}
+.tab{flex:1.1;text-align:center;padding:8px 4px;font-size:11px;font-weight:800;cursor:pointer;letter-spacing:.02em}
+.tab.mid{flex:0.95;font-size:12px;background:#e8f0fe;color:#174ea6}
 .tab.active{background:#202124;color:#fff}
-.tools{display:flex;gap:6px;align-items:center;background:#fff;padding:6px 8px;border-bottom:1px solid #d9dee5;flex-wrap:wrap}
+.tab.mid.active{background:#1a73e8;color:#fff}
+.tools{display:flex;gap:6px;align-items:center;background:#fff;padding:4px 8px;border-bottom:1px solid #d9dee5;flex-wrap:wrap}
 .tools b{font-size:10px}
-select{height:34px;min-width:150px;max-width:220px;border:1px solid #aeb7c4;border-radius:7px;padding:0 6px;background:#fff}
+select{height:30px;min-width:140px;max-width:220px;border:1px solid #aeb7c4;border-radius:6px;padding:0 6px;background:#fff}
 .status{font-size:10px;color:#5f6368;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.scan{display:flex;gap:6px;background:#fff;padding:7px 8px;border-bottom:1px solid #d9dee5}
-#awb{flex:1;min-width:0;height:40px;border:1px solid #aeb7c4;border-radius:7px;padding:0 10px;font-size:16px;outline:none}
-button{height:36px;border:0;border-radius:7px;padding:0 10px;font-weight:800;cursor:pointer}
+.scan{display:flex;gap:6px;background:#fff;padding:5px 8px;border-bottom:1px solid #d9dee5}
+#awb{flex:1;min-width:0;height:36px;border:1px solid #aeb7c4;border-radius:6px;padding:0 10px;font-size:16px;outline:none}
+button{height:32px;border:0;border-radius:6px;padding:0 10px;font-weight:800;cursor:pointer}
 .primary{background:#1a73e8;color:#fff}.green{background:#188038;color:#fff}.orange{background:#f9ab00;color:#111}.gray{background:#e8eaed;color:#202124}.red{background:#d93025;color:#fff}
-.main{padding:7px;overflow:auto}
-.notice{display:none;background:#fff8e1;border-radius:7px;padding:8px 10px;margin-bottom:7px;font-size:11px}
-.notice.error{background:#fde7e9;color:#b3261e}.notice.ok{background:#e6f4ea;color:#137333}.notice.terminal{font-size:14px;font-weight:800;text-align:center}
-.info{background:#fff;border:1px solid #dfe3e8;border-radius:8px;padding:8px 10px;margin-bottom:7px;font-size:11px}
-.thumbs{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
-.thumbs a,.thumbs img{display:block;width:88px;height:88px;object-fit:cover;border-radius:6px;background:#111;border:1px solid #dfe3e8}
-.card{display:none;background:#fff;border:1px solid #dfe3e8;border-radius:8px;padding:10px;margin-bottom:7px}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
-.label{font-size:9px;color:#6b7280}.value{font-weight:700;font-size:12px}.ready{color:#188038;font-weight:800}.required{color:#d93025;font-weight:800}
-.cameraPanel{display:none;background:#111;border-radius:9px;padding:8px;margin-bottom:7px;color:#fff}
-.cameraHead{display:flex;justify-content:space-between;align-items:center;font-size:11px;font-weight:800;margin-bottom:6px}
-.live{color:#ff7777;font-weight:900}.timer{font-size:17px;font-weight:900;margin-left:6px}
-.cameraFrame{display:block;width:100%;max-height:430px;aspect-ratio:16/9;object-fit:cover;background:#000;border-radius:7px}
-.cameraControls{display:flex;justify-content:flex-end;margin-top:7px}
-.videoBox{background:#111;border-radius:8px;padding:8px;margin-top:8px;color:#fff}
-.proofVideo,.thumbVideo{display:block;width:100%;max-height:140px;min-height:88px;background:#000;border-radius:6px;border:0;object-fit:contain}
-.popupVideo{display:block;width:100%;max-height:180px;min-height:120px;background:#000;border-radius:6px;border:0;object-fit:contain}
-.controls{display:flex;gap:6px;margin-top:7px;flex-wrap:wrap}
-.btnPlay{background:#1a73e8;color:#fff;height:40px;font-size:14px;min-width:96px}
-.btnDl{background:#5f6368;color:#fff}
-.proofHint{font-size:11px;color:#c5cad3;margin-top:8px;font-weight:600}
-.frameBanner{display:none;background:#e6f4ea;border:1px solid #137333;border-radius:8px;padding:10px;margin-bottom:7px;font-size:13px;font-weight:700;text-align:center}
+.main{padding:4px 6px}
+.notice{display:none;border-radius:6px;padding:4px 8px;margin-bottom:4px;font-size:12px;font-weight:700}
+.notice.error{background:#fde7e9;color:#b3261e}.notice.ok{background:#e6f4ea;color:#137333}.notice.terminal{background:#fde7e9;color:#b3261e;text-align:center}
+.info,#empty,#videoModal{display:none !important}
+.card{display:none;background:#fff;border:1px solid #dfe3e8;border-radius:6px;padding:5px 8px;margin-bottom:4px;font-size:13px;font-weight:700;line-height:1.35}
+.ready{color:#188038}.required{color:#d93025}
+.cameraPanel{display:none;background:#111;border-radius:8px;padding:5px;color:#fff}
+.cameraHead{display:flex;justify-content:space-between;align-items:center;font-size:11px;font-weight:800;margin-bottom:4px}
+.live{color:#ff7777;font-weight:900}.timer{font-size:16px;font-weight:900;margin-left:6px}
+.cameraWrap{position:relative}
+.cameraFrame{display:block;width:100%;max-height:160px;aspect-ratio:16/9;object-fit:cover;background:#000;border-radius:6px}
+body.returnMode .cameraFrame{max-height:140px}
+#camFlash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;border-radius:6px;transition:opacity .08s}
+#camFlash.on{opacity:.8}
+.cameraControls{display:flex;justify-content:flex-end;align-items:center;gap:8px;margin-top:5px}
+.shotCount{margin-right:auto;font-size:12px;font-weight:800;color:#f9ab00}
+button.busy{filter:brightness(1.25);transform:scale(.97);box-shadow:0 0 0 3px #fff inset}
+.photoBook{display:none;background:#fff;border:1px solid #dfe3e8;border-radius:6px;padding:5px 8px;margin-top:4px}
+.photoBookHead{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px;font-weight:800}
+.photoBookHead button{height:28px;font-size:11px}
+.proofPanel{display:none;padding:2px 0 8px}
+.proofCard{background:#fff;border:1px solid #dfe3e8;border-radius:6px;padding:8px;margin-bottom:6px}
+.proofCard b{display:block;font-size:13px;margin-bottom:4px}
+.muted{font-size:12px;color:#5f6368;font-weight:600}
+.proofCard button{margin:6px 6px 0 0}
+body.libraryMode{overflow:auto}
+body.libraryMode .cameraPanel,body.libraryMode #photoBook,body.libraryMode #returnClip{display:none !important}
+body.libraryMode .camOnly{display:none !important}
+body.libraryMode #proofPanel{display:block}
+#libPlayWrap{margin-top:6px;background:#111;border-radius:8px;padding:6px}
+.thumbs{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
+.thumbs img{width:56px;height:56px;object-fit:cover;border-radius:4px;background:#111;border:2px solid #188038}
+.again{height:26px;font-size:11px;margin-left:8px;vertical-align:middle}
+.frameBanner{display:none;background:#e6f4ea;border:1px solid #137333;border-radius:8px;padding:8px;margin-bottom:6px;font-size:13px;font-weight:700;text-align:center}
 a.green{display:inline-flex;align-items:center;justify-content:center;height:36px;border-radius:7px;padding:0 10px;font-weight:800;background:#188038;color:#fff;text-decoration:none}
-.frameBanner a.green{height:44px;font-size:14px;margin-top:8px}
-.hardbar{display:none}
+.frameBanner a.green{height:40px;font-size:14px;margin-top:6px}
 #jsErr{display:none;position:fixed;left:8px;right:8px;top:8px;z-index:30;background:#d93025;color:#fff;padding:8px;font-size:12px;white-space:pre-wrap;border-radius:8px}
-.small{font-size:10px;height:30px;padding:0 8px}
-.modal{display:none;position:fixed;inset:0;background:rgba(20,24,28,.55);z-index:20;padding:12px;overflow:auto}
-.modal.on{display:flex;align-items:center;justify-content:center}
-.modalCard{width:min(380px,94vw);background:#111;color:#fff;border-radius:12px;padding:10px;box-shadow:0 12px 40px rgba(0,0,0,.35)}
-.modalHead{display:flex;justify-content:space-between;align-items:center;font-weight:800;font-size:13px;margin-bottom:8px}
-.modalCard video{width:100%;max-height:180px;min-height:120px;background:#000;border:0;border-radius:8px}
 @media(max-width:600px){
- body{padding:0}.app{width:100%;min-height:100vh;border-radius:0;border:0}
- .tools{flex-wrap:wrap}.tools select{flex:1;min-width:130px}
- .grid{grid-template-columns:1fr}
- .cameraFrame{max-height:300px}
+ body{padding:0}.app{width:100%;border-radius:0;border:0}
+ .tools{flex-wrap:wrap}.tools select{flex:1;min-width:120px}
+ .cameraFrame{max-height:140px}
 }
 </style>
 <script>
-window.DP_VER = 'V117';
+window.DP_VER = 'V134';
 window.DP_PAGE = 'https://yubafashion.github.io/dispatch-proof-camera/';
 window.dpReady = false;
 window.onerror = function (msg, src, line) {
   var b = document.getElementById('jsErr');
-  if (b) {
-    b.style.display = 'block';
-    b.textContent = 'JS ERROR: ' + msg + ' (line ' + line + ')';
-  }
+  if (b) { b.style.display = 'block'; b.textContent = 'JS ERROR: ' + msg + ' (line ' + line + ')'; }
   return false;
 };
-function DP_show(t, bad) {
-  var e = document.getElementById('notice');
-  if (e) {
-    e.style.display = 'block';
-    e.className = 'notice ' + (bad ? 'error' : 'ok');
-    e.textContent = t;
-  }
-  var s = document.getElementById('cameraState');
-  if (s) s.textContent = t;
-}
-function DP_openLive() {
-  var url = window.DP_PAGE + '?v=' + window.DP_VER + '&t=' + Date.now();
-  var a = document.createElement('a');
-  a.href = url;
-  a.target = 'DP_CAM_' + window.DP_VER;
-  a.rel = 'opener';
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  DP_show('Live camera tab kholi — title V117 hona chahiye. V99 tab Close.', false);
-}
-function DP_bootTest() {
-  DP_show('TEST CAMERA click V117 — wait…', false);
-  if (window.dpReady) return true;
-  var framed = false;
-  try { framed = window.self !== window.top; } catch (e) { framed = true; }
-  if (framed) {
-    DP_openLive();
-    return false;
-  }
-  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-    DP_show('Is browser mein camera API nahi. Upar RED link dabao.', true);
-    return false;
-  }
-  navigator.mediaDevices.getUserMedia({ video: true, audio: false }).then(function (s) {
-    var v = document.getElementById('cameraFrame');
-    var p = document.getElementById('cameraPanel');
-    if (p) p.style.display = 'block';
-    if (v) {
-      v.srcObject = s;
-      if (v.play) v.play();
-    }
-    DP_show('Camera ready V117', false);
-  }).catch(function (err) {
-    DP_show('Camera: ' + ((err && err.name) || '') + ' ' + ((err && err.message) || err), true);
-  });
-  return false;
-}
 </script>
 </head>
 <body>
+<div id="boot" style="padding:10px 12px;font-family:Arial,sans-serif;font-weight:800;background:#202124;color:#fff">DISPATCH PROOF V134 — teen tabs. Agar yeh line ke neeche khali hai to Camera.html Save + Deploy New version.</div>
 <div id="jsErr"></div>
 <div class="app">
   <div class="top">
@@ -134,20 +90,20 @@ function DP_bootTest() {
     <div class="ag">Yuba Fashion · Hotel Midtown packing</div>
   </div>
   <div class="tabs">
-    <div id="tabDispatch" class="tab active">🎥 MAKE DISPATCH VIDEO</div>
-    <div id="tabProof" class="tab">🎥 VIDEO PROOF</div>
+    <div id="tabDispatch" class="tab active">MAKE DISPATCH VIDEO</div>
+    <div id="tabLibrary" class="tab mid">VIDEO PROOF</div>
+    <div id="tabReturn" class="tab">MAKE RETURN VIDEO</div>
   </div>
   <div class="tools">
-    <b>CAMERA</b>
-    <select id="cameraSelect"><option value="">Camera</option></select>
-    <button type="button" id="refreshCamera" class="gray">REFRESH CAMERA</button>
-    <button type="button" id="testCamera" class="primary" onclick="return DP_bootTest()">TEST CAMERA</button>
+    <b class="camOnly">CAMERA</b>
+    <select id="cameraSelect" class="camOnly"><option value="">Camera</option></select>
+    <button type="button" id="refreshCamera" class="gray camOnly">REFRESH CAMERA</button>
+    <button type="button" id="testCamera" class="primary camOnly">TEST CAMERA</button>
     <button type="button" id="connectSheet" class="green">SHEET</button>
     <button type="button" id="liveWindow" class="green" style="display:none">OPEN LIVE CAMERA</button>
-    <input id="videoFile" type="file" accept="video/*" style="display:none">
     <span id="cameraState" class="status">Ready</span>
     <span id="driveState" class="status"></span>
-    <span class="status" style="margin-left:auto">v117</span>
+    <span class="status" style="margin-left:auto">v134</span>
   </div>
   <div class="scan">
     <input id="awb" autofocus autocomplete="off" placeholder="SCAN AWB BARCODE...">
@@ -159,37 +115,63 @@ function DP_bootTest() {
     <div id="frameBanner" class="frameBanner">
       Keep this sheet box open. The packing camera opens in a new tab.
       <br>
-      <a class="green" id="frameLiveBtn" href="https://yubafashion.github.io/dispatch-proof-camera/?v=V117" target="DP_CAM_V117" rel="opener">Open packing camera</a>
+      <a class="green" id="frameLiveBtn" href="https://yubafashion.github.io/dispatch-proof-camera/?v=V134" target="DP_CAM_V134" rel="opener">Open packing camera</a>
     </div>
-    <div id="info" class="info">Scan AWB to record dispatch. Video Proof: capture return photos and a return video on the same camera.</div>
+    <div id="info" class="info"></div>
     <div id="cameraPanel" class="cameraPanel">
       <div class="cameraHead">
         <span id="cameraLabel">CAMERA READY</span>
-        <span><span id="live" class="live" style="display:none">● RECORDING</span><span id="timer" class="timer">00:00</span></span>
+        <span>
+          <button type="button" id="playClipBtn" class="primary" style="display:none">PLAY</button>
+          <span id="live" class="live" style="display:none">● RECORDING</span>
+          <span id="timer" class="timer">00:00</span>
+        </span>
       </div>
-      <video id="cameraFrame" class="cameraFrame" autoplay muted playsinline></video>
+      <div class="cameraWrap">
+        <video id="cameraFrame" class="cameraFrame" autoplay muted playsinline></video>
+        <video id="clipVideo" class="cameraFrame" controls playsinline style="display:none"></video>
+        <iframe id="clipIframe" class="cameraFrame" style="display:none;border:0" allow="autoplay; fullscreen" title="Recorded video"></iframe>
+        <div id="camFlash"></div>
+      </div>
       <div class="cameraControls">
+        <span id="shotCount" class="shotCount" style="display:none"></span>
         <button type="button" id="snapBtn" class="orange" style="display:none">CAPTURE PHOTO</button>
-        <button type="button" id="stopBtn" class="red">■ STOP &amp; SAVE</button>
+        <button type="button" id="recReturnBtn" class="orange" style="display:none">RECORD VIDEO</button>
+        <button type="button" id="stopBtn" class="red" style="display:none">■ STOP &amp; SAVE</button>
+      </div>
+    </div>
+    <div id="photoBook" class="photoBook">
+      <div class="photoBookHead">
+        <span id="photoBookLabel">RETURN PHOTOS · 0</span>
+        <button type="button" id="dlPhotoBook" class="green">DOWNLOAD ZIP</button>
+      </div>
+      <div id="photoThumbs" class="thumbs"></div>
+    </div>
+    <div id="returnClip" class="photoBook">
+      <div class="photoBookHead">
+        <span id="returnClipLabel">RETURN VIDEO</span>
+        <button type="button" id="playReturnClip" class="primary">PLAY</button>
+        <button type="button" id="dlReturnClip" class="green">DOWNLOAD VIDEO</button>
+      </div>
+      <video id="returnClipPlayer" class="cameraFrame" controls playsinline style="display:none;margin-top:6px;max-height:140px"></video>
+    </div>
+    <div id="proofPanel" class="proofPanel">
+      <div id="proofDispatch" class="proofCard"></div>
+      <div id="proofPhotos" class="proofCard"></div>
+      <div id="proofReturn" class="proofCard"></div>
+      <div id="libPlayWrap" class="cameraWrap" style="display:none">
+        <video id="libVideo" class="cameraFrame" controls playsinline></video>
+        <iframe id="libIframe" class="cameraFrame" style="display:none;border:0" allow="autoplay; fullscreen" title="Proof video"></iframe>
       </div>
     </div>
     <div id="result" class="card"></div>
-    <div id="empty" class="empty">Scan an AWB to record dispatch, or open Video Proof for the return clip.</div>
-  </div>
-</div>
-<div id="videoModal" class="modal">
-  <div class="modalCard">
-    <div class="modalHead">
-      <span id="modalTitle">VIDEO READY</span>
-      <button type="button" id="modalClose" class="gray small">✕</button>
-    </div>
-    <div id="modalPlayer"></div>
-    <div class="controls" id="modalActions"></div>
+    <div id="empty"></div>
   </div>
 </div>
 <script>
 'use strict';
 
+var SCAN_MS = 1800;
 var mode = 'DISPATCH';
 var stream = null;
 var packTimer = null;
@@ -198,9 +180,10 @@ var recorder = null;
 var recorderMime = '';
 var chunks = [];
 var currentSession = null;
-var nextOrder = null;
 var waitingOrder = null;
 var lookupSeq = 0;
+var recordToken = 0;
+var blockRecordAwb = '';
 var recorderStopping = false;
 var timerHandle = null;
 var recordStartedAt = 0;
@@ -209,14 +192,16 @@ var selectedCameraId = '';
 try { selectedCameraId = localStorage.getItem('DP50_CAMERA_ID') || ''; } catch (e1) {}
 var uploadQueue = 0;
 var savedAwbs = {};
-try {
-  savedAwbs = JSON.parse(localStorage.getItem('DP_LOCKED_AWB') || '{}') || {};
-} catch (eLock) { savedAwbs = {}; }
+try { savedAwbs = JSON.parse(localStorage.getItem('DP_LOCKED_AWB') || '{}') || {}; } catch (eLock) { savedAwbs = {}; }
 var lastScan = null;
+var lastProofOrder = null;
+var localProofPhotos = {};
+var proofRec = null;
 var driveStatus = 'unknown';
-var driveError = '';
 var healthPromise = null;
-var scanBusy = false;
+var lastReviewRec = null;
+var scanMemo = {};
+var sessionReturn = {};
 var lastEmergency = null;
 
 function $(id) { return document.getElementById(id); }
@@ -228,37 +213,192 @@ function note(text, kind) {
   e.style.display = text ? 'block' : 'none';
 }
 
-function gsRunNative(action, payload, timeoutMs) {
-  return new Promise(function(resolve, reject) {
-    if (!window.google || !google.script || !google.script.run) {
-      reject(new Error('native'));
-      return;
+function normalizeAwb(v) {
+  return String(v == null ? '' : v).replace(/[^\w]/g, '').toUpperCase();
+}
+
+function esc(v) {
+  return String(v == null ? '' : v)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+}
+
+function strBytes(s) {
+  var u = new Uint8Array(s.length);
+  var i;
+  for (i = 0; i < s.length; i++) u[i] = s.charCodeAt(i) & 255;
+  return u;
+}
+
+function crc32(buf) {
+  var table = crc32.t;
+  var n;
+  var k;
+  var c;
+  if (!table) {
+    table = crc32.t = new Uint32Array(256);
+    for (n = 0; n < 256; n++) {
+      c = n;
+      for (k = 0; k < 8; k++) c = (c & 1) ? (0xedb88320 ^ (c >>> 1)) : (c >>> 1);
+      table[n] = c >>> 0;
     }
-    var done = false;
-    var t = setTimeout(function() {
-      if (done) return;
-      done = true;
-      reject(new Error(action + ' timeout'));
-    }, timeoutMs || 60000);
-    google.script.run
-      .withSuccessHandler(function(res) {
-        if (done) return;
-        done = true;
-        clearTimeout(t);
-        resolve(res);
-      })
-      .withFailureHandler(function(err) {
-        if (done) return;
-        done = true;
-        clearTimeout(t);
-        var msg = String(err || '');
-        if (/authoriz|permission|access denied|login/i.test(msg)) {
-          msg = 'Allow is dialog ke andar mat karo (white page). Dialog BAND karo. Menu: DISPATCH CAMERA → 1. Allow Drive, ya Allow link (nayi tab).';
-        }
-        reject(new Error(msg));
-      })
-      .bridgeAction(String(action || '').toUpperCase(), payload || {});
+  }
+  c = 0xffffffff;
+  for (n = 0; n < buf.length; n++) c = table[(c ^ buf[n]) & 255] ^ (c >>> 8);
+  return (c ^ 0xffffffff) >>> 0;
+}
+
+function le16(n) { return new Uint8Array([n & 255, (n >> 8) & 255]); }
+function le32(n) {
+  n = n >>> 0;
+  return new Uint8Array([n & 255, (n >>> 8) & 255, (n >>> 16) & 255, (n >>> 24) & 255]);
+}
+function concatU8(arrs) {
+  var len = 0;
+  var i;
+  var o = 0;
+  var out;
+  for (i = 0; i < arrs.length; i++) len += arrs[i].length;
+  out = new Uint8Array(len);
+  for (i = 0; i < arrs.length; i++) { out.set(arrs[i], o); o += arrs[i].length; }
+  return out;
+}
+
+function buildZip(files) {
+  var locals = [];
+  var centrals = [];
+  var offset = 0;
+  var i;
+  for (i = 0; i < files.length; i++) {
+    var name = strBytes(String(files[i].name || ('photo_' + (i + 1) + '.jpg')).replace(/[^\w.\-]/g, '_'));
+    var data = files[i].bytes;
+    var crc = crc32(data);
+    var local = concatU8([
+      le32(0x04034b50), le16(20), le16(0), le16(0), le16(0), le16(0),
+      le32(crc), le32(data.length), le32(data.length), le16(name.length), le16(0),
+      name, data
+    ]);
+    locals.push(local);
+    centrals.push(concatU8([
+      le32(0x02014b50), le16(20), le16(20), le16(0), le16(0), le16(0), le16(0),
+      le32(crc), le32(data.length), le32(data.length),
+      le16(name.length), le16(0), le16(0), le16(0), le16(0), le32(0), le32(offset),
+      name
+    ]));
+    offset += local.length;
+  }
+  var cd = concatU8(centrals);
+  var eocd = concatU8([
+    le32(0x06054b50), le16(0), le16(0), le16(files.length), le16(files.length),
+    le32(cd.length), le32(offset), le16(0)
+  ]);
+  return new Blob([concatU8(locals.concat([cd, eocd]))], { type: 'application/zip' });
+}
+
+function dataUrlToJpeg(url) {
+  var parts = String(url || '').split(',');
+  if (parts.length < 2) return null;
+  var bin = atob(parts[1]);
+  var u = new Uint8Array(bin.length);
+  var i;
+  for (i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
+  return u;
+}
+
+function hidePhotoBook() {
+  if ($('photoBook')) $('photoBook').style.display = 'none';
+}
+
+function renderPhotoBook(awb) {
+  var box = $('photoBook');
+  var thumbs = $('photoThumbs');
+  var label = $('photoBookLabel');
+  var btn = $('dlPhotoBook');
+  if (!box || !thumbs) return;
+  if (mode !== 'RETURN' && mode !== 'LIBRARY') {
+    box.style.display = 'none';
+    return;
+  }
+  if (mode === 'LIBRARY') {
+    box.style.display = 'none';
+    return;
+  }
+  var photos = localPhotos(awb);
+  box.style.display = 'block';
+  if (label) label.textContent = 'RETURN PHOTOS · ' + photos.length;
+  if (btn) {
+    btn.disabled = !photos.length;
+    btn.textContent = photos.length ? ('DOWNLOAD ZIP (' + photos.length + ')') : 'DOWNLOAD ZIP';
+  }
+  thumbs.innerHTML = photos.map(function(im, idx) {
+    var src = im.thumb || im.url || '';
+    return '<img alt="photo ' + (idx + 1) + '" src="' + esc(src) + '">';
+  }).join('');
+}
+
+function mergeRemotePhotos(r) {
+  var n = normalizeAwb(r && r.awb);
+  if (!n) return;
+  var local = localPhotos(n);
+  (r.returnImages || []).forEach(function(im) {
+    var name = im.fileName || im.fileId || '';
+    var exists = local.some(function(x) {
+      return (name && (x.fileName === name || x.fileId === im.fileId)) || (!x.local && x.url && im.url && x.url === im.url);
+    });
+    if (exists) return;
+    local.push({
+      url: im.url || im.thumb || '',
+      thumb: im.thumb || im.url || '',
+      fileName: im.fileName || '',
+      fileId: im.fileId || '',
+      remote: true
+    });
   });
+}
+
+async function jpegBytesFromPhoto(im) {
+  if (im.blob) {
+    var buf = await im.blob.arrayBuffer();
+    return new Uint8Array(buf);
+  }
+  if (im.url && im.url.indexOf('data:image') === 0) return dataUrlToJpeg(im.url);
+  if (im.thumb && im.thumb.indexOf('data:image') === 0) return dataUrlToJpeg(im.thumb);
+  return null;
+}
+
+async function downloadPhotoBook() {
+  var p = lastProofOrder || lastScan || {};
+  var awb = p.awb || '';
+  var photos = localPhotos(awb);
+  if (!photos.length) {
+    note('Pehle photo capture karein.', 'error');
+    return;
+  }
+  var files = [];
+  var i;
+  for (i = 0; i < photos.length; i++) {
+    var bytes = await jpegBytesFromPhoto(photos[i]);
+    if (bytes && bytes.length) {
+      files.push({ name: (photos[i].fileName || ('photo_' + (i + 1) + '.jpg')), bytes: bytes });
+    }
+  }
+  if (!files.length) {
+    note('ZIP ke liye captured photos chahiye.', 'error');
+    return;
+  }
+  var zip = buildZip(files);
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(zip);
+  a.download = (p.orderId || 'NA') + '_' + normalizeAwb(awb) + '_RETURN_PHOTOS.zip';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  note(files.length + ' photos ek ZIP mein download.', 'ok');
+}
+
+function isLocalDemo() {
+  var pageParams = window.__pageParams || new URLSearchParams(location.search);
+  return pageParams.get('demo') === '1' || location.hostname === '127.0.0.1' || location.hostname === 'localhost';
 }
 
 function normalizeApiUrl(raw) {
@@ -274,13 +414,13 @@ function normalizeApiUrl(raw) {
 }
 
 var pageParams = new URLSearchParams(location.search);
+window.__pageParams = pageParams;
 var API_URL = normalizeApiUrl(pageParams.get('api') || '');
 try {
   if (API_URL) localStorage.setItem('DP50_API_URL', API_URL);
   else API_URL = normalizeApiUrl(localStorage.getItem('DP50_API_URL') || '');
 } catch (eApi) {}
 
-var workerWin = null;
 var workerSource = null;
 var workerReady = false;
 var workerOrigin = '*';
@@ -318,25 +458,14 @@ function pingSheetBox() {
 }
 
 function sheetBoxHint() {
-  return 'Drive /exec window mat kholo (Page Not Found). Google Sheet tab mein chhota box "DISPATCH CAMERA — IS BOX KO BAND MAT KARO" khula rakho. Menu se Open camera → OPEN LIVE CAMERA. Purani V93 tab band karo.';
+  return 'Google Sheet tab mein DISPATCH CAMERA Drive box khula rakho. Band mat karo.';
 }
 
 function ensureWorker() {
   return new Promise(function(resolve, reject) {
-    if (isLocalDemo()) {
-      resolve();
-      return;
-    }
+    if (isLocalDemo()) { resolve(); return; }
     pingSheetBox();
-    if (workerWin && workerWin.closed) {
-      workerReady = false;
-      workerSource = null;
-      workerWin = null;
-    }
-    if (workerReady && workerSource) {
-      resolve();
-      return;
-    }
+    if (workerReady && workerSource) { resolve(); return; }
     var n = 0;
     var t = setInterval(function() {
       pingSheetBox();
@@ -356,7 +485,7 @@ function ensureWorker() {
 function workerCall(action, payload, timeoutMs) {
   return ensureWorker().then(function() {
     return new Promise(function(resolve, reject) {
-      var target = workerSource || workerWin;
+      var target = workerSource;
       if (!target) {
         reject(new Error('Drive save window band ho gayi.'));
         return;
@@ -382,9 +511,8 @@ function workerCall(action, payload, timeoutMs) {
   });
 }
 
-function setDriveState(status, msg) {
+function setDriveState(status) {
   driveStatus = status;
-  driveError = msg || '';
   var el = $('driveState');
   if (!el) return;
   if (status === 'ok') el.textContent = 'Sheet ready ✓';
@@ -399,7 +527,7 @@ function jsonpCall(action, data, timeoutMs) {
       reject(new Error('Drive API missing. Sheet se Open camera use karo.'));
       return;
     }
-    var cb = 'DP92j' + (++bridgeSeq) + '_' + Date.now();
+    var cb = 'DP118j' + (++bridgeSeq) + '_' + Date.now();
     var q = new URLSearchParams();
     q.set('dpAction', action);
     q.set('callback', cb);
@@ -415,7 +543,7 @@ function jsonpCall(action, data, timeoutMs) {
       if (done) return;
       done = true;
       cleanup();
-      reject(new Error(action + ' timeout — sheet jawab nahi diya. Deploy New version (Anyone) aur sheet se hara button se kholo.'));
+      reject(new Error(action + ' timeout'));
     }, timeoutMs || 18000);
     function cleanup() {
       clearTimeout(timer);
@@ -432,15 +560,40 @@ function jsonpCall(action, data, timeoutMs) {
       if (done) return;
       done = true;
       cleanup();
-      reject(new Error('Drive API link fail. Purani tab band karo. Sheet → Open camera → OPEN LIVE CAMERA.'));
+      reject(new Error('Drive API link fail.'));
     };
     s.src = API_URL + (API_URL.indexOf('?') >= 0 ? '&' : '?') + q.toString();
     document.head.appendChild(s);
   });
 }
 
-function isLocalDemo() {
-  return pageParams.get('demo') === '1' || location.hostname === '127.0.0.1' || location.hostname === 'localhost';
+function gsRunNative(action, payload, timeoutMs) {
+  return new Promise(function(resolve, reject) {
+    if (!window.google || !google.script || !google.script.run) {
+      reject(new Error('native'));
+      return;
+    }
+    var done = false;
+    var t = setTimeout(function() {
+      if (done) return;
+      done = true;
+      reject(new Error(action + ' timeout'));
+    }, timeoutMs || 60000);
+    google.script.run
+      .withSuccessHandler(function(res) {
+        if (done) return;
+        done = true;
+        clearTimeout(t);
+        resolve(res);
+      })
+      .withFailureHandler(function(err) {
+        if (done) return;
+        done = true;
+        clearTimeout(t);
+        reject(new Error(String(err || '')));
+      })
+      .bridgeAction(String(action || '').toUpperCase(), payload || {});
+  });
 }
 
 function demoOrder(awb) {
@@ -448,14 +601,17 @@ function demoOrder(awb) {
   if (!n) return { found: false, message: 'Please scan AWB.' };
   if (n === '1499990000111222') {
     return {
-      ok: true, found: true, terminal: true, duplicate: false,
+      ok: true, found: true, terminal: true, duplicate: false, fast: true,
       date: '02-09-2026', orderId: 'YF-CLOSED', awb: n,
       dispatchType: 'FORWARD', status: 'Delivered', sku: 'NA', store: 'Hotel Midtown',
       videoType: 'DISPATCH', dispatchVideo: null, returnVideo: null
     };
   }
+  var rec = scanMemo[n] || {};
+  var photos = localProofPhotos[n] || rec.returnImages || [];
   return {
-    ok: true, found: true, terminal: false, duplicate: false,
+    ok: true, found: true, terminal: false,
+    duplicate: !!(rec && rec.dispatchVideo),
     date: new Date().toLocaleDateString('en-GB'),
     orderId: n === '1490840510818035' ? 'YF-88421' : ('YF-' + n.slice(-5)),
     awb: n,
@@ -463,138 +619,58 @@ function demoOrder(awb) {
     status: 'Packed',
     sku: 'MIDTOWN POLO',
     store: 'Hotel Midtown',
-    videoType: mode === 'PROOF' ? 'RETURN' : 'DISPATCH',
-    dispatchVideo: null,
-    returnVideo: null
+    videoType: mode === 'DISPATCH' ? 'DISPATCH' : 'RETURN',
+    dispatchVideo: rec.dispatchVideo || null,
+    returnVideo: rec.returnVideo || null,
+    returnImages: photos,
+    fast: true
   };
-}
-
-function idbOpen() {
-  return new Promise(function(resolve, reject) {
-    var req = indexedDB.open('dp_proof_videos', 1);
-    req.onupgradeneeded = function() {
-      var db = req.result;
-      if (!db.objectStoreNames.contains('videos')) db.createObjectStore('videos', { keyPath: 'key' });
-    };
-    req.onsuccess = function() { resolve(req.result); };
-    req.onerror = function() { reject(req.error); };
-  });
-}
-
-function videoKey(awb, type) {
-  return normalizeAwb(awb) + '_' + String(type || 'DISPATCH').toUpperCase();
-}
-
-function saveDemoVideo(s, blob) {
-  var type = String(s.videoType || 'DISPATCH').toUpperCase();
-  if (type !== 'RETURN') type = 'DISPATCH';
-  var rec = {
-    key: videoKey(s.awb, type),
-    awb: normalizeAwb(s.awb),
-    orderId: s.orderId || '',
-    videoType: type,
-    fileName: (s.orderId || 'NA') + '_' + normalizeAwb(s.awb) + '_' + type + fileExtForMime(blob.type),
-    mimeType: blob.type || 'video/webm',
-    blob: blob,
-    savedAt: Date.now()
-  };
-  return idbOpen().then(function(db) {
-    return new Promise(function(resolve, reject) {
-      var tx = db.transaction('videos', 'readwrite');
-      tx.objectStore('videos').put(rec);
-      tx.oncomplete = function() { resolve(demoRecFromStore(rec)); };
-      tx.onerror = function() { reject(tx.error); };
-    });
-  });
-}
-
-function demoRecFromStore(rec) {
-  var url = URL.createObjectURL(rec.blob);
-  return {
-    found: true, ok: true,
-    awb: rec.awb,
-    orderId: rec.orderId,
-    videoType: rec.videoType,
-    fileId: rec.key,
-    fileName: rec.fileName,
-    downloadUrl: url,
-    previewUrl: '',
-    url: url,
-    local: true
-  };
-}
-
-function loadDemoVideos(awb) {
-  var n = normalizeAwb(awb);
-  return idbOpen().then(function(db) {
-    return new Promise(function(resolve) {
-      var tx = db.transaction('videos', 'readonly');
-      var store = tx.objectStore('videos');
-      var out = {};
-      var left = 2;
-      function one(type) {
-        var req = store.get(videoKey(n, type));
-        req.onsuccess = function() {
-          if (req.result) out[type] = demoRecFromStore(req.result);
-          if (--left <= 0) resolve(out);
-        };
-        req.onerror = function() { if (--left <= 0) resolve(out); };
-      }
-      one('DISPATCH');
-      one('RETURN');
-    });
-  }).catch(function() { return {}; });
-}
-
-function mergeDemoScan(r) {
-  if (!r || !r.found || r.terminal) return Promise.resolve(r);
-  return loadDemoVideos(r.awb).then(function(vids) {
-    r.dispatchVideo = vids.DISPATCH || null;
-    r.returnVideo = vids.RETURN || null;
-    if (mode === 'DISPATCH' && r.dispatchVideo) r.duplicate = true;
-    return r;
-  });
 }
 
 function gsRun(action, payload, timeoutMs) {
   var act = String(action || '').toUpperCase();
   if (isLocalDemo() && (act === 'HEALTH' || act === 'PING')) {
-    return Promise.resolve({ ok: true, version: 'V117', found: true, demo: true });
+    return Promise.resolve({ ok: true, version: 'V134', found: true, demo: true });
   }
   if (isLocalDemo() && act === 'SCAN') {
-    return mergeDemoScan(demoOrder(payload && payload.awb));
+    return Promise.resolve(demoOrder(payload && payload.awb));
   }
-  if (isLocalDemo() && (act === 'DOWNLOAD' || act === 'SHARE')) {
-    return loadDemoVideos((payload && payload.awb) || '').then(function() {
-      return { ok: true, url: (payload && payload.url) || '' };
+  if (isLocalDemo() && (act === 'UPLOAD' || act === 'FINISH' || act === 'CHUNK' || act === 'MARK_PENDING' || act === 'CLEAR_PENDING')) {
+    return Promise.resolve({ ok: true, fileId: 'demo', fileName: (payload && payload.fileName) || 'demo.webm', demo: true });
+  }
+  if (isLocalDemo() && act === 'PLAY') {
+    var rec = lastReviewRec || {};
+    return Promise.resolve({
+      ok: true,
+      fileId: rec.fileId || 'demo',
+      fileName: rec.fileName || 'dispatch.webm',
+      previewUrl: rec.previewUrl || rec.blobUrl || rec.url || '',
+      demo: true
     });
+  }
+  if (act === 'SCAN') {
+    var data = { awb: (payload && payload.awb) || '', mode: (payload && payload.mode) || '' };
+    if (API_URL) {
+      return jsonpCall('SCAN', data, timeoutMs || SCAN_MS);
+    }
+    if (window.google && google.script && google.script.run) {
+      return gsRunNative('SCAN', payload, timeoutMs || SCAN_MS);
+    }
+    return Promise.reject(new Error('SCAN needs api= from the sheet camera link.'));
+  }
+  if (act === 'PLAY' || act === 'GET_RECORD' || act === 'DOWNLOAD' || act === 'SHARE') {
+    if (API_URL) return jsonpCall(act, payload || {}, timeoutMs || 18000);
   }
   if (window.google && google.script && google.script.run) {
     return gsRunNative(action, payload, timeoutMs);
   }
-  if (act === 'CHUNK' || act === 'FINISH' || act === 'UPLOAD' || act === 'SCAN' || act === 'PLAY' || act === 'PLAY_PART') {
-    return workerCall(act, payload, timeoutMs || (act === 'SCAN' ? 30000 : 180000));
+  if (act === 'CHUNK' || act === 'FINISH' || act === 'UPLOAD' || act === 'PLAY' || act === 'PLAY_PART' || act === 'MARK_PENDING' || act === 'CLEAR_PENDING') {
+    return workerCall(act, payload, timeoutMs || 180000);
   }
   if (act === 'HEALTH' || act === 'PING') {
     return jsonpCall(act, payload || {}, timeoutMs || 8000);
   }
-  return jsonpCall(act, payload || {}, timeoutMs || 12000).catch(function() {
-    return workerCall(act, payload, timeoutMs || 30000);
-  });
-}
-
-function esc(v) {
-  return String(v == null ? '' : v)
-    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-    .replace(/"/g,'&quot;').replace(/'/g,'&#039;');
-}
-
-function js(v) {
-  return JSON.stringify(String(v == null ? '' : v)).replace(/&/g, '&amp;').replace(/"/g, '&quot;');
-}
-
-function normalizeAwb(v) {
-  return String(v == null ? '' : v).replace(/[^\w]/g, '').toUpperCase();
+  return jsonpCall(act, payload || {}, timeoutMs || 12000);
 }
 
 function lockDispatchAwb(awb) {
@@ -623,100 +699,316 @@ function isDispatchLocked(awb) {
 }
 
 function hidePackingCamera() {
+  hideReviewClip();
   $('cameraPanel').style.display = 'none';
   $('live').style.display = 'none';
   $('timer').textContent = '00:00';
   $('cameraLabel').textContent = 'CAMERA READY';
+  if ($('snapBtn')) $('snapBtn').style.display = 'none';
+  if ($('recReturnBtn')) $('recReturnBtn').style.display = 'none';
+  if ($('stopBtn')) $('stopBtn').style.display = 'none';
+  if ($('shotCount')) $('shotCount').style.display = 'none';
 }
 
-function showAlreadyRecorded(r, orderIdMaybe) {
-  if (typeof r === 'string') {
-    r = { awb: r, orderId: orderIdMaybe || '', dispatchVideo: (lastScan && lastScan.dispatchVideo) || {} };
+function isDriveFileId(id) {
+  return /^[A-Za-z0-9_-]{25,}$/.test(String(id || ''));
+}
+
+function drivePreviewUrl(fileId) {
+  return 'https://drive.google.com/file/d/' + encodeURIComponent(fileId) + '/preview';
+}
+
+function hideReviewClip() {
+  lastReviewRec = null;
+  var cv = $('clipVideo');
+  var fi = $('clipIframe');
+  var cam = $('cameraFrame');
+  if ($('playClipBtn')) $('playClipBtn').style.display = 'none';
+  if (cv) {
+    try { cv.pause(); } catch (e1) {}
+    cv.removeAttribute('src');
+    cv.load();
+    cv.style.display = 'none';
   }
+  if (fi) {
+    fi.src = 'about:blank';
+    fi.style.display = 'none';
+  }
+  if (cam) cam.style.display = 'block';
+}
+
+function showReviewClip(rec, title) {
+  rec = rec || {};
+  lastReviewRec = rec;
+  $('cameraPanel').style.display = 'block';
+  $('live').style.display = 'none';
+  $('cameraLabel').textContent = title || 'DISPATCH VIDEO READY';
+  if ($('playClipBtn')) $('playClipBtn').style.display = 'inline-block';
+  if ($('snapBtn')) $('snapBtn').style.display = 'none';
+  if ($('recReturnBtn')) $('recReturnBtn').style.display = 'none';
+  if ($('stopBtn')) $('stopBtn').style.display = 'none';
+  var cv = $('clipVideo');
+  var fi = $('clipIframe');
+  var cam = $('cameraFrame');
+  if (cam) cam.style.display = 'none';
+  var src = rec.blobUrl || rec.url || rec.downloadUrl || '';
+  if (src && (/^blob:/i.test(src) || /^data:/i.test(src))) {
+    if (fi) fi.style.display = 'none';
+    cv.style.display = 'block';
+    cv.src = src;
+    cv.play().catch(function() {});
+    return;
+  }
+  var preview = rec.previewUrl || (isDriveFileId(rec.fileId) ? drivePreviewUrl(rec.fileId) : '');
+  if (preview) {
+    cv.style.display = 'none';
+    fi.style.display = 'block';
+    fi.src = preview;
+    return;
+  }
+  if (src) {
+    if (fi) fi.style.display = 'none';
+    cv.style.display = 'block';
+    cv.src = src;
+    cv.play().catch(function() {});
+  }
+}
+
+async function playReviewClip() {
+  var cv = $('clipVideo');
+  if (cv && cv.style.display !== 'none' && cv.getAttribute('src')) {
+    try {
+      await cv.play();
+    } catch (e1) {
+      note('Video yahin play hogi. Browser allow kare.', 'error');
+    }
+    return;
+  }
+  var rec = lastReviewRec || {};
+  if (!rec.fileId && !(rec.blobUrl || rec.url)) {
+    note('Is AWB ki dispatch video nahi mili.', 'error');
+    return;
+  }
+  try {
+    if (rec.fileId && isDriveFileId(rec.fileId) && !isLocalDemo()) {
+      var res = await gsRun('PLAY', { fileId: rec.fileId }, 18000);
+      if (res && (res.previewUrl || res.fileId)) {
+        rec.previewUrl = res.previewUrl || drivePreviewUrl(res.fileId || rec.fileId);
+        rec.fileName = res.fileName || rec.fileName;
+      }
+    }
+    showReviewClip(rec, $('cameraLabel').textContent);
+    if (cv && cv.style.display !== 'none' && cv.src) await cv.play();
+  } catch (e2) {
+    if (isDriveFileId(rec.fileId)) {
+      rec.previewUrl = drivePreviewUrl(rec.fileId);
+      showReviewClip(rec, $('cameraLabel').textContent);
+      return;
+    }
+    note('Video play nahi hui. ' + (e2.message || e2), 'error');
+  }
+}
+
+function keepIdleCamera() {
+  hideReviewClip();
+  $('cameraPanel').style.display = 'block';
+  $('live').style.display = 'none';
+  $('timer').textContent = '00:00';
+  $('cameraLabel').textContent = mode === 'RETURN' ? 'MAKE RETURN VIDEO' : 'CAMERA READY';
+  if ($('snapBtn')) $('snapBtn').style.display = mode === 'RETURN' ? 'inline-block' : 'none';
+  if ($('recReturnBtn')) $('recReturnBtn').style.display = mode === 'RETURN' ? 'inline-block' : 'none';
+  if ($('stopBtn')) $('stopBtn').style.display = 'none';
+  if (mode !== 'RETURN' && $('shotCount')) $('shotCount').style.display = 'none';
+  if (!cameraReady && !isFramed()) {
+    startCamera().catch(function() {});
+  }
+}
+
+function lineStatus(html) {
+  $('empty').style.display = 'none';
+  $('result').style.display = 'block';
+  $('result').innerHTML = html;
+}
+
+function showAlreadyRecorded(r) {
   r = r || lastScan || {};
   var rec = r.dispatchVideo || {};
   var awb = r.awb || rec.awb || '';
   var orderId = r.orderId || rec.orderId || '';
-  hidePackingCamera();
-  $('empty').style.display = 'none';
-  var fileLine = rec.fileName ? esc(rec.fileName) : 'OrderID_AWB_DISPATCH.webm';
-  var loc = esc(rec.folderPath || (r.driveRootName || 'Dispatch Proof Videos'));
-  var fileUrl = rec.url || (isDriveFileId(rec.fileId) ? ('https://drive.google.com/file/d/' + encodeURIComponent(rec.fileId) + '/view') : '');
-  var folderUrl = rec.folderUrl || rec.rootFolderUrl || r.driveRootUrl || '';
-  $('result').innerHTML =
-    '<div class="grid">' +
-      '<div><div class="label">AWB</div><div class="value">' + esc(awb) + '</div></div>' +
-      '<div><div class="label">ORDER ID</div><div class="value">' + esc(orderId) + '</div></div>' +
-      '<div><div class="label">DRIVE FOLDER</div><div class="value">' + loc + '</div></div>' +
-      '<div><div class="label">FILE</div><div class="value">' + fileLine + '</div></div>' +
-    '</div>' +
-    '<div style="margin-top:8px" class="required">● Drive par yeh video mili (testing AWB bhi yahi)</div>' +
-    '<p style="font-size:12px;margin:8px 0 0">My Drive → <b>Dispatch Proof Videos</b> → date folder → <b>' + fileLine + '</b></p>' +
-    '<div class="controls" style="margin-top:8px">' +
-      (fileUrl ? '<a class="green" target="_blank" rel="noopener" href="' + esc(fileUrl) + '">OPEN VIDEO (Drive)</a>' : '') +
-      (folderUrl ? '<a class="green" target="_blank" rel="noopener" href="' + esc(folderUrl) + '">OPEN FOLDER</a>' : '') +
-      '<button type="button" class="orange" id="btnRecordAgain">RECORD AGAIN (testing)</button>' +
-      '<button type="button" class="gray" id="btnRecheckFile">DUBARA CHECK</button>' +
-    '</div>';
-  $('result').style.display = 'block';
-  note('Drive path upar hai. Testing: RECORD AGAIN — purani file trash, nayi Drive par save.', 'ok');
+  hideReviewClip();
+  keepIdleCamera();
+  lineStatus(
+    '<span class="ready">DISPATCH VIDEO READY</span> · AWB ' + esc(awb) +
+    (orderId ? (' · ' + esc(orderId)) : '') +
+    ' · dekhne / download ke liye VIDEO PROOF tab' +
+    '<button type="button" class="orange again" id="btnRecordAgain">RECORD AGAIN</button>'
+  );
+  note('', '');
   var again = $('btnRecordAgain');
   if (again) {
     again.onclick = function() {
+      hideReviewClip();
       unlockDispatchAwb(awb);
+      blockRecordAwb = '';
       gsRun('CLEAR_PENDING', { awb: awb }, 8000).catch(function() {});
       var order = {
-        awb: awb,
-        orderId: orderId,
-        status: r.status || '',
-        date: r.date || '',
-        dispatchType: r.dispatchType || '',
-        videoType: 'DISPATCH',
-        replaceDispatch: true,
-        duplicate: false
+        awb: awb, orderId: orderId, status: r.status || '', date: r.date || '',
+        dispatchType: r.dispatchType || '', videoType: 'DISPATCH', replaceDispatch: true, duplicate: false
       };
       lastScan = order;
-      note('RECORD AGAIN — purani Drive file trash, nayi recording.', 'ok');
       showDispatch(order, false);
       startRecording(order);
-    };
-  }
-  var b = $('btnRecheckFile');
-  if (b) {
-    b.onclick = function() {
-      unlockDispatchAwb(awb);
-      $('awb').value = String(awb || '');
-      note('Drive file check…', 'ok');
-      gsRun('SCAN', { awb: awb, mode: 'DISPATCH' }, 20000).then(function(res) {
-        handleScan(res);
-      }).catch(function(err) {
-        note(err && err.message ? err.message : 'Check fail', 'error');
-      });
     };
   }
 }
 
 function showSaving(r) {
   r = r || lastScan || {};
-  var awb = r.awb || '';
-  var orderId = r.orderId || '';
-  hidePackingCamera();
-  $('empty').style.display = 'none';
-  $('result').style.display = 'block';
-  $('result').innerHTML =
-    '<div class="grid">' +
-      '<div><div class="label">AWB</div><div class="value">' + esc(awb) + '</div></div>' +
-      '<div><div class="label">ORDER ID</div><div class="value">' + esc(orderId) + '</div></div>' +
-    '</div>' +
-    '<div style="margin-top:8px" class="ready">● Save in progress — this AWB will not record again until Drive finishes</div>';
-  note('This AWB is already being saved to Drive. Scan the next parcel.', 'ok');
+  keepIdleCamera();
+  lineStatus(
+    '<span class="ready">Saving to Drive</span> · AWB ' + esc(r.awb || '') +
+    (r.orderId ? (' · ' + esc(r.orderId)) : '') +
+    ' · next parcel scan karein'
+  );
+  note('', '');
 }
 
 function clearResult() {
   hidePackingCamera();
+  hidePhotoBook();
+  hideProofPanel();
   $('result').style.display = 'none';
   $('result').innerHTML = '';
   $('empty').style.display = 'block';
+}
+
+function hideProofPanel() {
+  if ($('proofPanel')) $('proofPanel').style.display = 'none';
+  if ($('libPlayWrap')) $('libPlayWrap').style.display = 'none';
+  if ($('returnClip')) $('returnClip').style.display = 'none';
+}
+
+function backendMode(m) {
+  m = m || mode;
+  return m === 'DISPATCH' ? 'DISPATCH' : 'PROOF';
+}
+
+function clipOk(rec) {
+  if (!rec) return false;
+  if (rec.blobUrl || rec.url || rec.downloadUrl) return true;
+  return isDriveFileId(rec.fileId);
+}
+
+function saveBlobFile(blob, name) {
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name || 'file';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
+
+async function downloadClip(rec, fallbackName) {
+  rec = rec || {};
+  if (rec.blob) {
+    saveBlobFile(rec.blob, rec.fileName || fallbackName);
+    return;
+  }
+  var src = rec.blobUrl || '';
+  if (src.indexOf('blob:') === 0 || src.indexOf('data:') === 0) {
+    var resb = await fetch(src);
+    saveBlobFile(await resb.blob(), rec.fileName || fallbackName);
+    return;
+  }
+  if (rec.fileId && isDriveFileId(rec.fileId)) {
+    var link = await gsRun('DOWNLOAD', { fileId: rec.fileId }, 18000);
+    if (link && link.url) {
+      window.open(link.url, '_blank', 'noopener');
+      return;
+    }
+  }
+  if (rec.url || rec.downloadUrl) {
+    window.open(rec.url || rec.downloadUrl, '_blank', 'noopener');
+    return;
+  }
+  note('Download file nahi mili.', 'error');
+}
+
+function playLibClip(rec, title) {
+  rec = rec || {};
+  var wrap = $('libPlayWrap');
+  var v = $('libVideo');
+  var f = $('libIframe');
+  if (!wrap || !v || !f) {
+    showReviewClip(rec, title);
+    return;
+  }
+  wrap.style.display = 'block';
+  var src = rec.blobUrl || rec.url || '';
+  if (src && (/^blob:/i.test(src) || /^data:/i.test(src))) {
+    f.style.display = 'none';
+    v.style.display = 'block';
+    v.src = src;
+    v.play().catch(function() {});
+    return;
+  }
+  var preview = rec.previewUrl || (isDriveFileId(rec.fileId) ? drivePreviewUrl(rec.fileId) : '');
+  if (preview) {
+    v.style.display = 'none';
+    f.style.display = 'block';
+    f.src = preview;
+    return;
+  }
+  note((title || 'Video') + ' play ke liye file nahi.', 'error');
+}
+
+function showLibrary(r) {
+  r = r || lastScan || {};
+  lastScan = r;
+  lastProofOrder = { awb: r.awb, orderId: r.orderId, status: r.status };
+  mergeRemotePhotos(r);
+  hidePackingCamera();
+  hidePhotoBook();
+  if ($('returnClip')) $('returnClip').style.display = 'none';
+  if ($('proofPanel')) $('proofPanel').style.display = 'block';
+  $('empty').style.display = 'none';
+  $('result').style.display = 'none';
+  var n = normalizeAwb(r.awb);
+  var disp = r.dispatchVideo || (scanMemo[n] && scanMemo[n].dispatchVideo) || null;
+  var ret = r.returnVideo || (scanMemo[n] && scanMemo[n].returnVideo) || null;
+  var photos = localPhotos(r.awb);
+  var dEl = $('proofDispatch');
+  var pEl = $('proofPhotos');
+  var rEl = $('proofReturn');
+  if (dEl) {
+    dEl.innerHTML = clipOk(disp)
+      ? '<b>DISPATCH VIDEO · READY</b><div class="muted">' + esc(disp.fileName || '') + '</div>' +
+        '<button type="button" class="primary" id="libPlayDispatch">PLAY</button>' +
+        '<button type="button" class="green" id="libDlDispatch">DOWNLOAD</button>'
+      : '<b>DISPATCH VIDEO</b><div class="muted">Abhi nahi bani</div>';
+  }
+  if (pEl) {
+    pEl.innerHTML = photos.length
+      ? '<b>RETURN PHOTOS · ' + photos.length + '</b><div class="thumbs">' + photos.map(function(im, idx) {
+          return '<img alt="" src="' + esc(im.thumb || im.url || '') + '">';
+        }).join('') + '</div>' +
+        '<button type="button" class="green" id="libDlZip">DOWNLOAD ZIP (' + photos.length + ')</button>'
+      : '<b>RETURN PHOTOS</b><div class="muted">Abhi koi photo nahi</div>';
+  }
+  if (rEl) {
+    rEl.innerHTML = clipOk(ret)
+      ? '<b>RETURN VIDEO · READY</b><div class="muted">' + esc(ret.fileName || '') + '</div>' +
+        '<button type="button" class="primary" id="libPlayReturn">PLAY</button>' +
+        '<button type="button" class="green" id="libDlReturn">DOWNLOAD</button>'
+      : '<b>RETURN VIDEO</b><div class="muted">Abhi nahi bani — MAKE RETURN VIDEO par record karein</div>';
+  }
+  if ($('libPlayDispatch')) $('libPlayDispatch').onclick = function() { playLibClip(disp, 'DISPATCH VIDEO READY'); };
+  if ($('libDlDispatch')) $('libDlDispatch').onclick = function() { downloadClip(disp, 'DISPATCH.webm').catch(function(e) { note(String(e.message || e), 'error'); }); };
+  if ($('libPlayReturn')) $('libPlayReturn').onclick = function() { playLibClip(ret, 'RETURN VIDEO READY'); };
+  if ($('libDlReturn')) $('libDlReturn').onclick = function() { downloadClip(ret, 'RETURN.webm').catch(function(e) { note(String(e.message || e), 'error'); }); };
+  if ($('libDlZip')) $('libDlZip').onclick = function() { downloadPhotoBook().catch(function(e) { note(String(e.message || e), 'error'); }); };
+  lineStatus('VIDEO PROOF · AWB ' + esc(r.awb || '') + (r.orderId ? (' · ' + esc(r.orderId)) : '') + ' · camera band');
+  $('result').style.display = 'block';
 }
 
 function setMode(next) {
@@ -725,15 +1017,43 @@ function setMode(next) {
     return;
   }
   mode = next;
+  document.body.classList.toggle('returnMode', mode === 'RETURN');
+  document.body.classList.toggle('libraryMode', mode === 'LIBRARY');
   $('tabDispatch').classList.toggle('active', mode === 'DISPATCH');
-  $('tabProof').classList.toggle('active', mode === 'PROOF');
-  $('info').textContent = mode === 'DISPATCH'
-    ? (isFramed()
-      ? 'Keep this box open. Open the packing camera from the green button.'
-      : 'Scan AWB to record. Lookups use the Drive proof sheet, not the Order workbook.')
-    : 'Return proof needs photos and a video. Capture photos, then record the return clip.';
+  if ($('tabLibrary')) $('tabLibrary').classList.toggle('active', mode === 'LIBRARY');
+  if ($('tabReturn')) $('tabReturn').classList.toggle('active', mode === 'RETURN');
+  $('info').textContent = '';
   clearResult();
+  hideReviewClip();
+  if (mode === 'DISPATCH') {
+    hideProofPanel();
+    hidePhotoBook();
+    keepIdleCamera();
+    note('MAKE DISPATCH VIDEO — scan AWB, camera record. Purani clip VIDEO PROOF par.', 'ok');
+  } else if (mode === 'RETURN') {
+    hideProofPanel();
+    if (lastScan && lastScan.awb) showProof(lastScan);
+    else {
+      keepIdleCamera();
+      note('MAKE RETURN VIDEO — photo + return, dispatch ke bina bhi. Purani files yahan nahi.', 'ok');
+    }
+  } else if (mode === 'LIBRARY') {
+    hidePhotoBook();
+    if ($('returnClip')) $('returnClip').style.display = 'none';
+    if (lastScan && lastScan.awb) showLibrary(lastScan);
+    else note('VIDEO PROOF — purana dispatch / photos / return. Camera band. AWB scan karein.', 'ok');
+  }
   $('awb').focus();
+}
+
+function isFramed() {
+  try { return window.self !== window.top; } catch (e) { return true; }
+}
+
+function packingPageBase() {
+  if (isLocalDemo()) return String(location.href || '').split('#')[0].split('?')[0];
+  if (API_URL) return String(API_URL).split('#')[0].split('?')[0];
+  return String(location.href || '').split('#')[0].split('?')[0];
 }
 
 async function refreshCameras() {
@@ -770,44 +1090,45 @@ async function refreshCameras() {
   }
 }
 
+function stopPackStream() {
+  if (packTimer) { clearInterval(packTimer); packTimer = null; }
+  if (recordStream) {
+    recordStream.getTracks().forEach(function(t) {
+      if (t.kind === 'video') { try { t.stop(); } catch (e) {} }
+    });
+    recordStream = null;
+  }
+}
+
 function stopStream() {
   stopPackStream();
   if (!stream) return;
-  stream.getTracks().forEach(function(t) {
-    try { t.stop(); } catch (e) {}
-  });
+  stream.getTracks().forEach(function(t) { try { t.stop(); } catch (e) {} });
   stream = null;
   if ($('cameraFrame')) $('cameraFrame').srcObject = null;
 }
 
 async function startCamera() {
+  hideReviewClip();
+  if (isFramed()) {
+    throw new Error('Open the packing camera tab (not the sheet box).');
+  }
+  if (cameraReady && stream) return;
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
     throw new Error('Camera API is unavailable in this browser.');
   }
   stopStream();
   cameraReady = false;
   var id = $('cameraSelect').value || selectedCameraId;
-  var otherIds = [];
-  var opts = $('cameraSelect') ? $('cameraSelect').options : [];
-  var i;
-  for (i = 0; i < opts.length; i++) {
-    if (opts[i].value && opts[i].value !== id) otherIds.push(opts[i].value);
-  }
   var attempts = [];
-  if (id) {
-    attempts.push({ video: { deviceId: { exact: id }, width: { ideal: 640 }, height: { ideal: 360 }, frameRate: { ideal: 12, max: 15 } }, audio: true });
-    attempts.push({ video: { deviceId: { exact: id }, width: { ideal: 640 }, height: { ideal: 360 } }, audio: false });
-    attempts.push({ video: { deviceId: { exact: id } }, audio: true });
-    attempts.push({ video: { deviceId: { exact: id } }, audio: false });
-    attempts.push({ video: { deviceId: { ideal: id } }, audio: true });
-    attempts.push({ video: { deviceId: { ideal: id } }, audio: false });
-  }
-  otherIds.forEach(function(oid) {
-    attempts.push({ video: { deviceId: { exact: oid }, width: { ideal: 640 }, height: { ideal: 360 } }, audio: false });
-  });
-  attempts.push({ video: { width: { ideal: 640 }, height: { ideal: 360 }, frameRate: { ideal: 12 } }, audio: true });
   attempts.push({ video: true, audio: false });
+  if (id) {
+    attempts.push({ video: { deviceId: { exact: id } }, audio: false });
+    attempts.push({ video: { deviceId: { exact: id }, width: { ideal: 640 }, height: { ideal: 360 } }, audio: false });
+  }
+  attempts.push({ video: { width: { ideal: 640 }, height: { ideal: 360 }, frameRate: { ideal: 12 } }, audio: false });
   var lastErr = null;
+  var i;
   for (i = 0; i < attempts.length; i++) {
     try {
       stream = await navigator.mediaDevices.getUserMedia(attempts[i]);
@@ -819,36 +1140,29 @@ async function startCamera() {
     }
   }
   if (!stream) throw lastErr || new Error('Unable to access camera.');
-  $('cameraFrame').srcObject = stream;
+  attachCameraStream_(stream);
+}
+
+function attachCameraStream_(s) {
+  stream = s;
+  var v = $('cameraFrame');
+  v.srcObject = s;
+  v.muted = true;
+  v.playsInline = true;
+  v.play().catch(function () {});
   $('cameraPanel').style.display = 'block';
   cameraReady = true;
   $('cameraState').textContent = 'Camera ready ✓';
-  await refreshCameras();
-}
-
-function isFramed() {
-  try { return window.self !== window.top; } catch (e) { return true; }
-}
-
-function hashParams() {
-  var out = {};
-  String(location.hash || '').replace(/^#/, '').split('&').forEach(function(pair) {
-    if (!pair) return;
-    var i = pair.indexOf('=');
-    var k = decodeURIComponent((i < 0 ? pair : pair.slice(0, i)).replace(/\+/g, ' '));
-    var v = i < 0 ? '' : decodeURIComponent(pair.slice(i + 1).replace(/\+/g, ' '));
-    if (k) out[k] = v;
-  });
-  return out;
+  refreshCameras().catch(function() {});
 }
 
 function liveHref(r) {
   var awb = r && r.awb ? String(r.awb) : String($('awb').value || '').trim();
   var page = isLocalDemo()
     ? String(location.href || '').split('#')[0].split('?')[0]
-    : 'https://yubafashion.github.io/dispatch-proof-camera/';
+    : (window.DP_PAGE || 'https://yubafashion.github.io/dispatch-proof-camera/');
   var join = page.indexOf('?') >= 0 ? '&' : '?';
-  var u = page + join + 'v=V117&t=' + Date.now();
+  var u = page + join + 'v=V134&t=' + Date.now();
   if (API_URL) u += '&api=' + encodeURIComponent(API_URL);
   if (awb) u += '&awb=' + encodeURIComponent(awb);
   if (isLocalDemo() && u.indexOf('demo=') < 0) u += '&demo=1';
@@ -856,69 +1170,38 @@ function liveHref(r) {
 }
 
 function openLiveWindow(r) {
-  stashPending(r || lastScan || null);
-  function go(url) {
-    var a = document.createElement('a');
-    a.href = url;
-    a.target = 'DP_CAM_V117';
-    a.rel = 'opener';
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    note('Camera nayi GitHub tab: V117. Purani V99 tab Close. Drive error tab Close.', 'ok');
-  }
-  go(liveHref(r || lastScan));
-  if (window.google && google.script && google.script.run) {
-    google.script.run
-      .withSuccessHandler(function (url) {
-        if (url) go(url);
-      })
-      .withFailureHandler(function () {})
-      .getLiveCameraUrl((r && r.awb) || (lastScan && lastScan.awb) || $('awb').value);
-  }
+  var a = document.createElement('a');
+  a.href = liveHref(r || lastScan);
+  a.target = 'DP_CAM_V134';
+  a.rel = 'opener';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  note('Packing camera doosri window. Chhota Sheet box Drive ke liye khula rakho.', 'ok');
   return true;
 }
 
-function stashPending(r) {
-  try {
-    if (r) localStorage.setItem('DP_PENDING_SCAN', JSON.stringify(r));
-    localStorage.setItem('DP_PENDING_MODE', mode);
-  } catch (e) {}
-}
-
-function takePending() {
-  var r = null;
-  try {
-    r = JSON.parse(localStorage.getItem('DP_PENDING_SCAN') || 'null');
-    localStorage.removeItem('DP_PENDING_SCAN');
-  } catch (e) {
-    r = null;
-  }
-  return r;
-}
-
 function cameraError(e) {
-  var n = e && e.name || '';
-  if (n === 'NotAllowedError' || n === 'PermissionDeniedError')
-    return 'Is chhote box mein Chrome camera band rakhta hai. OPEN LIVE CAMERA dabayein, ya AWB scan karke UPLOAD FILE use karein.';
+  var n = (e && e.name) || '';
+  var msg = e && e.message ? String(e.message) : '';
+  if (isFramed() || /packing camera tab/i.test(msg))
+    return 'Camera Sheet box mein nahi chalti. Chhota popup → Open packing camera. DISPATCH MANAGEMENT doosri window mein khulega — camera wahan andar rahega.';
+  if (n === 'NotAllowedError' || n === 'PermissionDeniedError' || /permission|not allowed|denied/i.test(msg))
+    return 'Chrome lock icon → Camera → Allow. Packing camera tab (GitHub Pages) mein Allow karo, Sheet box mein nahi.';
   if (n === 'NotFoundError') return 'No camera was found on this device.';
   if (n === 'NotReadableError')
-    return 'Camera busy / lock. Doosri Chrome tab of this camera, Zoom, Meet band karo. Dropdown se doosri camera chuno, TEST CAMERA dabao. Kreo Owl ho to USB nikaal ke dubara lagaao.';
-  if (n === 'OverconstrainedError') return 'Selected camera cannot use the requested settings.';
-  return e && e.message ? e.message : 'Unable to access camera.';
+    return 'Camera busy. Close other Chrome tabs / Zoom / Meet, then TEST CAMERA.';
+  return msg || 'Unable to access camera.';
 }
 
 function testCamera() {
-  note('TEST CAMERA V117 — camera maang rahi hai…', 'ok');
-  $('cameraState').textContent = 'TEST CAMERA…';
   if (isFramed()) {
-    note('Yeh sheet box hai — camera yahan band hai. GitHub tab khol raha hoon (V117).', 'ok');
-    openLiveWindow();
+    openLiveWindow(lastScan);
     return;
   }
-  if (API_URL) connectSheet(true);
+  note('TEST CAMERA…', 'ok');
   startCamera().then(function () {
-    note('Camera ready ✓ V117. Sheet wala chhota DISPATCH CAMERA box khula rakho. /exec Drive window band karo. Phir SCAN.', 'ok');
+    note('Camera ready. Scan AWB — recording starts immediately.', 'ok');
   }).catch(function (e) {
     note(cameraError(e), 'error');
   });
@@ -929,16 +1212,15 @@ function connectSheet(quiet) {
     setDriveState('ok');
     return Promise.resolve({ ok: true, demo: true });
   }
-  note(quiet ? 'Sheet box check…' : 'Sheet box se connect… Google Sheet wala chhota box band na karein.', 'ok');
   return workerCall('HEALTH', {}, 12000).then(function(r) {
     if (r && (r.ok || r.found)) {
       setDriveState('ok');
-      if (!quiet) note('Sheet ready ✓. Ab AWB scan karein. DISPATCH CAMERA box khula rahe.', 'ok');
+      if (!quiet) note('Sheet ready ✓. Scan AWB — check is 1–2 seconds.', 'ok');
       return r;
     }
     throw new Error((r && r.message) || 'Sheet HEALTH fail');
   }).catch(function(err) {
-    setDriveState('need', err && err.message ? err.message : 'connect fail');
+    setDriveState('need');
     if (!quiet) note(err && err.message ? err.message : sheetBoxHint(), 'error');
     throw err;
   });
@@ -950,7 +1232,7 @@ function pingDrive() {
     return Promise.resolve({ ok: true, demo: true });
   }
   if (!API_URL) {
-    setDriveState('fail', 'api= missing');
+    setDriveState('fail');
     return Promise.reject(new Error('api missing'));
   }
   if (healthPromise) return healthPromise;
@@ -959,7 +1241,7 @@ function pingDrive() {
       setDriveState('ok');
       return r;
     }
-    throw new Error((r && r.message) || 'HEALTH fail');
+    throw new Error('HEALTH fail');
   }).catch(function() {
     healthPromise = null;
     if (driveStatus !== 'ok' && !workerReady) setDriveState('need');
@@ -978,62 +1260,129 @@ function scan() {
   if (mode === 'DISPATCH' && recorder && recorder.state === 'recording' &&
       currentSession && normalizeAwb(currentSession.awb) === n) {
     stopRecording();
-    note('This AWB is saving to Drive.', 'ok');
+    note('This AWB is saving to Drive. Scan the next parcel.', 'ok');
     return;
   }
   if (mode === 'DISPATCH' && recorder && recorder.state === 'recording') {
     recorderStopping = true;
     $('awb').value = '';
-    note('Previous clip saving. Looking up ' + n + '…', 'ok');
+    waitingOrder = { found: true, awb: n, orderId: n, videoType: 'DISPATCH', checking: true };
+    note('Previous clip saving. Next AWB ' + n + ' starts now.', 'ok');
     stopRecording();
-    lookupAwb(n, mode);
+    var seqNext = ++lookupSeq;
+    gsRun('SCAN', { awb: n, mode: backendMode(mode) }, SCAN_MS).then(function(r) {
+      if (seqNext !== lookupSeq) return;
+      applyFastScan(r, n, mode, 1);
+    }).catch(function() {});
     return;
   }
   lookupAwb(n, mode);
 }
 
+function abortRecordingFor(awb, discard) {
+  recordToken++;
+  blockRecordAwb = normalizeAwb(awb);
+  if (currentSession && normalizeAwb(currentSession.awb) === blockRecordAwb) {
+    if (discard) currentSession.discard = true;
+    if (recorder && recorder.state === 'recording') stopRecording();
+  }
+  unlockDispatchAwb(awb);
+}
+
 function lookupAwb(n, m) {
   var seq = ++lookupSeq;
-  note('Looking up AWB…', 'ok');
-  gsRun('SCAN', { awb: n, mode: m || mode }, 20000).then(function(r) {
+  m = m || mode;
+  var started = 0;
+  if (blockRecordAwb && blockRecordAwb !== n) blockRecordAwb = '';
+
+  if (m === 'DISPATCH') {
+    if (isLocalDemo()) {
+      var demo = demoOrder(n);
+      if (demo && demo.terminal) {
+        applyFastScan(demo, n, m, 0);
+        return;
+      }
+    }
+    if (isDispatchLocked(n) && !(recorder && currentSession && normalizeAwb(currentSession.awb) === n)) {
+      showSaving({ awb: n, orderId: (lastScan && lastScan.orderId) || '' });
+      $('awb').value = '';
+      $('awb').focus();
+    } else if (!(recorder && recorder.state === 'recording')) {
+      var guess = {
+        found: true, ok: true, awb: n, orderId: n, date: '', dispatchType: '',
+        status: '', videoType: 'DISPATCH', checking: true
+      };
+      lastScan = guess;
+      showDispatch(guess, false);
+      note('Recording ' + n + ' — AWB check 1–2s (Drive save wait nahi).', 'ok');
+      startRecording(guess);
+      started = 1;
+    }
+  } else if (m === 'LIBRARY') {
+    lastProofOrder = { awb: n, orderId: n, status: '' };
+    hidePackingCamera();
+    note('VIDEO PROOF — camera band. Purani files yahin dikhengi.', 'ok');
+  } else {
+    lastProofOrder = { awb: n, orderId: n, status: '' };
+    $('empty').style.display = 'none';
+    $('cameraPanel').style.display = 'block';
+    $('cameraLabel').textContent = 'MAKE RETURN VIDEO';
+    $('snapBtn').style.display = 'inline-block';
+    if ($('recReturnBtn')) $('recReturnBtn').style.display = 'inline-block';
+    $('stopBtn').style.display = 'none';
+    note('Camera ready. Dispatch video ke bina bhi return bana sakte ho. CAPTURE PHOTO / RECORD VIDEO.', 'ok');
+    if (!cameraReady) startCamera().catch(function(e) { note(cameraError(e), 'error'); });
+  }
+
+  gsRun('SCAN', { awb: n, mode: backendMode(m) }, SCAN_MS).then(function(r) {
     if (seq !== lookupSeq) return;
     setDriveState('ok');
-    handleScan(r);
-  }).catch(function(err) {
+    applyFastScan(r, n, m, started);
+  }).catch(function() {
     if (seq !== lookupSeq) return;
-    note(err && err.message ? err.message : 'AWB lookup failed. Scan again.', 'error');
+    if (m === 'DISPATCH' && recorder && currentSession && normalizeAwb(currentSession.awb) === n) {
+      note('Recording ' + n + ' — sheet check timed out, packing continues. Scan next anytime.', 'ok');
+      return;
+    }
+    if (!started) note('AWB lookup failed. Scan again.', 'error');
   });
 }
 
-function kickWaitingOrder() {
-  if (recorder && recorder.state === 'recording') return;
-  if (!waitingOrder) return;
-  var r = waitingOrder;
-  waitingOrder = null;
-  handleScan(r);
-}
-
-function handleScan(r) {
-  if (!r || !r.found) {
-    note(r && r.message ? r.message : 'AWB not found.', 'error');
-    return;
+function applyFastScan(r, n, m, started) {
+  if (!r) return;
+  if (!r.found) {
+    if (m === 'RETURN' || m === 'LIBRARY') {
+      r = {
+        ok: true, found: true, awb: n, orderId: n, dispatchVideo: null, returnVideo: null,
+        returnImages: [], terminal: false, duplicate: false
+      };
+    } else {
+      abortRecordingFor(n, true);
+      note(r.message || 'AWB not found.', 'error');
+      return;
+    }
   }
-  if (r.terminal) {
-    clearResult();
+  if (r.terminal && m === 'DISPATCH') {
+    lastScan = r;
+    abortRecordingFor(n, true);
+    hidePackingCamera();
     $('empty').style.display = 'none';
+    $('result').style.display = 'none';
     note('This Order ID is already delivered successfully. No video proof is required.', 'terminal');
     $('awb').value = '';
     $('awb').focus();
     return;
   }
-  if (mode === 'DISPATCH' && r.duplicate && r.dispatchVideo && r.dispatchVideo.fileId) {
+  if (m === 'DISPATCH' && r.duplicate && r.dispatchVideo && r.dispatchVideo.fileId) {
+    if (waitingOrder && normalizeAwb(waitingOrder.awb) === n) waitingOrder.discard = true;
+    abortRecordingFor(n, true);
     lastScan = r;
     showAlreadyRecorded(r);
     $('awb').value = '';
     $('awb').focus();
     return;
   }
-  if (mode === 'DISPATCH' && (r.saving || isDispatchLocked(r.awb))) {
+  if (m === 'DISPATCH' && r.saving && !(recorder && currentSession && normalizeAwb(currentSession.awb) === n)) {
     lastScan = r;
     showSaving(r);
     $('awb').value = '';
@@ -1041,369 +1390,196 @@ function handleScan(r) {
     return;
   }
   lastScan = r;
-  if (mode === 'DISPATCH') {
-    if (isFramed() && !cameraReady) {
-      showDispatch(r, true);
-      openLiveWindow(r);
-      return;
-    }
-    if (recorder && recorder.state === 'recording') {
-      waitingOrder = r;
-      recorderStopping = true;
-      stopRecording();
-      return;
-    }
-    if (recorderStopping) {
-      waitingOrder = r;
-      return;
-    }
+  scanMemo[n] = r;
+  if (currentSession && normalizeAwb(currentSession.awb) === n && r.orderId) {
+    currentSession.orderId = r.orderId;
+    showDispatch(r, false);
+    $('cameraPanel').style.display = 'block';
+    $('live').style.display = 'inline';
+    note('Recording ' + n + (r.orderId && r.orderId !== n ? (' · ' + r.orderId) : '') + '. Scan next anytime.', 'ok');
+  }
+  if (m === 'RETURN' || m === 'PROOF') showProof(r);
+  if (m === 'LIBRARY') showLibrary(r);
+  if (m === 'DISPATCH' && !started && !(recorder && recorder.state === 'recording')) {
     showDispatch(r, false);
     startRecording(r);
-    return;
   }
-  showProof(r);
+}
+
+function handleScan(r) {
+  applyFastScan(r, r && r.awb, mode, 0);
 }
 
 function showDispatch(r, needsLiveWindow) {
-  $('empty').style.display = 'none';
+  var cls = needsLiveWindow ? 'required' : 'ready';
   var statusLine = needsLiveWindow
-    ? '● IS BOX MEIN RECORD NAHI HOTA — NAYI WINDOW MEIN CAMERA ALLOW KARO'
-    : '● RECORDING START';
-  $('result').innerHTML =
-    '<div class="grid">' +
-      '<div><div class="label">DATE</div><div class="value">' + esc(r.date) + '</div></div>' +
-      '<div><div class="label">ORDER ID</div><div class="value">' + esc(r.orderId) + '</div></div>' +
-      '<div><div class="label">AWB</div><div class="value">' + esc(r.awb) + '</div></div>' +
-      '<div><div class="label">DISPATCH TYPE</div><div class="value">' + esc(r.dispatchType) + '</div></div>' +
-    '</div>' +
-    '<div style="margin-top:8px" class="' + (needsLiveWindow ? 'required' : 'ready') + '">' +
-      statusLine +
-    '</div>';
-  $('result').style.display = 'block';
-}
-
-function isDriveFileId(id) {
-  return /^[A-Za-z0-9_-]{25,}$/.test(String(id || ''));
-}
-
-function driveShareOf(rec) {
-  rec = rec || {};
-  if (rec.url && /drive\.google\.com/i.test(rec.url) && rec.url.indexOf('export=download') < 0 && rec.url.indexOf('/preview') < 0) {
-    return rec.url;
-  }
-  if (isDriveFileId(rec.fileId)) return 'https://drive.google.com/file/d/' + encodeURIComponent(rec.fileId) + '/view';
-  return '';
-}
-
-function mergePlayRec(drive, local) {
-  if (!drive && !local) return null;
-  var out = {};
-  if (drive) Object.keys(drive).forEach(function(k) { out[k] = drive[k]; });
-  if (local) {
-    out.blobUrl = local.downloadUrl || local.blobUrl;
-    out.local = true;
-    out.fileName = out.fileName || local.fileName;
-    if (!out.fileId || !isDriveFileId(out.fileId)) {
-      if (isDriveFileId(local.fileId)) out.fileId = local.fileId;
-    }
-  }
-  return out;
-}
-
-var proofRecs = {};
-var playBlobCache = {};
-var lastProofOrder = null;
-
-function proofVidId(kind) {
-  return kind === 'RETURN' ? 'proofv_RETURN' : 'proofv_DISPATCH';
-}
-
-function videoBox(title, rec, kind) {
-  if (!rec) return '';
-  kind = kind || rec.videoType || 'DISPATCH';
-  proofRecs[kind] = rec;
-  var vidId = proofVidId(kind);
-  var blobSrc = rec.blobUrl || '';
-  if (!blobSrc && rec.local && rec.downloadUrl && String(rec.downloadUrl).indexOf('blob:') === 0) blobSrc = rec.downloadUrl;
-  rec.blobUrl = blobSrc || rec.blobUrl;
-  return (
-    '<div class="videoBox">' +
-      '<div style="font-weight:800;margin-bottom:6px">' + esc(title) + ' • READY — chhota popup</div>' +
-      '<video id="' + vidId + '" class="thumbVideo" playsinline preload="metadata" muted' +
-        (blobSrc ? ' src="' + esc(blobSrc) + '"' : '') + '></video>' +
-      '<div class="controls">' +
-        '<button class="btnPlay" type="button" data-act="popup" data-kind="' + esc(kind) + '">▶ PLAY (chhota popup)</button>' +
-        '<button class="btnDl" type="button" data-act="dl" data-kind="' + esc(kind) + '">⬇ DOWNLOAD</button>' +
-        '<button class="green" type="button" data-act="share" data-kind="' + esc(kind) + '">↗ SHARE</button>' +
-      '</div>' +
-    '</div>'
+    ? 'Sheet box mein record nahi — packing camera tab kholo'
+    : (r.checking ? 'Recording · AWB check 1–2s' : 'Recording');
+  lineStatus(
+    '<span class="' + cls + '">' + statusLine + '</span> · AWB ' + esc(r.awb || '') +
+    (r.orderId ? (' · ' + esc(r.orderId)) : '')
   );
 }
 
-function webSafeB64ToBlob(b64, mime) {
-  b64 = String(b64 || '').replace(/-/g, '+').replace(/_/g, '/');
-  while (b64.length % 4) b64 += '=';
-  var bin = atob(b64);
-  var bytes = new Uint8Array(bin.length);
-  var j;
-  for (j = 0; j < bin.length; j++) bytes[j] = bin.charCodeAt(j);
-  return new Blob([bytes], { type: mime || 'video/webm' });
+function localPhotos(awb) {
+  var n = normalizeAwb(awb);
+  if (!localProofPhotos[n]) localProofPhotos[n] = [];
+  return localProofPhotos[n];
 }
 
-function getPlayableUrl(rec) {
-  rec = rec || {};
-  if (rec.blobUrl && String(rec.blobUrl).indexOf('blob:') === 0) return Promise.resolve(rec.blobUrl);
-  if (rec.fileId && playBlobCache[rec.fileId]) {
-    rec.blobUrl = playBlobCache[rec.fileId];
-    return Promise.resolve(rec.blobUrl);
-  }
-  if (!isDriveFileId(rec.fileId)) return Promise.resolve(rec.blobUrl || '');
-  note('Video isi page pe load ho rahi hai. Drive processing ka wait nahi.', 'ok');
-  var playMime = rec.mimeType || 'video/webm';
-  return gsRun('PLAY', { fileId: rec.fileId }, 180000).then(function(meta) {
-    if (!meta || !meta.ok) throw new Error((meta && meta.message) || 'Play load fail');
-    if (meta.mime) playMime = meta.mime;
-    if (meta.fileName) rec.fileName = rec.fileName || meta.fileName;
-    if (meta.inline && meta.data) {
-      return meta.data;
-    }
-    var parts = [];
-    var idx = 0;
-    function nextPart() {
-      if (idx >= meta.total) return Promise.resolve(parts.join(''));
-      var i = idx++;
-      $('cameraState').textContent = 'Play load ' + (i + 1) + '/' + meta.total;
-      return gsRun('PLAY_PART', { cacheKey: meta.cacheKey, index: String(i) }, 45000).then(function(p) {
-        if (!p || !p.ok || !p.data) throw new Error('Play part ' + i + ' missing');
-        parts[i] = p.data;
-        return nextPart();
-      });
-    }
-    return nextPart();
-  }).then(function(b64) {
-    var blob = webSafeB64ToBlob(b64, playMime);
-    var url = URL.createObjectURL(blob);
-    rec.blobUrl = url;
-    rec.fileName = rec.fileName || 'video.webm';
-    if (rec.fileId) playBlobCache[rec.fileId] = url;
-    $('cameraState').textContent = 'Play ready';
-    return url;
-  });
+function flashCapture() {
+  var f = $('camFlash');
+  if (!f) return;
+  f.className = 'on';
+  setTimeout(function() { f.className = ''; }, 140);
 }
 
-function attachProofSrc(kind, url, autoPlay) {
-  var modalOn = $('videoModal') && $('videoModal').className.indexOf('on') >= 0;
-  var el = (modalOn && $('modalv')) ? $('modalv') : document.getElementById(proofVidId(kind));
-  if (!el || !url) return;
-  if (el.getAttribute('src') !== url) {
-    el.src = url;
-    el.load();
-  }
-  if (autoPlay) {
-    try { el.muted = false; } catch (e1) {}
-    var p = el.play();
-    if (p && p.catch) {
-      p.catch(function() {
-        note('Chhote popup mein ▶ PLAY dabao.', 'error');
-      });
-    }
-  }
+function setSnapBusy(on, label) {
+  var b = $('snapBtn');
+  if (!b) return;
+  b.classList.toggle('busy', !!on);
+  b.disabled = !!on;
+  b.textContent = label || 'CAPTURE PHOTO';
 }
 
-function hydrateProof(kind, autoPlay) {
-  var rec = proofRecs[kind];
-  if (!rec) return Promise.resolve();
-  return getPlayableUrl(rec).then(function(url) {
-    attachProofSrc(kind, url, autoPlay);
-    return url;
-  }).catch(function(err) {
-    note('Play load: ' + (err && err.message ? err.message : err), 'error');
-  });
-}
-
-function playProof(kind) {
-  if ($('videoModal').className.indexOf('on') < 0) {
-    openSmallProof(kind, true);
-    return;
-  }
-  var rec = proofRecs[kind];
-  if (!rec) {
-    note('Is AWB ki video nahi mili.', 'error');
-    return;
-  }
-  note('PLAY… chhote popup mein.', 'ok');
-  hydrateProof(kind, true);
-}
-
-function downloadProof(kind) {
-  var rec = proofRecs[kind] || {};
-  function clickBlob(url) {
-    var a = document.createElement('a');
-    a.href = url;
-    a.download = rec.fileName || (kind + '_' + (rec.awb || 'video') + '.webm');
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-  }
-  if (rec.blobUrl && String(rec.blobUrl).indexOf('blob:') === 0) {
-    clickBlob(rec.blobUrl);
-    return;
-  }
-  getPlayableUrl(rec).then(function(url) {
-    if (url && String(url).indexOf('blob:') === 0) clickBlob(url);
-    else note('Download ke liye pehle PLAY load hone do.', 'error');
-  }).catch(function(err) {
-    note('Download: ' + (err && err.message ? err.message : err), 'error');
-  });
-}
-
-function shareProof(kind) {
-  copyLink(driveShareOf(proofRecs[kind] || {}));
-}
-
-function copyLink(url) {
-  url = String(url || '');
-  if (/export=download/i.test(url) || /\/preview/i.test(url)) {
-    var m = url.match(/\/d\/([^/]+)/) || url.match(/[?&]id=([^&]+)/);
-    if (m) url = 'https://drive.google.com/file/d/' + decodeURIComponent(m[1]) + '/view';
-  }
-  if (!url || url.indexOf('blob:') === 0) {
-    note('Share ke liye Drive link nahi. Video Drive par save hone do, phir SHARE.', 'error');
-    return;
-  }
-  if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(url).then(function() { note('Drive SHARE link copy ho gaya.', 'ok'); })
-      .catch(function() { window.prompt('Drive SHARE link copy karein:', url); });
+function setReturnCameraButtons(recording) {
+  $('cameraPanel').style.display = 'block';
+  if (recording) {
+    $('snapBtn').style.display = 'none';
+    if ($('recReturnBtn')) $('recReturnBtn').style.display = 'none';
+    $('stopBtn').style.display = 'inline-block';
+    $('live').style.display = 'inline';
   } else {
-    window.prompt('Drive SHARE link copy karein:', url);
+    $('snapBtn').style.display = 'inline-block';
+    if ($('recReturnBtn')) $('recReturnBtn').style.display = 'inline-block';
+    $('stopBtn').style.display = 'none';
+    $('live').style.display = 'none';
+    $('timer').textContent = '00:00';
+    $('cameraLabel').textContent = 'MAKE RETURN VIDEO';
   }
 }
 
-function openSmallProof(kind, autoPlay) {
-  kind = kind || 'DISPATCH';
-  var rec = proofRecs[kind];
-  if (!rec) {
-    note('Purani video nahi mili.', 'error');
-    return;
+function openLiveReturnCamera() {
+  hideReviewClip();
+  setReturnCameraButtons(false);
+  if ($('shotCount')) $('shotCount').style.display = 'none';
+  if (!cameraReady) {
+    startCamera().catch(function(e) { note(cameraError(e), 'error'); });
   }
-  $('modalTitle').textContent = (kind === 'RETURN' ? 'RETURN' : 'DISPATCH') + ' VIDEO • READY';
-  $('modalPlayer').innerHTML = '<video id="modalv" class="popupVideo" controls playsinline muted></video>';
-  var actions =
-    '<button type="button" class="btnPlay" data-act="play" data-kind="' + esc(kind) + '">▶ PLAY</button>' +
-    '<button type="button" class="btnDl" data-act="dl" data-kind="' + esc(kind) + '">⬇ DOWNLOAD</button>' +
-    '<button type="button" class="green" data-act="share" data-kind="' + esc(kind) + '">↗ SHARE</button>';
-  if (kind === 'DISPATCH' && !proofRecs.RETURN) {
-    actions += '<button type="button" class="orange" data-act="return">MAKE RETURN VIDEO</button>';
-  }
-  $('modalActions').innerHTML = actions;
-  $('videoModal').className = 'modal on';
-  getPlayableUrl(rec).then(function(url) {
-    var el = $('modalv');
-    if (!el || !url) return;
-    el.src = url;
-    el.load();
-    try { el.muted = true; } catch (e1) {}
-    var p = el.play();
-    if (p && p.catch) p.catch(function() {});
-    if (autoPlay) {
-      try { el.muted = false; } catch (e2) {}
-      el.play().catch(function() {});
-    }
-  }).catch(function(err) {
-    note('Popup play: ' + (err && err.message ? err.message : err), 'error');
-  });
-}
-
-function openVideoPopup(title, fileId, src) {
-  openSmallProof('DISPATCH', true);
-}
-
-function closeVideoPopup() {
-  var el = $('modalv');
-  if (el) {
-    try { el.pause(); } catch (e1) {}
-  }
-  $('videoModal').className = 'modal';
-  $('modalPlayer').innerHTML = '';
-}
-
-function onProofClick(e) {
-  var t = e.target;
-  if (!t) return;
-  if (t.tagName !== 'BUTTON') t = t.closest ? t.closest('button') : t.parentElement;
-  if (!t || t.tagName !== 'BUTTON') return;
-  var act = t.getAttribute('data-act');
-  if (!act) return;
-  e.preventDefault();
-  var kind = t.getAttribute('data-kind') || 'DISPATCH';
-  if (act === 'popup') openSmallProof(kind, true);
-  if (act === 'play') playProof(kind);
-  if (act === 'dl') downloadProof(kind);
-  if (act === 'share') shareProof(kind);
-  if (act === 'return') {
-    var p = lastProofOrder || lastScan || {};
-    startReturnRecording(p.awb, p.orderId, p.status);
-  }
-  if (act === 'snap') capturePhoto();
-  if (act === 'returnStation') openReturnStation();
 }
 
 function showProof(r) {
-  loadDemoVideos(r.awb).then(function(local) {
-    r.dispatchVideo = mergePlayRec(r.dispatchVideo, local.DISPATCH);
-    r.returnVideo = mergePlayRec(r.returnVideo, local.RETURN);
-    var imgs = r.returnImages || [];
-    proofRecs = {};
-    lastProofOrder = { awb: r.awb, orderId: r.orderId, status: r.status };
-    lastScan = r;
-    $('empty').style.display = 'none';
-    var html =
-      '<div class="grid">' +
-        '<div><div class="label">ORDER ID</div><div class="value">' + esc(r.orderId) + '</div></div>' +
-        '<div><div class="label">AWB</div><div class="value">' + esc(r.awb) + '</div></div>' +
-        '<div><div class="label">RETURN PHOTOS</div><div class="value ' + (imgs.length ? 'ready' : 'required') + '">' +
-          (imgs.length ? imgs.length + ' SAVED' : 'REQUIRED') + '</div></div>' +
-        '<div><div class="label">RETURN VIDEO</div><div class="value ' + (r.returnVideo ? 'ready' : 'required') + '">' +
-          (r.returnVideo ? 'VIDEO READY' : 'REQUIRED') + '</div></div>' +
-      '</div>';
-    if (r.dispatchVideo) html += videoBox('DISPATCH VIDEO', r.dispatchVideo, 'DISPATCH');
-    html +=
-      '<div style="margin-top:10px">' +
-        '<div class="label">RETURN PHOTOS</div>' +
-        (imgs.length
-          ? '<div class="thumbs">' + imgs.map(function(im) {
-              var id = im.fileId || '';
-              var href = im.url || (id ? ('https://drive.google.com/file/d/' + id + '/view') : '');
-              var src = id ? ('https://drive.google.com/thumbnail?id=' + encodeURIComponent(id) + '&sz=w200') : '';
-              return '<a href="' + esc(href) + '" target="_blank" rel="noopener">' +
-                (src ? '<img alt="return photo" src="' + esc(src) + '">' : 'photo') + '</a>';
-            }).join('') + '</div>'
-          : '<div class="required" style="margin-top:6px">No return photos yet.</div>') +
-        '<div class="controls">' +
-          '<button class="orange" type="button" data-act="snap">CAPTURE PHOTO</button>' +
-          '<button class="gray" type="button" data-act="returnStation">OPEN CAMERA</button>' +
-        '</div>' +
-      '</div>';
-    if (r.returnVideo) html += videoBox('RETURN VIDEO', r.returnVideo, 'RETURN');
-    html +=
-      '<div class="controls" style="margin-top:10px">' +
-        '<button class="orange" type="button" data-act="return">RECORD RETURN VIDEO</button>' +
-      '</div>';
-    $('result').innerHTML = html;
-    $('result').style.display = 'block';
-    $('snapBtn').style.display = 'inline-block';
-    if (r.dispatchVideo) hydrateProof('DISPATCH', false);
-    if (r.returnVideo) hydrateProof('RETURN', false);
+  lastScan = r;
+  lastProofOrder = { awb: r.awb, orderId: r.orderId || r.awb, status: r.status };
+  var n = normalizeAwb(r.awb);
+  var ret = (sessionReturn[n] && (r.returnVideo || (scanMemo[n] && scanMemo[n].returnVideo))) || null;
+  proofRec = clipOk(ret) ? ret : null;
+  lineStatus(
+    'AWB ' + esc(r.awb || '') + (r.orderId ? (' · ' + esc(r.orderId)) : '') +
+    ' · PHOTO / RETURN VIDEO — purani dispatch yahan nahi'
+  );
+  renderPhotoBook(r.awb);
+  renderReturnClip(proofRec);
+  if (!(recorder && recorder.state === 'recording')) openLiveReturnCamera();
+}
+
+function renderReturnClip(ret) {
+  var box = $('returnClip');
+  if (!box) return;
+  var n = normalizeAwb((lastProofOrder && lastProofOrder.awb) || (lastScan && lastScan.awb) || '');
+  if (mode !== 'RETURN' || !sessionReturn[n] || !clipOk(ret)) {
+    box.style.display = 'none';
+    return;
+  }
+  box.style.display = 'block';
+  if ($('returnClipLabel')) $('returnClipLabel').textContent = 'RETURN VIDEO · ' + (ret.fileName || 'READY');
+}
+
+function startReturnRecording(r) {
+  r = r || lastProofOrder || lastScan || {};
+  if (!r.awb) {
+    note('Pehle MAKE RETURN VIDEO par AWB scan karein.', 'error');
+    return;
+  }
+  if (recorder && recorder.state === 'recording') return;
+  blockRecordAwb = '';
+  startRecording({
+    awb: r.awb,
+    orderId: r.orderId,
+    status: r.status,
+    videoType: 'RETURN'
   });
+}
+
+function capturePhoto() {
+  var p = lastProofOrder || lastScan || {};
+  var awb = String(p.awb || $('awb').value || '').trim();
+  var orderId = String(p.orderId || '');
+  if (!awb) {
+    note('Pehle AWB scan karein.', 'error');
+    return;
+  }
+  if (recorder && recorder.state === 'recording') {
+    note('Video record ho rahi hai. Pehle STOP & SAVE.', 'error');
+    return;
+  }
+  (async function() {
+    try {
+      hideReviewClip();
+      if (!cameraReady) {
+        try { await startCamera(); }
+        catch (camErr) {
+          $('cameraPanel').style.display = 'block';
+        }
+      }
+      flashCapture();
+      var v = $('cameraFrame');
+      var w = Math.min(960, (v && v.videoWidth) || 960);
+      var h = Math.min(540, (v && v.videoHeight) || 540);
+      if (!w || !h) { w = 960; h = 540; }
+      var c = document.createElement('canvas');
+      c.width = w;
+      c.height = h;
+      var ctx = c.getContext('2d');
+      ctx.fillStyle = '#111';
+      ctx.fillRect(0, 0, w, h);
+      try { if (v) ctx.drawImage(v, 0, 0, w, h); } catch (drawErr) {}
+      var thumb = c.toDataURL('image/jpeg', 0.72);
+      var rec = {
+        url: thumb,
+        thumb: thumb,
+        blob: null,
+        local: true,
+        fileName: (orderId || 'NA') + '_' + normalizeAwb(awb) + '_RETURN_IMG_' + Date.now() + '.jpg'
+      };
+      localPhotos(awb).push(rec);
+      var count = localPhotos(awb).length;
+      if ($('shotCount')) {
+        $('shotCount').style.display = 'inline';
+        $('shotCount').textContent = count + ' photo';
+      }
+      renderPhotoBook(awb);
+      note('Photo ' + count + ' dikh rahi hai.', 'ok');
+      c.toBlob(function(blob) {
+        if (blob && blob.size) rec.blob = blob;
+        queueUpload({
+          awb: awb,
+          orderId: orderId,
+          status: p.status || '',
+          videoType: 'RETURN_IMG'
+        }, blob || rec.blob);
+      }, 'image/jpeg', 0.72);
+    } catch (e) {
+      note(cameraError(e), 'error');
+    }
+  })();
 }
 
 function chooseMime() {
   var types = [
     'video/webm;codecs=vp8,opus',
     'video/webm;codecs=vp8',
-    'video/webm;codecs=vp9,opus',
     'video/webm',
-    'video/mp4;codecs=avc1.42001E,mp4a.40.2',
     'video/mp4'
   ];
   for (var i = 0; i < types.length; i++) {
@@ -1414,21 +1590,6 @@ function chooseMime() {
   return '';
 }
 
-function stopPackStream() {
-  if (packTimer) {
-    clearInterval(packTimer);
-    packTimer = null;
-  }
-  if (recordStream) {
-    recordStream.getTracks().forEach(function(t) {
-      if (t.kind === 'video') {
-        try { t.stop(); } catch (e) {}
-      }
-    });
-    recordStream = null;
-  }
-}
-
 function startPackStream() {
   stopPackStream();
   var src = $('cameraFrame');
@@ -1437,9 +1598,7 @@ function startPackStream() {
   canvas.width = 640;
   canvas.height = 360;
   var ctx = canvas.getContext('2d', { alpha: false });
-  function draw() {
-    try { ctx.drawImage(src, 0, 0, 640, 360); } catch (e) {}
-  }
+  function draw() { try { ctx.drawImage(src, 0, 0, 640, 360); } catch (e) {} }
   draw();
   packTimer = setInterval(draw, 90);
   if (!canvas.captureStream) return stream;
@@ -1453,29 +1612,24 @@ function startPackStream() {
 function fileExtForMime(mime) {
   var t = String(mime || '');
   if (/jpeg|jpg/i.test(t)) return '.jpg';
-  if (/png/i.test(t)) return '.png';
   return /mp4/i.test(t) ? '.mp4' : '.webm';
 }
 
 async function startRecording(r) {
   if (!r) return;
-  if (isFramed() && !cameraReady) {
-    showDispatch(r, true);
-    openLiveWindow(r);
-    return;
-  }
+  hideReviewClip();
+  var token = recordToken;
+  var awbN = normalizeAwb(r.awb);
+  if (blockRecordAwb && blockRecordAwb === awbN) return;
   if (!cameraReady) {
     try { await startCamera(); }
     catch (e) {
-      if (isFramed()) {
-        showDispatch(r, true);
-        openLiveWindow(r);
-        return;
-      }
+      if (token !== recordToken || blockRecordAwb === awbN) return;
       note(cameraError(e), 'error');
       return;
     }
   }
+  if (token !== recordToken || blockRecordAwb === awbN) return;
   if (recorder && recorder.state === 'recording') return;
   var recStream = startPackStream() || stream;
   var mime = chooseMime();
@@ -1485,9 +1639,8 @@ async function startRecording(r) {
       ? new MediaRecorder(recStream, { mimeType: mime, videoBitsPerSecond: 110000, audioBitsPerSecond: 12000 })
       : new MediaRecorder(recStream, { videoBitsPerSecond: 110000, audioBitsPerSecond: 12000 });
   } catch (e) {
-    try {
-      recorder = new MediaRecorder(recStream);
-    } catch (e2) {
+    try { recorder = new MediaRecorder(recStream); }
+    catch (e2) {
       note('Unable to start recorder: ' + (e2.message || e2), 'error');
       return;
     }
@@ -1497,7 +1650,8 @@ async function startRecording(r) {
     orderId: String(r.orderId || ''),
     status: String(r.status || ''),
     videoType: String(r.videoType || mode || 'DISPATCH').toUpperCase(),
-    replaceDispatch: !!r.replaceDispatch
+    replaceDispatch: !!r.replaceDispatch,
+    discard: false
   };
   chunks = [];
   recorder.ondataavailable = function(ev) {
@@ -1509,13 +1663,22 @@ async function startRecording(r) {
   recordStartedAt = Date.now();
   if (currentSession.videoType !== 'RETURN') lockDispatchAwb(currentSession.awb);
   $('cameraPanel').style.display = 'block';
-  $('snapBtn').style.display = currentSession.videoType === 'RETURN' ? 'inline-block' : 'none';
-  $('stopBtn').style.display = 'inline-block';
-  $('cameraLabel').textContent = currentSession.videoType === 'RETURN' ? 'MAKE RETURN VIDEO' : 'MAKE DISPATCH VIDEO';
+  if (currentSession.videoType === 'RETURN') {
+    $('snapBtn').style.display = 'none';
+    if ($('recReturnBtn')) $('recReturnBtn').style.display = 'none';
+    $('stopBtn').style.display = 'inline-block';
+    if ($('shotCount')) $('shotCount').style.display = 'none';
+    $('cameraLabel').textContent = 'RETURN VIDEO';
+    note('● RECORDING. Pack dikhao, phir STOP & SAVE.', 'ok');
+  } else {
+    $('snapBtn').style.display = 'none';
+    $('stopBtn').style.display = 'inline-block';
+    $('cameraLabel').textContent = 'MAKE DISPATCH VIDEO';
+    note('Recording ' + currentSession.awb + '. Scan the next AWB anytime — save continues in the background.', 'ok');
+  }
   $('live').style.display = 'inline';
   $('timer').textContent = '00:00';
   updateTimer();
-  note('Recording ' + currentSession.awb + '. Scan the next AWB anytime — save continues in the background.', 'ok');
   $('awb').value = '';
   $('awb').focus();
 }
@@ -1538,7 +1701,11 @@ function stopRecording() {
 }
 
 function stopManual() {
-  nextOrder = null;
+  if (!(recorder && recorder.state === 'recording')) {
+    note('Video abhi record nahi ho rahi. Pehle RECORD RETURN VIDEO dabao, phir STOP & SAVE.', 'error');
+    return;
+  }
+  waitingOrder = null;
   stopRecording();
   note('Recording band. Drive par save start…', 'ok');
 }
@@ -1550,40 +1717,40 @@ function finishRecording() {
   $('cameraLabel').textContent = 'CAMERA READY';
   var s = currentSession;
   var savedChunks = chunks.slice();
-  var queued = nextOrder || waitingOrder;
-  nextOrder = null;
+  var queued = waitingOrder;
   waitingOrder = null;
   recorderStopping = false;
   currentSession = null;
   chunks = [];
   recorder = null;
+  if (s && String(s.videoType || '').toUpperCase() === 'RETURN') {
+    $('stopBtn').style.display = 'none';
+    $('snapBtn').style.display = 'inline-block';
+    if ($('recReturnBtn')) $('recReturnBtn').style.display = 'inline-block';
+    $('cameraLabel').textContent = 'MAKE RETURN VIDEO';
+  }
+  if ((s && s.discard) || (queued && queued.discard && normalizeAwb(queued.awb) === (s && normalizeAwb(s.awb)))) {
+    if (s) unlockDispatchAwb(s.awb);
+    if (lastScan && lastScan.terminal) {
+      note('This Order ID is already delivered successfully. No video proof is required.', 'terminal');
+      return;
+    }
+    note('Clip dropped — this AWB is already on Drive or not recordable. Scan next.', 'ok');
+    return;
+  }
   if (!s || !savedChunks.length) {
     note('VIDEO SAVE ERROR: recorded video is empty.', 'error');
-    if (queued && queued.found) {
-      showDispatch(queued, false);
-      void startRecording(queued);
-    }
+    if (queued && queued.awb) lookupAwb(normalizeAwb(queued.awb), 'DISPATCH');
     return;
   }
   var mime = savedChunks[0].type || recorderMime || 'video/mp4';
   var blob = new Blob(savedChunks, {type: mime});
   if (!blob.size) {
     note('VIDEO SAVE ERROR: recorded video is empty.', 'error');
-    if (queued && queued.found) {
-      showDispatch(queued, false);
-      void startRecording(queued);
-    }
+    if (queued && queued.awb) lookupAwb(normalizeAwb(queued.awb), 'DISPATCH');
     return;
   }
-  if (blob.size > 18 * 1024 * 1024) {
-    note('VIDEO TOO LARGE. Keep each recording below 18 MB.', 'error');
-    if (queued && queued.found) {
-      showDispatch(queued, false);
-      void startRecording(queued);
-    }
-    return;
-  }
-  if (queued && queued.found) {
+  if (queued && queued.awb) {
     showDispatch(queued, false);
     void startRecording(queued);
   }
@@ -1605,51 +1772,66 @@ function blobToWebSafeBase64(blob) {
 
 function queueUpload(s, blob) {
   var kind = String(s.videoType || 'DISPATCH').toUpperCase();
+  if (kind === 'RETURN') sessionReturn[normalizeAwb(s.awb)] = true;
+  if (!blob || !blob.size) {
+    if (kind === 'RETURN_IMG') return;
+    note('VIDEO SAVE ERROR: recorded video is empty.', 'error');
+    return;
+  }
   var fileName = (s.orderId || 'NA') + '_' + s.awb + '_' + kind +
     (kind === 'RETURN_IMG' ? ('_' + Date.now()) : '') + fileExtForMime(blob.type);
   lastEmergency = { fileName: fileName, blob: blob };
   if (kind === 'DISPATCH') {
     lockDispatchAwb(s.awb);
     gsRun('MARK_PENDING', { awb: s.awb, orderId: s.orderId }, 8000).catch(function() {});
+    if (!(recorder && recorder.state === 'recording')) showSaving(s);
   }
-  saveDemoVideo(s, blob).catch(function() {});
   uploadQueue++;
-  note('Drive save started for AWB ' + s.awb + '. Next parcel can be scanned now.', 'ok');
+  if (kind !== 'RETURN_IMG') {
+    $('cameraState').textContent = 'Saving…';
+  }
   if (isLocalDemo()) {
-    saveDemoVideo(s, blob).then(function(rec) {
-      uploadQueue = Math.max(0, uploadQueue - 1);
-      if (kind === 'DISPATCH') lockDispatchAwb(s.awb);
+    uploadQueue = Math.max(0, uploadQueue - 1);
+    var key = normalizeAwb(s.awb);
+    scanMemo[key] = scanMemo[key] || {};
+    var url = URL.createObjectURL(blob);
+    if (kind === 'RETURN') {
+      scanMemo[key].returnVideo = { fileId: 'demo-return', fileName: fileName, url: url, blobUrl: url };
       $('cameraState').textContent = 'Saved ✓';
-      note('✓ VIDEO SAVED • ' + rec.fileName, 'ok');
-      if (kind === 'RETURN' || kind === 'RETURN_IMG' || mode === 'PROOF') {
-        gsRun('SCAN', { awb: s.awb, mode: 'PROOF' }, 15000).then(showProof);
+      note('✓ RETURN VIDEO READY • ' + fileName, 'ok');
+      if (mode === 'RETURN') {
+        lastScan = lastScan || demoOrder(s.awb);
+        lastScan.returnVideo = scanMemo[key].returnVideo;
+        lastScan.returnImages = localPhotos(s.awb);
+        showProof(lastScan);
+      } else if (mode === 'LIBRARY') {
+        lastScan = lastScan || demoOrder(s.awb);
+        lastScan.returnVideo = scanMemo[key].returnVideo;
+        showLibrary(lastScan);
       }
-    }).catch(function(err) {
-      uploadQueue = Math.max(0, uploadQueue - 1);
-      $('cameraState').textContent = 'Save failed';
-      note('VIDEO SAVE ERROR: ' + (err && err.message ? err.message : err), 'error');
-    });
+    } else if (kind === 'RETURN_IMG') {
+      $('cameraState').textContent = 'Photo saved ✓';
+    } else {
+      scanMemo[key].dispatchVideo = { fileId: 'demo', fileName: fileName, url: url };
+      $('cameraState').textContent = 'Saved ✓';
+      note('✓ VIDEO SAVED • ' + fileName, 'ok');
+    }
     return;
   }
   blobToWebSafeBase64(blob).then(function(b64) {
     submitUpload({
-      awb: s.awb,
-      orderId: s.orderId,
-      status: s.status,
-      videoType: s.videoType,
-      fileName: fileName,
-      mimeType: blob.type || 'video/webm',
-      base64: b64,
+      awb: s.awb, orderId: s.orderId, status: s.status, videoType: s.videoType,
+      fileName: fileName, mimeType: blob.type || 'video/webm', base64: b64,
       replaceDispatch: !!(s && s.replaceDispatch)
-    }, s);
+    });
   }).catch(function(e) {
     uploadQueue--;
     $('cameraState').textContent = 'Save failed';
-    note('VIDEO SAVE ERROR: ' + (e.message || e) + ' — computer par download nahi kiya.', 'error');
+    note('VIDEO SAVE ERROR: ' + (e.message || e), 'error');
   });
 }
 
-function submitUpload(payload, session) {
+function submitUpload(payload) {
   var raw = String(payload.base64 || '').replace(/[^A-Za-z0-9\-_]/g, '');
   if (!raw) {
     uploadQueue = Math.max(0, uploadQueue - 1);
@@ -1658,61 +1840,20 @@ function submitUpload(payload, session) {
   }
   (async function() {
     var type = payload.videoType || 'DISPATCH';
-    function finishOk(res) {
-      uploadQueue = Math.max(0, uploadQueue - 1);
-      if (res && res.closed) {
-        uploadQueue = Math.max(0, uploadQueue - 1);
-        $('cameraState').textContent = 'Closed';
-        note(res.message || 'Order is on Closed sheet.', 'terminal');
-        return;
-      }
-      if (res && res.duplicate) {
-        $('cameraState').textContent = 'Already on Drive';
-        showAlreadyRecorded({
-          found: true,
-          awb: payload.awb,
-          orderId: payload.orderId,
-          duplicate: true,
-          dispatchVideo: {
-            fileId: res.fileId,
-            fileName: res.fileName,
-            url: res.url,
-            folderUrl: res.folderUrl,
-            folderPath: res.folderPath
-          }
-        });
-        return;
-      }
-      if (!res || !res.ok || !res.fileId) {
-        throw new Error((res && res.message) || 'Drive file not created. Keep the sheet box open.');
-      }
-      if (String(type).toUpperCase() !== 'RETURN') lockDispatchAwb(payload.awb);
-      $('cameraState').textContent = 'Saved ✓';
-      note('Saved to Drive • ' + (res.fileName || payload.fileName) +
-        (res.folderPath ? (' • ' + res.folderPath) : ''), 'ok');
-      if (String(type).toUpperCase() === 'RETURN' || String(type).toUpperCase() === 'RETURN_IMG' || mode === 'PROOF') {
-        gsRun('SCAN', { awb: payload.awb, mode: 'PROOF' }, 20000).then(showProof);
-      }
-    }
     try {
-      gsRun('MARK_PENDING', { awb: payload.awb, orderId: payload.orderId }, 8000).catch(function() {});
-      $('cameraState').textContent = 'Saving…';
-      note('Saving AWB ' + payload.awb + ' to Drive…', 'ok');
+      if (String(type).toUpperCase() !== 'RETURN_IMG') {
+        gsRun('MARK_PENDING', { awb: payload.awb, orderId: payload.orderId }, 8000).catch(function() {});
+        $('cameraState').textContent = 'Saving…';
+      }
       var res = null;
       if (raw.length <= 900000) {
         try {
           res = await gsRun('UPLOAD', {
-            awb: payload.awb,
-            orderId: payload.orderId,
-            videoType: type,
-            mimeType: payload.mimeType || 'video/webm',
-            fileName: payload.fileName || '',
-            base64: raw,
-            replaceDispatch: payload.replaceDispatch ? '1' : ''
+            awb: payload.awb, orderId: payload.orderId, videoType: type,
+            mimeType: payload.mimeType || 'video/webm', fileName: payload.fileName || '',
+            base64: raw, replaceDispatch: payload.replaceDispatch ? '1' : ''
           }, 120000);
-        } catch (upErr) {
-          res = null;
-        }
+        } catch (upErr) { res = null; }
       }
       var oneShot = res && (res.ok || res.duplicate || res.closed || res.fileId);
       if (!oneShot) {
@@ -1725,144 +1866,63 @@ function submitUpload(payload, session) {
           while (next < total) {
             var i = next++;
             var chunkRes = await gsRun('CHUNK', {
-              uploadId: uploadId,
-              index: String(i),
+              uploadId: uploadId, index: String(i),
               data: raw.slice(i * size, (i + 1) * size),
-              awb: payload.awb || '',
-              orderId: payload.orderId || '',
-              total: String(total)
+              awb: payload.awb || '', orderId: payload.orderId || '', total: String(total)
             }, 60000);
             if (chunkRes && chunkRes.ok === false) throw new Error(chunkRes.message || 'chunk failed');
             done++;
             $('cameraState').textContent = 'Saving ' + done + '/' + total;
           }
         }
-        await Promise.all([pump(), pump(), pump(), pump(), pump(), pump(), pump(), pump()]);
+        await Promise.all([pump(), pump(), pump(), pump()]);
         $('cameraState').textContent = 'Writing Drive file…';
         res = await gsRun('FINISH', {
-          uploadId: uploadId,
-          total: String(total),
-          awb: payload.awb || '',
-          orderId: payload.orderId || '',
-          videoType: type,
-          mimeType: payload.mimeType || 'video/webm',
-          fileName: payload.fileName || '',
+          uploadId: uploadId, total: String(total), awb: payload.awb || '',
+          orderId: payload.orderId || '', videoType: type,
+          mimeType: payload.mimeType || 'video/webm', fileName: payload.fileName || '',
           replaceDispatch: payload.replaceDispatch ? '1' : ''
         }, 180000);
       }
-      finishOk(res);
+      uploadQueue = Math.max(0, uploadQueue - 1);
+      if (res && res.closed) {
+        $('cameraState').textContent = 'Closed';
+        note(res.message || 'Order is on Closed sheet.', 'terminal');
+        return;
+      }
+      if (res && res.duplicate) {
+        $('cameraState').textContent = 'Already on Drive';
+        return;
+      }
+      if (!res || !res.ok || !res.fileId) {
+        throw new Error((res && res.message) || 'Drive file not created.');
+      }
+      $('cameraState').textContent = 'Saved ✓';
+      if (String(type).toUpperCase() !== 'RETURN_IMG') {
+        note('Saved to Drive • ' + (res.fileName || payload.fileName), 'ok');
+      }
+      if (String(type).toUpperCase() === 'RETURN') {
+        gsRun('SCAN', { awb: payload.awb, mode: 'PROOF' }, SCAN_MS).then(function(scanRes) {
+          if (scanRes && scanRes.found && !(recorder && recorder.state === 'recording')) {
+            if (mode === 'LIBRARY') showLibrary(scanRes);
+            else showProof(scanRes);
+          }
+        }).catch(function() {});
+      }
     } catch (err) {
       uploadQueue = Math.max(0, uploadQueue - 1);
       $('cameraState').textContent = 'Save failed';
       gsRun('CLEAR_PENDING', { awb: payload.awb }, 8000).catch(function() {});
-      if (String(type).toUpperCase() !== 'RETURN') unlockDispatchAwb(payload.awb);
-      note('VIDEO SAVE ERROR: ' + (err.message || err) + ' — keep the sheet camera box open and try Stop & Save again.', 'error');
+      if (String(type).toUpperCase() === 'DISPATCH') unlockDispatchAwb(payload.awb);
+      if (String(type).toUpperCase() !== 'RETURN_IMG') note('VIDEO SAVE ERROR: ' + (err.message || err), 'error');
     }
   })();
-}
-
-function capturePhoto() {
-  var p = lastProofOrder || lastScan || {};
-  var awb = String(p.awb || $('awb').value || '').trim();
-  var orderId = String(p.orderId || '');
-  if (!awb) {
-    note('Scan the AWB in Video Proof first, then capture photos.', 'error');
-    return;
-  }
-  if (recorder && recorder.state === 'recording') {
-    note('Stop the return video first, then capture photos.', 'error');
-    return;
-  }
-  (async function() {
-    try {
-      if (!cameraReady) await startCamera();
-      $('cameraPanel').style.display = 'block';
-      $('snapBtn').style.display = 'inline-block';
-      $('cameraLabel').textContent = 'RETURN PHOTO';
-      var v = $('cameraFrame');
-      var w = Math.min(1280, v.videoWidth || 1280);
-      var h = Math.min(720, v.videoHeight || 720);
-      if (!w || !h) { w = 1280; h = 720; }
-      var c = document.createElement('canvas');
-      c.width = w;
-      c.height = h;
-      c.getContext('2d').drawImage(v, 0, 0, w, h);
-      c.toBlob(function(blob) {
-        if (!blob || !blob.size) {
-          note('Photo capture failed. Keep the camera on and try again.', 'error');
-          return;
-        }
-        note('Saving return photo to Drive…', 'ok');
-        queueUpload({
-          awb: awb,
-          orderId: orderId,
-          status: p.status || '',
-          videoType: 'RETURN_IMG'
-        }, blob);
-      }, 'image/jpeg', 0.8);
-    } catch (e) {
-      note(cameraError(e), 'error');
-    }
-  })();
-}
-
-function openReturnStation() {
-  closeVideoPopup();
-  var p = lastProofOrder || lastScan || {};
-  var awb = String(p.awb || '').trim();
-  if (!awb) {
-    note('Scan the AWB in Video Proof first.', 'error');
-    return;
-  }
-  $('empty').style.display = 'none';
-  $('cameraPanel').style.display = 'block';
-  $('snapBtn').style.display = 'inline-block';
-  $('stopBtn').style.display = 'inline-block';
-  $('cameraLabel').textContent = 'RETURN PHOTO / VIDEO';
-  note('Return proof: capture photos, then record a short video and press Stop & Save.', 'ok');
-  if (!cameraReady) {
-    startCamera().catch(function(e) { note(cameraError(e), 'error'); });
-  }
-}
-
-function startReturnRecording(awb, orderId, status) {
-  closeVideoPopup();
-  awb = String(awb || (lastProofOrder && lastProofOrder.awb) || (lastScan && lastScan.awb) || '');
-  orderId = String(orderId || (lastProofOrder && lastProofOrder.orderId) || (lastScan && lastScan.orderId) || '');
-  status = String(status || (lastProofOrder && lastProofOrder.status) || (lastScan && lastScan.status) || '');
-  if (!awb) {
-    note('Scan the AWB in Video Proof first, then record the return video.', 'error');
-    return;
-  }
-  if (recorder && recorder.state === 'recording') {
-    note('A recording is already running. Press Stop & Save.', 'error');
-    return;
-  }
-  lastProofOrder = { awb: awb, orderId: orderId, status: status };
-  $('cameraPanel').style.display = 'block';
-  $('snapBtn').style.display = 'inline-block';
-  $('empty').style.display = 'none';
-  $('result').style.display = 'block';
-  return startRecording({
-    awb: awb,
-    orderId: orderId,
-    status: status,
-    videoType: 'RETURN'
-  });
-}
-
-function downloadFile(id, localUrl) {
-  if (isDriveFileId(id)) copyLink('https://drive.google.com/file/d/' + encodeURIComponent(id) + '/view');
-  else copyLink(localUrl || '');
-}
-
-function shareFile(id, localUrl) {
-  downloadFile(id, localUrl);
 }
 
 try {
   $('tabDispatch').addEventListener('click', function() { setMode('DISPATCH'); });
-  $('tabProof').addEventListener('click', function() { setMode('PROOF'); });
+  if ($('tabLibrary')) $('tabLibrary').addEventListener('click', function() { setMode('LIBRARY'); });
+  if ($('tabReturn')) $('tabReturn').addEventListener('click', function() { setMode('RETURN'); });
   $('refreshCamera').addEventListener('click', refreshCameras);
   $('testCamera').addEventListener('click', testCamera);
   $('connectSheet').addEventListener('click', function() { connectSheet(false); });
@@ -1879,13 +1939,32 @@ try {
     $('awb').focus();
   });
   $('stopBtn').addEventListener('click', stopManual);
-  if ($('snapBtn')) $('snapBtn').addEventListener('click', capturePhoto);
-  $('modalClose').addEventListener('click', closeVideoPopup);
-  $('videoModal').addEventListener('click', function(e) {
-    if (e.target === $('videoModal')) closeVideoPopup();
+  if ($('playClipBtn')) $('playClipBtn').addEventListener('click', function() {
+    playReviewClip().catch(function(e) { note(String(e.message || e), 'error'); });
   });
-  $('result').addEventListener('click', onProofClick);
-  $('modalActions').addEventListener('click', onProofClick);
+  if ($('snapBtn')) $('snapBtn').addEventListener('click', capturePhoto);
+  if ($('dlPhotoBook')) $('dlPhotoBook').addEventListener('click', function() { downloadPhotoBook().catch(function(e) { note(String(e.message || e), 'error'); }); });
+  if ($('recReturnBtn')) $('recReturnBtn').addEventListener('click', function() { startReturnRecording(); });
+  if ($('playReturnClip')) $('playReturnClip').addEventListener('click', function() {
+    var rec = proofRec;
+    var v = $('returnClipPlayer');
+    if (!clipOk(rec) || !v) return;
+    var src = rec.blobUrl || rec.url || rec.previewUrl || (isDriveFileId(rec.fileId) ? drivePreviewUrl(rec.fileId) : '');
+    if (!src) {
+      note('Return clip play ke liye file nahi.', 'error');
+      return;
+    }
+    if (/drive\.google\.com/i.test(src)) {
+      window.open(src, '_blank', 'noopener');
+      return;
+    }
+    v.style.display = 'block';
+    v.src = src;
+    v.play().catch(function() {});
+  });
+  if ($('dlReturnClip')) $('dlReturnClip').addEventListener('click', function() {
+    downloadClip(proofRec, 'RETURN.webm').catch(function(e) { note(String(e.message || e), 'error'); });
+  });
   $('awb').addEventListener('keydown', function(e) {
     if (e.key === 'Enter') { e.preventDefault(); scan(); }
   });
@@ -1907,52 +1986,40 @@ try {
 } catch (bindErr) {
   window.dpReady = false;
   var je = $('jsErr');
-  if (je) {
-    je.style.display = 'block';
-    je.textContent = 'BIND ERROR: ' + bindErr;
-  }
+  if (je) { je.style.display = 'block'; je.textContent = 'BIND ERROR: ' + bindErr; }
 }
 
 (async function init() {
+  try {
+    if (window.google && google.script && google.script.host) {
+      if (google.script.host.setHeight) google.script.host.setHeight(900);
+      if (google.script.host.setWidth) google.script.host.setWidth(1200);
+    }
+  } catch (eH) {}
+  var boot = $('boot');
+  if (boot) boot.style.display = 'none';
   var qAwb = pageParams.get('awb');
   if (qAwb) $('awb').value = qAwb;
-  if ($('frameLiveBtn')) {
-    $('frameLiveBtn').href = liveHref(null);
-    if (window.google && google.script && google.script.run) {
-      google.script.run.withSuccessHandler(function(url) {
-        if (url) $('frameLiveBtn').href = url;
-      }).getLiveCameraUrl(qAwb || '');
-    }
-  }
+  if ($('frameLiveBtn')) $('frameLiveBtn').href = liveHref(null);
   await refreshCameras();
   if (isFramed()) {
     $('frameBanner').style.display = 'block';
-    note('Keep this box open. Packing camera is in the other tab.', 'ok');
+    note('Yeh Sheet box Drive ke liye khula rakho. Packing camera doosri window mein hai.', 'ok');
   } else {
     $('liveWindow').style.display = 'none';
     $('frameBanner').style.display = 'none';
-    var hp = hashParams();
-    if (hp.mode === 'PROOF' || hp.mode === 'DISPATCH') setMode(hp.mode);
-    if (!API_URL && !isLocalDemo()) {
-      setDriveState('fail', 'api= missing');
-      note('Drive link missing. Yeh tab bookmark se mat kholo. Sheet → DISPATCH CAMERA → Open camera → hara button. URL mein api= hona chahiye.', 'error');
-      $('cameraState').textContent = 'Sheet se kholo (api= missing)';
+    if (!API_URL && !isLocalDemo() && !(window.google && google.script && google.script.run)) {
+      setDriveState('fail');
+      note('Drive link missing. Sheet → DISPATCH CAMERA → Open camera → hara button ' + (window.DP_VER || '') + '.', 'error');
     } else {
       setDriveState('unknown');
       $('cameraState').textContent = 'Ready';
     }
-    var pending = takePending();
-    if (pending && pending.found) {
-      handleScan(pending);
-    } else if (hp.awb || qAwb) {
-      $('awb').value = hp.awb || qAwb;
-      if (isLocalDemo() || API_URL) scan();
-    }
+    if (qAwb && (isLocalDemo() || API_URL)) scan();
   }
   pingSheetBox();
   setInterval(pingSheetBox, 2000);
-  if (isLocalDemo()) pingDrive();
-  else if (API_URL) pingDrive();
+  if (isLocalDemo() || API_URL) pingDrive();
   $('awb').focus();
 })();
 </script>
