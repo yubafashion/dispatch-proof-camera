@@ -63,7 +63,7 @@ a.green{display:inline-flex;align-items:center;justify-content:center;height:36p
 <div class="app">
   <div class="top">
     <div class="title">DISPATCH PROOF MANAGEMENT</div>
-    <div class="ag">V109 LIVE WINDOW — V99 TAB BAND KARO</div>
+    <div class="ag">V112 LIVE WINDOW — V99 TAB BAND KARO</div>
   </div>
   <div class="tabs">
     <div id="tabDispatch" class="tab active">🎥 MAKE DISPATCH VIDEO</div>
@@ -93,7 +93,7 @@ a.green{display:inline-flex;align-items:center;justify-content:center;height:36p
       <br>
       <a class="green" id="frameLiveBtn" target="_blank" rel="opener" href="#">OPEN LIVE CAMERA — NAYI TAB</a>
     </div>
-    <div id="info" class="info">Title <b>V109</b>. ALREADY tabhi jab folder Dispatch Proof Videos mein file mile. Nahi mile to recording start.</div>
+    <div id="info" class="info">Title <b>V112</b>. Drive error tab Close. TEST CAMERA ka JS fix — buttons ab kaam karein.</div>
     <div id="cameraPanel" class="cameraPanel">
       <div class="cameraHead">
         <span id="cameraLabel">CAMERA READY</span>
@@ -486,7 +486,7 @@ function mergeDemoScan(r) {
 function gsRun(action, payload, timeoutMs) {
   var act = String(action || '').toUpperCase();
   if (isLocalDemo() && (act === 'HEALTH' || act === 'PING')) {
-    return Promise.resolve({ ok: true, version: 'V109', found: true, demo: true });
+    return Promise.resolve({ ok: true, version: 'V112', found: true, demo: true });
   }
   if (isLocalDemo() && act === 'SCAN') {
     return mergeDemoScan(demoOrder(payload && payload.awb));
@@ -633,7 +633,7 @@ function setMode(next) {
   $('info').textContent = mode === 'DISPATCH'
     ? (isFramed()
       ? 'Is chhote box mein record nahi hota. Hara button nayi tab kholta hai.'
-      : 'Drive par file mile tabhi ALREADY RECORDED. File/index delete = dubara record.';
+      : 'Drive par file mile tabhi ALREADY RECORDED. File/index delete = dubara record.')
     : 'VIDEO PROOF: purani dispatch chhote popup mein. MAKE RETURN VIDEO dabao — recording dispatch jaisi.';
   clearResult();
   $('awb').focus();
@@ -746,7 +746,8 @@ function liveHref(r) {
   var awb = r && r.awb ? String(r.awb) : String($('awb').value || '').trim();
   if (API_URL) {
     var page = 'https://yubafashion.github.io/dispatch-proof-camera/';
-    return page + '?v=V101&api=' + encodeURIComponent(API_URL) + (awb ? '&awb=' + encodeURIComponent(awb) : '');
+    return page + '?v=V112&t=' + Date.now() + '&api=' + encodeURIComponent(API_URL) +
+      (awb ? '&awb=' + encodeURIComponent(awb) : '');
   }
   var base = String(location.href || '').split('#')[0];
   return base + '#live=1&mode=' + encodeURIComponent(mode) + '&awb=' + encodeURIComponent(awb);
