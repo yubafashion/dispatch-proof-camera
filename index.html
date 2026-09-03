@@ -1,80 +1,87 @@
 <!doctype html>
-<!-- FILE 2 + FILE 3 : Camera UI V138 — Code.gs is alag file, isme mat paste karo -->
+<!-- FILE 2 + FILE 3 : Camera UI V142 — Code.gs is alag file, isme mat paste karo -->
 <html>
 <head>
 <meta charset="utf-8">
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
-<title>DISPATCH PROOF V138</title>
+<title>DISPATCH PROOF V142</title>
 <style>
 *{box-sizing:border-box}
-html,body{margin:0;width:100%;height:100%;overflow:hidden;font-family:Arial,sans-serif;background:#111;color:#202124}
-body{padding:0}
-.app{width:100%;height:100%;margin:0;background:#f4f6f8;border:0;border-radius:0;overflow:hidden;display:flex;flex-direction:column;min-height:0}
-.top,.tabs,.tools,.scan{flex:0 0 auto}
-.top{background:#fff;padding:4px 8px;border-bottom:1px solid #d9dee5;text-align:center}
-.title{font-size:15px;font-weight:800;line-height:1.1}
-.ag{font-size:10px;font-weight:600;color:#6b7280}
-.tabs{display:flex;background:#fff;border-bottom:1px solid #d9dee5}
-.tab{flex:1.1;text-align:center;padding:8px 4px;font-size:11px;font-weight:800;cursor:pointer;letter-spacing:.02em}
+html,body{margin:0;width:100%;height:100%;font-family:Arial,sans-serif;background:#6b7380;color:#202124}
+body{display:flex;align-items:center;justify-content:center;overflow:hidden}
+.app{width:760px;height:500px;max-width:72vw;max-height:52vh;margin:0;background:#f4f6f8;border:1px solid #3c4043;border-radius:10px;box-shadow:0 18px 50px rgba(0,0,0,.35);overflow:hidden;display:flex;flex-direction:column}
+.top{flex:0 0 auto;background:#fff;padding:6px 10px;border-bottom:1px solid #d9dee5;text-align:center}
+.title{font-size:16px;font-weight:800;line-height:1.1}
+.ag{font-size:10px;font-weight:600;letter-spacing:.4px;color:#6b7280;margin-top:2px}
+.tabs{flex:0 0 auto;display:flex;background:#fff;border-bottom:1px solid #d9dee5}
+.tab{flex:1.1;text-align:center;padding:8px 4px;font-size:11px;font-weight:800;cursor:pointer}
 .tab.mid{flex:0.95;font-size:12px;background:#e8f0fe;color:#174ea6}
 .tab.active{background:#202124;color:#fff}
 .tab.mid.active{background:#1a73e8;color:#fff}
-.tools{display:flex;gap:6px;align-items:center;background:#fff;padding:4px 8px;border-bottom:1px solid #d9dee5;flex-wrap:wrap}
+.tools{flex:0 0 auto;display:flex;gap:6px;align-items:center;background:#fff;padding:5px 8px;border-bottom:1px solid #d9dee5;flex-wrap:wrap}
 .tools b{font-size:10px}
-select{height:30px;min-width:140px;max-width:220px;border:1px solid #aeb7c4;border-radius:6px;padding:0 6px;background:#fff}
+select{height:30px;min-width:140px;max-width:220px;border:1px solid #aeb7c4;border-radius:7px;padding:0 6px;background:#fff}
 .status{font-size:10px;color:#5f6368;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.scan{display:flex;gap:6px;background:#fff;padding:5px 8px;border-bottom:1px solid #d9dee5}
-#awb{flex:1;min-width:0;height:36px;border:1px solid #aeb7c4;border-radius:6px;padding:0 10px;font-size:16px;outline:none}
-button{height:32px;border:0;border-radius:6px;padding:0 10px;font-weight:800;cursor:pointer}
+.scan{flex:0 0 auto;display:flex;gap:6px;background:#fff;padding:6px 8px;border-bottom:1px solid #d9dee5}
+#awb{flex:1;min-width:0;height:36px;border:1px solid #aeb7c4;border-radius:7px;padding:0 10px;font-size:16px;outline:none}
+button{height:32px;border:0;border-radius:7px;padding:0 10px;font-weight:800;cursor:pointer}
 .primary{background:#1a73e8;color:#fff}.green{background:#188038;color:#fff}.orange{background:#f9ab00;color:#111}.gray{background:#e8eaed;color:#202124}.red{background:#d93025;color:#fff}
-.main{flex:1;display:flex;flex-direction:column;min-height:0;padding:4px 6px;overflow:hidden}
-.notice{display:none;border-radius:6px;padding:4px 8px;margin-bottom:4px;font-size:12px;font-weight:700;flex:0 0 auto}
-.notice.error{background:#fde7e9;color:#b3261e}.notice.ok{background:#e6f4ea;color:#137333}.notice.terminal{background:#fde7e9;color:#b3261e;text-align:center}
+.main{flex:1;min-height:0;padding:6px;display:flex;flex-direction:column;overflow:hidden}
+.notice{display:none;border-radius:7px;padding:6px 8px;margin-bottom:6px;font-size:12px;font-weight:700;flex:0 0 auto}
+.notice.error{background:#fde7e9;color:#b3261e}.notice.ok{background:#e6f4ea;color:#137333}.notice.terminal{background:#fde7e9;color:#b3261e;font-size:14px;text-align:center}
 .info,#empty,#videoModal{display:none !important}
-.card{display:none;background:#fff;border:1px solid #dfe3e8;border-radius:6px;padding:5px 8px;margin-bottom:4px;font-size:13px;font-weight:700;line-height:1.35;flex:0 0 auto}
+.card{display:none;background:#fff;border:1px solid #dfe3e8;border-radius:8px;padding:8px 10px;margin-top:6px;font-size:13px;font-weight:700;line-height:1.35;flex:0 0 auto}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.label{font-size:9px;color:#6b7280;font-weight:700;letter-spacing:.3px}
+.value{font-weight:800;font-size:13px}
 .ready{color:#188038}.required{color:#d93025}
-.cameraPanel{display:flex;flex:1 1 auto;min-height:calc(100vh - 200px);background:#111;border-radius:8px;padding:5px;color:#fff;flex-direction:column}
+.cameraPanel{display:none;flex:0 0 auto;width:68%;max-width:460px;margin:8px auto 0;background:#111;border-radius:10px;padding:6px;color:#fff;flex-direction:column;box-shadow:0 12px 32px rgba(0,0,0,.45)}
+.cameraPanel[style*="block"],.cameraPanel[style*="flex"]{display:flex !important}
 .cameraHead{display:flex;justify-content:space-between;align-items:center;font-size:11px;font-weight:800;margin-bottom:4px;flex:0 0 auto}
-.live{color:#ff7777;font-weight:900}.timer{font-size:16px;font-weight:900;margin-left:6px}
-.cameraWrap{position:relative;flex:1 1 auto;min-height:calc(100vh - 250px);background:#000;border-radius:6px;overflow:hidden}
-.cameraFrame{display:block;width:100%;background:#000}
-.cameraWrap .cameraFrame{position:absolute;inset:0;height:100%;max-height:none !important;min-height:0 !important;object-fit:cover;border-radius:0}
+.live{color:#ff7777;font-weight:900}.timer{font-size:17px;font-weight:900;margin-left:6px}
+.cameraWrap{position:relative;width:100%;aspect-ratio:16/9;max-height:220px;height:auto;flex:none;background:#000;border-radius:7px;overflow:hidden}
+.cameraFrame{display:block;width:100%;height:100%;max-height:220px;object-fit:contain;background:#000;border-radius:0}
+.cameraWrap .cameraFrame{position:absolute;inset:0}
 #camFlash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:2}
 #camFlash.on{opacity:.8}
-.cameraControls{display:flex;justify-content:flex-end;align-items:center;gap:8px;margin-top:5px;flex:0 0 auto}
+.cameraControls{display:flex;justify-content:flex-end;align-items:center;gap:8px;margin-top:6px;flex:0 0 auto}
 .shotCount{margin-right:auto;font-size:12px;font-weight:800;color:#f9ab00}
 button.busy{filter:brightness(1.25);transform:scale(.97);box-shadow:0 0 0 3px #fff inset}
-.photoBook{display:none;background:#fff;border:1px solid #dfe3e8;border-radius:6px;padding:5px 8px;margin-top:4px;flex:0 0 auto}
+.photoBook{display:none;background:#fff;border:1px solid #dfe3e8;border-radius:8px;padding:8px 10px;margin-top:6px;flex:0 0 auto}
 .photoBookHead{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px;font-weight:800}
 .photoBookHead button{height:28px;font-size:11px}
 .proofPanel{display:none;padding:2px 0 8px;overflow:auto;flex:1}
-.proofCard{background:#fff;border:1px solid #dfe3e8;border-radius:6px;padding:8px;margin-bottom:6px}
+.proofCard{background:#fff;border:1px solid #dfe3e8;border-radius:8px;padding:10px;margin-bottom:7px}
 .proofCard b{display:block;font-size:13px;margin-bottom:4px}
 .muted{font-size:12px;color:#5f6368;font-weight:600}
 .proofCard button{margin:6px 6px 0 0;min-width:132px}
 button:disabled{opacity:.45;cursor:not-allowed}
-body.libraryMode{overflow:auto;height:auto;background:#e9edf2}
-body.libraryMode .app{height:auto;min-height:100%;overflow:visible}
-body.libraryMode .main{overflow:auto;flex:none}
+body.libraryMode{display:block;overflow:auto;align-items:stretch}
+body.libraryMode .app{height:auto;min-height:500px;max-height:none;max-width:760px;margin:16px auto}
+body.libraryMode .main{overflow:auto}
 body.libraryMode .cameraPanel,body.libraryMode #photoBook,body.libraryMode #returnClip{display:none !important}
 body.libraryMode .camOnly{display:none !important}
 body.libraryMode #proofPanel{display:block}
-#libPlayWrap{margin-top:6px;background:#111;border-radius:8px;padding:6px;position:relative;height:min(52vh,420px)}
-#libPlayWrap .cameraFrame{position:absolute}
+#libPlayWrap{margin-top:6px;background:#111;border-radius:8px;padding:6px;height:240px;position:relative}
+#libPlayWrap .cameraFrame{position:absolute;inset:0;max-height:none}
 .thumbs{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
 .thumbs img{width:56px;height:56px;object-fit:cover;border-radius:4px;background:#111;border:2px solid #188038}
 .again{height:26px;font-size:11px;margin-left:8px;vertical-align:middle}
-.frameBanner{display:none;background:#e6f4ea;border:1px solid #137333;border-radius:8px;padding:8px;margin-bottom:6px;font-size:13px;font-weight:700;text-align:center}
+.frameBanner{display:none;background:#e6f4ea;border:1px solid #137333;border-radius:8px;padding:10px;margin-bottom:7px;font-size:13px;font-weight:700;text-align:center}
 a.green{display:inline-flex;align-items:center;justify-content:center;height:36px;border-radius:7px;padding:0 10px;font-weight:800;background:#188038;color:#fff;text-decoration:none}
-.frameBanner a.green{height:40px;font-size:14px;margin-top:6px}
+.frameBanner a.green{height:44px;font-size:14px;margin-top:8px}
 #jsErr{display:none;position:fixed;left:8px;right:8px;top:8px;z-index:30;background:#d93025;color:#fff;padding:8px;font-size:12px;white-space:pre-wrap;border-radius:8px}
 @media(max-width:600px){
- .tools{flex-wrap:wrap}.tools select{flex:1;min-width:120px}
+ body{display:block}.app{width:100%;height:100%;max-width:none;max-height:none;border-radius:0;border:0}
+ .cameraPanel{width:auto;max-width:none;margin:6px}
+ .cameraWrap{max-height:180px}
+ .tools{flex-wrap:wrap}.tools select{flex:1;min-width:130px}
+ .grid{grid-template-columns:1fr}
 }
 </style>
 <script>
-window.DP_VER = 'V138';
+window.DP_VER = 'V142';
 window.DP_PAGE = 'https://yubafashion.github.io/dispatch-proof-camera/';
 window.dpReady = false;
 window.onerror = function (msg, src, line) {
@@ -85,7 +92,7 @@ window.onerror = function (msg, src, line) {
 </script>
 </head>
 <body>
-<div id="boot" style="padding:10px 12px;font-family:Arial,sans-serif;font-weight:800;background:#202124;color:#fff">DISPATCH PROOF V138 — teen tabs. Agar yeh line ke neeche khali hai to Camera.html Save + Deploy New version.</div>
+<div id="boot" style="padding:10px 12px;font-family:Arial,sans-serif;font-weight:800;background:#202124;color:#fff">DISPATCH PROOF V142 — teen tabs. Agar yeh line ke neeche khali hai to Camera.html Save + Deploy New version.</div>
 <div id="jsErr"></div>
 <div class="app">
   <div class="top">
@@ -106,7 +113,7 @@ window.onerror = function (msg, src, line) {
     <button type="button" id="liveWindow" class="green" style="display:none">OPEN LIVE CAMERA</button>
     <span id="cameraState" class="status">Ready</span>
     <span id="driveState" class="status"></span>
-    <span class="status" style="margin-left:auto">v138</span>
+    <span class="status" style="margin-left:auto">v142</span>
   </div>
   <div class="scan">
     <input id="awb" autofocus autocomplete="off" placeholder="SCAN AWB BARCODE...">
@@ -118,7 +125,7 @@ window.onerror = function (msg, src, line) {
     <div id="frameBanner" class="frameBanner">
       Keep this sheet box open. The packing camera opens in a new tab.
       <br>
-      <a class="green" id="frameLiveBtn" href="https://yubafashion.github.io/dispatch-proof-camera/?v=V138" target="DP_CAM_V138" rel="opener">Open packing camera</a>
+      <a class="green" id="frameLiveBtn" href="https://yubafashion.github.io/dispatch-proof-camera/?v=V142" target="DP_CAM_V142" rel="opener">Open packing camera</a>
     </div>
     <div id="info" class="info"></div>
     <div id="cameraPanel" class="cameraPanel">
@@ -143,6 +150,7 @@ window.onerror = function (msg, src, line) {
         <button type="button" id="stopBtn" class="red" style="display:none">■ STOP &amp; SAVE</button>
       </div>
     </div>
+    <div id="result" class="card"></div>
     <div id="photoBook" class="photoBook">
       <div class="photoBookHead">
         <span id="photoBookLabel">RETURN PHOTOS · 0</span>
@@ -167,7 +175,6 @@ window.onerror = function (msg, src, line) {
         <iframe id="libIframe" class="cameraFrame" style="display:none;border:0" allow="autoplay; fullscreen" title="Proof video"></iframe>
       </div>
     </div>
-    <div id="result" class="card"></div>
     <div id="empty"></div>
   </div>
 </div>
@@ -633,7 +640,7 @@ function demoOrder(awb) {
 function gsRun(action, payload, timeoutMs) {
   var act = String(action || '').toUpperCase();
   if (isLocalDemo() && (act === 'HEALTH' || act === 'PING')) {
-    return Promise.resolve({ ok: true, version: 'V138', found: true, demo: true });
+    return Promise.resolve({ ok: true, version: 'V142', found: true, demo: true });
   }
   if (isLocalDemo() && act === 'SCAN') {
     return Promise.resolve(demoOrder(payload && payload.awb));
@@ -1187,22 +1194,23 @@ function liveHref(r) {
     ? String(location.href || '').split('#')[0].split('?')[0]
     : (window.DP_PAGE || 'https://yubafashion.github.io/dispatch-proof-camera/');
   var join = page.indexOf('?') >= 0 ? '&' : '?';
-  var u = page + join + 'v=V138&t=' + Date.now();
+  var u = page + join + 'v=V142&t=' + Date.now();
   if (API_URL) u += '&api=' + encodeURIComponent(API_URL);
   if (awb) u += '&awb=' + encodeURIComponent(awb);
   if (isLocalDemo() && u.indexOf('demo=') < 0) u += '&demo=1';
   return u;
 }
 
+function packingPopupFeatures() {
+  var w = 760, h = 500;
+  var L = Math.max(0, Math.floor(((screen.availWidth || screen.width) - w) / 2));
+  var T = Math.max(0, Math.floor(((screen.availHeight || screen.height) - h) / 2));
+  return 'popup=yes,width=' + w + ',height=' + h + ',left=' + L + ',top=' + T + ',scrollbars=yes,resizable=yes';
+}
+
 function openLiveWindow(r) {
-  var a = document.createElement('a');
-  a.href = liveHref(r || lastScan);
-  a.target = 'DP_CAM_V138';
-  a.rel = 'opener';
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  note('Packing camera doosri window. Chhota Sheet box Drive ke liye khula rakho.', 'ok');
+  window.open(liveHref(r || lastScan), 'DP_CAM_V142', packingPopupFeatures());
+  note('Packing popup desktop ke beech. Sheet box Drive ke liye khula rakho.', 'ok');
   return true;
 }
 
@@ -1428,17 +1436,21 @@ function applyFastScan(r, n, m, started) {
   }
   lastScan = r;
   scanMemo[n] = r;
-  if (currentSession && normalizeAwb(currentSession.awb) === n && r.orderId) {
-    currentSession.orderId = r.orderId;
+  if (m === 'DISPATCH') {
+    if (currentSession && normalizeAwb(currentSession.awb) === n) {
+      if (r.orderId) currentSession.orderId = r.orderId;
+      if (r.status) currentSession.status = r.status;
+    }
     showDispatch(r, false);
     $('cameraPanel').style.display = 'flex';
-    $('live').style.display = 'inline';
-    note('Recording ' + n + (r.orderId && r.orderId !== n ? (' · ' + r.orderId) : '') + '. Scan next anytime.', 'ok');
+    if (recorder && recorder.state === 'recording') $('live').style.display = 'inline';
+    if (!r.checking) {
+      note('Recording ' + n + (r.orderId && r.orderId !== n ? (' · ' + r.orderId) : '') + '. Scan next anytime.', 'ok');
+    }
   }
   if (m === 'RETURN' || m === 'PROOF') showProof(r);
   if (m === 'LIBRARY') showLibrary(r);
   if (m === 'DISPATCH' && !started && !(recorder && recorder.state === 'recording')) {
-    showDispatch(r, false);
     startRecording(r);
   }
 }
@@ -1448,14 +1460,25 @@ function handleScan(r) {
 }
 
 function showDispatch(r, needsLiveWindow) {
-  var cls = needsLiveWindow ? 'required' : 'ready';
-  var statusLine = needsLiveWindow
-    ? 'Sheet box mein record nahi — packing camera tab kholo'
-    : (r.checking ? 'Recording · AWB check 1–2s' : 'Recording');
-  lineStatus(
-    '<span class="' + cls + '">' + statusLine + '</span> · AWB ' + esc(r.awb || '') +
-    (r.orderId ? (' · ' + esc(r.orderId)) : '')
-  );
+  r = r || {};
+  var st = String(r.status || '');
+  var bad = !!(r.terminal || /deliver|rto|cancel|lost|hold/i.test(st));
+  var recCls = needsLiveWindow || bad ? 'required' : 'ready';
+  var recLine = needsLiveWindow
+    ? 'IS BOX MEIN RECORD NAHI — packing camera tab'
+    : (r.checking ? 'RECORDING START — AWB check 1–2s' : (bad ? ('STOP · ' + (st || 'blocked')) : 'RECORDING START'));
+  $('empty').style.display = 'none';
+  $('result').style.display = 'block';
+  $('result').innerHTML =
+    '<div class="grid">' +
+      '<div><div class="label">DATE</div><div class="value">' + esc(r.date || '') + '</div></div>' +
+      '<div><div class="label">ORDER ID</div><div class="value">' + esc(r.orderId || r.awb || '') + '</div></div>' +
+      '<div><div class="label">AWB</div><div class="value">' + esc(r.awb || '') + '</div></div>' +
+      '<div><div class="label">ORDER STATUS</div><div class="value ' + (bad ? 'required' : 'ready') + '">' + esc(st || (r.checking ? 'Checking…' : 'Packed')) + '</div></div>' +
+      '<div><div class="label">DISPATCH TYPE</div><div class="value">' + esc(r.dispatchType || '') + '</div></div>' +
+      '<div><div class="label">SKU</div><div class="value">' + esc(r.sku || '') + '</div></div>' +
+    '</div>' +
+    '<div style="margin-top:8px" class="' + recCls + '">' + recLine + '</div>';
 }
 
 function localPhotos(awb) {
@@ -1690,6 +1713,12 @@ async function startRecording(r) {
     replaceDispatch: !!r.replaceDispatch,
     discard: false
   };
+  if (lastScan && normalizeAwb(lastScan.awb) === awbN && lastScan.orderId) {
+    currentSession.orderId = lastScan.orderId;
+    currentSession.status = lastScan.status || currentSession.status;
+    r = lastScan;
+    if (currentSession.videoType === 'DISPATCH') showDispatch(lastScan, false);
+  }
   chunks = [];
   recorder.ondataavailable = function(ev) {
     if (ev.data && ev.data.size) chunks.push(ev.data);
