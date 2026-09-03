@@ -1,11 +1,11 @@
 <!doctype html>
-<!-- FILE 2 + FILE 3 : Camera UI V175 — Code.gs is alag file, isme mat paste karo -->
+<!-- FILE 2 + FILE 3 : Camera UI V179 — Code.gs is alag file, isme mat paste karo -->
 <html>
 <head>
 <meta charset="utf-8">
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
-<title>DISPATCH PROOF V175</title>
+<title>DISPATCH PROOF V179</title>
 <style>
 *{box-sizing:border-box}
 html,body{margin:0;width:100%;height:100%;overflow:hidden;font-family:Arial,sans-serif;background:#111;color:#202124}
@@ -36,7 +36,7 @@ button{height:32px;border:0;border-radius:7px;padding:0 10px;font-weight:800;cur
 body.libraryMode .card.on{max-height:none;overflow:visible;padding:8px 10px}
 .proofHeadLine{display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:6px 18px;width:100%;font-size:16px;font-weight:800;line-height:1.3}
 .proofHeadLine span{white-space:nowrap}
-.proofCols{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:stretch}
+.proofCols{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:stretch;width:100%;max-width:920px;margin:0 auto}
 .proofStage{background:#111;border-radius:8px;overflow:hidden;min-height:0;display:flex;flex-direction:column;border:1px solid #3c4043}
 .proofStageHead{display:flex;align-items:center;gap:4px;padding:4px 6px;background:#202124;color:#fff;flex:0 0 auto}
 .proofStageHead b{flex:1;font-size:11px;font-weight:800;margin:0;color:#fff}
@@ -91,7 +91,10 @@ body.libraryMode .camOnly{display:none !important}
 .thumbs{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
 .thumbs img{width:56px;height:56px;object-fit:cover;border-radius:4px;background:#111;border:2px solid #188038}
 body.libraryMode .proofCols{flex:0 0 auto}
-body.libraryMode #proofPhotos{flex:1 1 auto;min-height:130px;overflow:auto}
+body.libraryMode #proofPhotos{flex:1 1 auto;min-height:130px;overflow:auto;text-align:center;max-width:920px;width:100%;margin:0 auto}
+body.libraryMode #proofPhotos .thumbs{justify-content:center}
+body.libraryMode #proofPhotos button{margin:8px auto 0;display:inline-flex;justify-content:center}
+body.libraryMode .proofPop{display:none !important}
 body.libraryMode .proofCard b.proofTitle{text-align:center}
 body.libraryMode .thumbs{gap:6px}
 body.libraryMode .thumbs img{width:72px;height:72px}
@@ -102,7 +105,7 @@ a.green{display:inline-flex;align-items:center;justify-content:center;height:36p
 #jsErr{display:none;position:fixed;left:8px;right:8px;top:8px;z-index:30;background:#d93025;color:#fff;padding:8px;font-size:12px;white-space:pre-wrap;border-radius:8px}
 </style>
 <script>
-window.DP_VER = 'V175';
+window.DP_VER = 'V179';
 window.DP_PAGE = 'https://yubafashion.github.io/dispatch-proof-camera/';
 window.dpReady = false;
 window.onerror = function (msg, src, line) {
@@ -113,7 +116,7 @@ window.onerror = function (msg, src, line) {
 </script>
 </head>
 <body>
-<div id="boot" style="padding:10px 12px;font-family:Arial,sans-serif;font-weight:800;background:#202124;color:#fff">DISPATCH PROOF V175 — teen tabs. Agar yeh line ke neeche khali hai to Camera.html Save + Deploy New version.</div>
+<div id="boot" style="padding:10px 12px;font-family:Arial,sans-serif;font-weight:800;background:#202124;color:#fff">DISPATCH PROOF V179 — teen tabs. Agar yeh line ke neeche khali hai to Camera.html Save + Deploy New version.</div>
 <div id="jsErr"></div>
 <div class="app">
   <div class="top">
@@ -134,7 +137,7 @@ window.onerror = function (msg, src, line) {
     <button type="button" id="liveWindow" class="green" style="display:none">OPEN LIVE CAMERA</button>
     <span id="cameraState" class="status">Ready</span>
     <span id="driveState" class="status"></span>
-    <span class="status" style="margin-left:auto" id="verBadge">v175</span>
+    <span class="status" style="margin-left:auto" id="verBadge">v177</span>
   </div>
   <div class="scan">
     <input id="awb" autofocus autocomplete="off" placeholder="SCAN AWB BARCODE...">
@@ -146,7 +149,7 @@ window.onerror = function (msg, src, line) {
     <div id="frameBanner" class="frameBanner">
       Keep this sheet box open. The packing camera opens in a new tab.
       <br>
-      <a class="green" id="frameLiveBtn" href="https://yubafashion.github.io/dispatch-proof-camera/?v=V175" target="DP_CAM_V175" rel="opener">Open packing camera</a>
+      <a class="green" id="frameLiveBtn" href="https://yubafashion.github.io/dispatch-proof-camera/?v=V179" target="DP_CAM_V179" rel="opener">Open packing camera</a>
     </div>
     <div id="info" class="info"></div>
     <div id="cameraPanel" class="cameraPanel">
@@ -763,7 +766,7 @@ function demoOrder(awb, videoMode) {
 function gsRun(action, payload, timeoutMs) {
   var act = String(action || '').toUpperCase();
   if (isLocalDemo() && (act === 'HEALTH' || act === 'PING') && !(workerReady && workerSource)) {
-    return Promise.resolve({ ok: true, version: 'V175', found: true, demo: true });
+    return Promise.resolve({ ok: true, version: 'V179', found: true, demo: true });
   }
   if (isLocalDemo() && (act === 'UPLOAD' || act === 'FINISH' || act === 'CHUNK' || act === 'MARK_PENDING' || act === 'CLEAR_PENDING') && !(workerReady && workerSource)) {
     return Promise.resolve({ ok: true, fileId: 'demo', fileName: (payload && payload.fileName) || 'demo.webm', demo: true });
@@ -872,15 +875,23 @@ function pad2(n) {
 }
 
 function proofStampParts(r) {
-  r = r || lastScan || currentSession || lastProofOrder || {};
+  if (!r) {
+    if (mode === 'RETURN') r = (lastProofOrder && lastProofOrder.awb) ? (lastScan || lastProofOrder) : {};
+    else if (currentSession && currentSession.awb) r = currentSession;
+    else if (mode === 'DISPATCH' && lastScan && lastScan.awb) r = lastScan;
+    else r = {};
+  }
   var order = r.order || {};
   var now = new Date();
-  var date = String(r.date || order.date || '').trim();
-  if (!date) date = pad2(now.getDate()) + '-' + pad2(now.getMonth() + 1) + '-' + now.getFullYear();
-  var awb = String(r.awb || (currentSession && currentSession.awb) || ($('awb') && $('awb').value) || '').trim();
+  var awb = String(r.awb || (currentSession && currentSession.awb) || '').trim();
   var oid = String(r.orderId || order.orderId || (currentSession && currentSession.orderId) || '').trim();
+  var date = String(r.date || order.date || '').trim();
+  if (awb && !date) date = pad2(now.getDate()) + '-' + pad2(now.getMonth() + 1) + '-' + now.getFullYear();
+  if (!awb) {
+    return { awb: '', order: '', date: '', time: '' };
+  }
   return {
-    awb: awb || '—',
+    awb: awb,
     order: oid || '—',
     date: date,
     time: pad2(now.getHours()) + ':' + pad2(now.getMinutes()) + ':' + pad2(now.getSeconds())
@@ -903,6 +914,10 @@ function startStampClock() {
 
 function paintCornerStamps(ctx, w, h, r) {
   var s = proofStampParts(r);
+  if (!s.awb) {
+    syncLiveStampOverlay(s);
+    return;
+  }
   var fs = Math.max(8, Math.round(Math.min(w, h) * 0.026));
   var pad = Math.max(4, Math.round(w * 0.012));
   var gap = Math.round(fs * 1.28);
@@ -1238,7 +1253,7 @@ function uniquePhotos(list) {
   return out;
 }
 
-function proofPlayerHtml(kind, ok, vidId, headDlId, closeId, playId, footDlId) {
+function proofPlayerHtml(kind, ok, vidId, headDlId, closeId) {
   var title = kind === 'RETURN' ? 'RETURN VIDEO' : 'DISPATCH VIDEO';
   return (
     '<b class="proofTitle">' + title + '</b>' +
@@ -1251,10 +1266,6 @@ function proofPlayerHtml(kind, ok, vidId, headDlId, closeId, playId, footDlId) {
       (ok
         ? '<video id="' + vidId + '" class="proofPreview" controls playsinline></video>'
         : '<div class="proofEmpty">Abhi nahi bani</div>') +
-    '</div>' +
-    '<div class="proofBtns">' +
-      '<button type="button" class="primary" id="' + playId + '"' + (ok ? '' : ' disabled') + '>PLAY</button>' +
-      '<button type="button" class="green" id="' + footDlId + '"' + (ok ? '' : ' disabled') + '>DOWNLOAD</button>' +
     '</div>'
   );
 }
@@ -1401,6 +1412,7 @@ function showLibrary(r) {
   mergeRemotePhotos(r);
   hidePackingCamera();
   hidePhotoBook();
+  closeProofPop();
   if ($('returnClip')) $('returnClip').style.display = 'none';
   if ($('proofPanel')) $('proofPanel').style.display = 'flex';
   $('empty').style.display = 'none';
@@ -1430,10 +1442,10 @@ function showLibrary(r) {
   var awbLine = String(r.awb || n || '').trim() || '—';
   var dateLine = String(r.date || '').trim() || '—';
   if (dEl) {
-    dEl.innerHTML = proofPlayerHtml('DISPATCH', dOk, 'libDispVid', 'libHeadDlDispatch', 'libCloseDispatch', 'libPlayDispatch', 'libDlDispatch');
+    dEl.innerHTML = proofPlayerHtml('DISPATCH', dOk, 'libDispVid', 'libHeadDlDispatch', 'libCloseDispatch');
   }
   if (rEl) {
-    rEl.innerHTML = proofPlayerHtml('RETURN', rOk, 'libRetVid', 'libHeadDlReturn', 'libCloseReturn', 'libPlayReturn', 'libDlReturn');
+    rEl.innerHTML = proofPlayerHtml('RETURN', rOk, 'libRetVid', 'libHeadDlReturn', 'libCloseReturn');
   }
   if (pEl) {
     pEl.innerHTML =
@@ -1462,18 +1474,8 @@ function showLibrary(r) {
       try { v.pause(); } catch (e1) {}
     };
   }
-  if ($('libPlayDispatch')) $('libPlayDispatch').onclick = function() {
-    if (!dOk) { need('dispatch video'); return; }
-    playInlineOrPop($('libDispVid'), disp, 'DISPATCH VIDEO', $('libPlayDispatch'));
-  };
-  bindDl('libDlDispatch', disp, dOk, 'dispatch video');
   bindDl('libHeadDlDispatch', disp, dOk, 'dispatch video');
   bindClose('libCloseDispatch', 'libDispVid');
-  if ($('libPlayReturn')) $('libPlayReturn').onclick = function() {
-    if (!rOk) { need('return video'); return; }
-    playInlineOrPop($('libRetVid'), ret, 'RETURN VIDEO', $('libPlayReturn'));
-  };
-  bindDl('libDlReturn', ret, rOk, 'return video');
   bindDl('libHeadDlReturn', ret, rOk, 'return video');
   bindClose('libCloseReturn', 'libRetVid');
   if ($('libDlZip')) $('libDlZip').onclick = function() {
@@ -1513,15 +1515,17 @@ function setMode(next) {
     note('MAKE DISPATCH VIDEO — scan AWB, camera record. Purani clip VIDEO PROOF par.', 'ok');
   } else if (mode === 'RETURN') {
     hideProofPanel();
-    if (lastScan && lastScan.awb) showProof(lastScan);
-    else {
-      keepIdleCamera();
-      note('MAKE RETURN VIDEO — scan AWB.', 'ok');
-    }
+    hidePhotoBook();
+    lastProofOrder = null;
+    hideResultCard();
+    if ($('returnClip')) $('returnClip').style.display = 'none';
+    keepIdleCamera();
+    note('', '');
   } else if (mode === 'LIBRARY') {
     hidePhotoBook();
     if ($('returnClip')) $('returnClip').style.display = 'none';
     blankLibrary();
+    note('', '');
   }
   $('awb').focus();
 }
@@ -1643,7 +1647,7 @@ function liveHref(r) {
     ? String(location.href || '').split('#')[0].split('?')[0]
     : (window.DP_PAGE || 'https://yubafashion.github.io/dispatch-proof-camera/');
   var join = page.indexOf('?') >= 0 ? '&' : '?';
-  var u = page + join + 'v=' + encodeURIComponent(window.DP_VER || 'V175') + '&t=' + Date.now();
+  var u = page + join + 'v=' + encodeURIComponent(window.DP_VER || 'V179') + '&t=' + Date.now();
   if (API_URL) u += '&api=' + encodeURIComponent(API_URL);
   if (awb) u += '&awb=' + encodeURIComponent(awb);
   return u;
@@ -1657,7 +1661,7 @@ function packingPopupFeatures() {
 }
 
 function openLiveWindow(r) {
-  window.open(liveHref(r || lastScan), 'DP_CAM_' + (window.DP_VER || 'V175'), packingPopupFeatures());
+  window.open(liveHref(r || lastScan), 'DP_CAM_' + (window.DP_VER || 'V179'), packingPopupFeatures());
   note('Packing popup desktop ke beech. Sheet box Drive ke liye khula rakho.', 'ok');
   return true;
 }
@@ -1742,16 +1746,22 @@ function scan() {
     return;
   }
   var n = normalizeAwb(v);
-  if (mode === 'DISPATCH' && recorder && recorder.state === 'recording' &&
+  if ((mode === 'DISPATCH' || mode === 'RETURN') && recorder && recorder.state === 'recording' &&
       currentSession && normalizeAwb(currentSession.awb) === n) {
     stopRecording();
     note('This AWB is saving to Drive. Scan the next parcel.', 'ok');
     return;
   }
-  if (mode === 'DISPATCH' && recorder && recorder.state === 'recording') {
+  if ((mode === 'DISPATCH' || mode === 'RETURN') && recorder && recorder.state === 'recording') {
     recorderStopping = true;
     $('awb').value = '';
-    waitingOrder = { found: true, awb: n, orderId: n, videoType: 'DISPATCH', checking: true };
+    waitingOrder = {
+      found: true,
+      awb: n,
+      orderId: n,
+      videoType: mode === 'RETURN' ? 'RETURN' : 'DISPATCH',
+      checking: true
+    };
     note('Previous clip saving. Next AWB check after save…', 'ok');
     stopRecording();
     return;
@@ -1775,6 +1785,20 @@ function lookupAwb(n, m) {
   var started = 0;
   if (blockRecordAwb && blockRecordAwb !== n) blockRecordAwb = '';
 
+  if ((m === 'DISPATCH' || m === 'RETURN') && recorder && recorder.state === 'recording') {
+    recorderStopping = true;
+    waitingOrder = {
+      found: true,
+      awb: n,
+      orderId: n,
+      videoType: m === 'RETURN' ? 'RETURN' : 'DISPATCH',
+      checking: true
+    };
+    note('Previous clip saving. Next AWB check after save…', 'ok');
+    stopRecording();
+    return;
+  }
+
   if (m === 'DISPATCH') {
     if (isLocalDemo() && !(workerReady && workerSource) && !API_URL) {
       applyFastScan(demoOrder(n, m), n, m, 0);
@@ -1795,6 +1819,10 @@ function lookupAwb(n, m) {
     showLibrary({ awb: n, orderId: n, found: true, dispatchVideo: (scanMemo[n] || {}).dispatchVideo, returnVideo: (scanMemo[n] || {}).returnVideo, returnImages: localPhotos(n) });
     note('', '');
   } else {
+    if (isLocalDemo() && !(workerReady && workerSource) && !API_URL) {
+      applyFastScan(demoOrder(n, m), n, m, 0);
+      return;
+    }
     lastProofOrder = { awb: n, orderId: n, status: '' };
     keepIdleCamera();
     hideResultCard();
@@ -1821,7 +1849,8 @@ function lookupAwb(n, m) {
         ok: true, found: true, awb: n, orderId: (scanMemo[n] && scanMemo[n].orderId) || n,
         dispatchVideo: (scanMemo[n] && scanMemo[n].dispatchVideo) || null,
         returnVideo: (scanMemo[n] && scanMemo[n].returnVideo) || null,
-        returnImages: localPhotos(n)
+        returnImages: localPhotos(n),
+        sheetSlow: true
       }, n, m, started);
       note('Sheet check slow. DOWNLOAD cards yahin hain — SCAN dobara try karo.', 'error');
       return;
@@ -1855,23 +1884,23 @@ function applyFastScan(r, n, m, started) {
       return;
     }
   }
-  if (r.terminal && m === 'DISPATCH') {
-    lastScan = r;
-    abortRecordingFor(n, true);
-    hidePackingCamera();
-    hideResultCard();
-    note('This Order ID is already delivered successfully. No video proof is required.', 'terminal');
-    $('awb').value = '';
-    $('awb').focus();
-    return;
-  }
-  if (m === 'DISPATCH' && isExistingDispatchClip(r)) {
+  if (m === 'DISPATCH' && (isExistingDispatchClip(r) || r.duplicate)) {
     if (waitingOrder && normalizeAwb(waitingOrder.awb) === n) waitingOrder.discard = true;
     abortRecordingFor(n, true);
     lastScan = r;
     scanMemo[n] = r;
     lockDispatchAwb(n);
     showAlreadyRecorded(r);
+    $('awb').value = '';
+    $('awb').focus();
+    return;
+  }
+  if (r.terminal && m === 'DISPATCH') {
+    lastScan = r;
+    abortRecordingFor(n, true);
+    hidePackingCamera();
+    hideResultCard();
+    note('This Order ID is already delivered successfully. No video proof is required.', 'terminal');
     $('awb').value = '';
     $('awb').focus();
     return;
@@ -1886,6 +1915,8 @@ function applyFastScan(r, n, m, started) {
   lastScan = r;
   scanMemo[n] = r;
   if (m === 'RETURN' && isExistingReturnClip(r)) {
+    if (waitingOrder && normalizeAwb(waitingOrder.awb) === n) waitingOrder.discard = true;
+    abortRecordingFor(n, true);
     showAlreadyRecorded(r);
     if ($('recReturnBtn')) $('recReturnBtn').style.display = 'none';
     $('awb').value = '';
@@ -1903,7 +1934,7 @@ function applyFastScan(r, n, m, started) {
     showDispatch(r, false);
     $('cameraPanel').style.display = 'flex';
   }
-  if (m === 'RETURN' || m === 'PROOF') showProof(r);
+  if (m === 'RETURN' || m === 'PROOF') showProof(r, m === 'RETURN' && !r.sheetSlow);
   if (m === 'LIBRARY') showLibrary(r);
   if (m === 'DISPATCH' && !started && !(recorder && recorder.state === 'recording')) {
     if (isExistingDispatchClip(r) || alreadyRecordedAwb(n)) {
@@ -1912,6 +1943,9 @@ function applyFastScan(r, n, m, started) {
     }
     showDispatch(r, false);
     startRecording(r);
+  }
+  if (m === 'RETURN' && !r.sheetSlow && !started && !(recorder && recorder.state === 'recording')) {
+    startReturnRecording(r);
   }
 }
 
@@ -1984,7 +2018,7 @@ function openLiveReturnCamera() {
   }
 }
 
-function showProof(r) {
+function showProof(r, skipIdle) {
   lastScan = r;
   lastProofOrder = { awb: r.awb, orderId: r.orderId || r.awb, status: r.status };
   var n = normalizeAwb(r.awb);
@@ -2000,7 +2034,7 @@ function showProof(r) {
   );
   renderPhotoBook(r.awb);
   renderReturnClip(proofRec);
-  if (!(recorder && recorder.state === 'recording')) openLiveReturnCamera();
+  if (!skipIdle && !(recorder && recorder.state === 'recording')) openLiveReturnCamera();
 }
 
 function renderReturnClip(ret) {
@@ -2218,7 +2252,7 @@ async function startRecording(r) {
     $('stopBtn').style.display = 'inline-block';
     if ($('shotCount')) $('shotCount').style.display = 'none';
     $('cameraLabel').textContent = 'RETURN VIDEO';
-    note('● RECORDING. Pack dikhao, phir STOP & SAVE.', 'ok');
+    note('Recording ' + currentSession.awb + '. Scan the next AWB anytime — save continues in the background.', 'ok');
   } else {
     $('snapBtn').style.display = 'none';
     $('stopBtn').style.display = 'inline-block';
@@ -2272,7 +2306,7 @@ function finishRecording() {
   currentSession = null;
   chunks = [];
   recorder = null;
-  if (s && String(s.videoType || '').toUpperCase() === 'RETURN') {
+  if (s && String(s.videoType || '').toUpperCase() === 'RETURN' && !(queued && queued.awb)) {
     $('stopBtn').style.display = 'none';
     $('snapBtn').style.display = 'inline-block';
     if ($('recReturnBtn')) $('recReturnBtn').style.display = 'inline-block';
@@ -2289,18 +2323,18 @@ function finishRecording() {
   }
   if (!s || !savedChunks.length) {
     note('VIDEO SAVE ERROR: recorded video is empty.', 'error');
-    if (queued && queued.awb) lookupAwb(normalizeAwb(queued.awb), 'DISPATCH');
+    if (queued && queued.awb) lookupAwb(normalizeAwb(queued.awb), queued.videoType === 'RETURN' ? 'RETURN' : 'DISPATCH');
     return;
   }
   var mime = savedChunks[0].type || recorderMime || 'video/mp4';
   var blob = new Blob(savedChunks, {type: mime});
   if (!blob.size) {
     note('VIDEO SAVE ERROR: recorded video is empty.', 'error');
-    if (queued && queued.awb) lookupAwb(normalizeAwb(queued.awb), 'DISPATCH');
+    if (queued && queued.awb) lookupAwb(normalizeAwb(queued.awb), queued.videoType === 'RETURN' ? 'RETURN' : 'DISPATCH');
     return;
   }
   if (queued && queued.awb) {
-    lookupAwb(normalizeAwb(queued.awb), 'DISPATCH');
+    lookupAwb(normalizeAwb(queued.awb), queued.videoType === 'RETURN' ? 'RETURN' : 'DISPATCH');
   }
   queueUpload(s, blob);
 }
@@ -2348,10 +2382,16 @@ function queueUpload(s, blob) {
       $('cameraState').textContent = 'Saved ✓';
       note('✓ RETURN VIDEO READY • ' + fileName, 'ok');
       if (mode === 'RETURN') {
-        lastScan = lastScan || demoOrder(s.awb, 'RETURN');
-        lastScan.returnVideo = scanMemo[key].returnVideo;
-        lastScan.returnImages = localPhotos(s.awb);
-        showProof(lastScan);
+        var savedRet = demoOrder(s.awb, 'RETURN') || { awb: s.awb, orderId: s.orderId, found: true };
+        savedRet.awb = s.awb;
+        savedRet.orderId = s.orderId || savedRet.orderId;
+        savedRet.returnVideo = scanMemo[key].returnVideo;
+        savedRet.returnImages = localPhotos(s.awb);
+        if (!(recorder && recorder.state === 'recording' && currentSession &&
+            normalizeAwb(currentSession.awb) !== key)) {
+          lastScan = savedRet;
+          showProof(savedRet);
+        }
       } else if (mode === 'LIBRARY') {
         lastScan = lastScan || demoOrder(s.awb, 'RETURN');
         lastScan.returnVideo = scanMemo[key].returnVideo;
@@ -2454,7 +2494,9 @@ function submitUpload(payload) {
               demo: !!res.demo
             }
           });
-          if (mode === 'RETURN') {
+          if (mode === 'RETURN' &&
+              !(recorder && recorder.state === 'recording' && currentSession &&
+                normalizeAwb(currentSession.awb) !== dn)) {
             showAlreadyRecorded(scanMemo[dn]);
             if ($('recReturnBtn')) $('recReturnBtn').style.display = 'none';
           }
