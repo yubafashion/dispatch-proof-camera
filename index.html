@@ -1,11 +1,11 @@
 <!doctype html>
-<!-- FILE 2 + FILE 3 : Camera UI V173 — Code.gs is alag file, isme mat paste karo -->
+<!-- FILE 2 + FILE 3 : Camera UI V174 — Code.gs is alag file, isme mat paste karo -->
 <html>
 <head>
 <meta charset="utf-8">
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
-<title>DISPATCH PROOF V173</title>
+<title>DISPATCH PROOF V174</title>
 <style>
 *{box-sizing:border-box}
 html,body{margin:0;width:100%;height:100%;overflow:hidden;font-family:Arial,sans-serif;background:#111;color:#202124}
@@ -33,6 +33,18 @@ button{height:32px;border:0;border-radius:7px;padding:0 10px;font-weight:800;cur
 .info,#empty,#videoModal{display:none !important}
 .card{display:none;background:#fff;border:1px solid #dfe3e8;border-radius:6px;padding:4px 8px;font-size:11px;font-weight:700;line-height:1.2;flex:0 0 auto;z-index:3}
 .card.on{display:block !important;max-height:26%;overflow:auto}
+body.libraryMode .card.on{max-height:none;overflow:visible;padding:8px 10px}
+.proofHeadLine{display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:6px 18px;width:100%;font-size:16px;font-weight:800;line-height:1.3}
+.proofHeadLine span{white-space:nowrap}
+.proofCols{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:stretch}
+.proofStage{background:#111;border-radius:8px;overflow:hidden;min-height:0;display:flex;flex-direction:column;border:1px solid #3c4043}
+.proofStageHead{display:flex;align-items:center;gap:4px;padding:4px 6px;background:#202124;color:#fff;flex:0 0 auto}
+.proofStageHead b{flex:1;font-size:11px;font-weight:800;margin:0;color:#fff}
+.proofStageHead button{height:24px;font-size:10px;padding:0 8px;min-width:0;margin:0}
+.proofPreview{width:100%;height:3in;max-height:36vh;margin:0;background:#000;object-fit:contain;display:block}
+.proofEmpty{height:3in;max-height:36vh;display:flex;align-items:center;justify-content:center;color:#9aa0a6;font-size:13px;font-weight:700;background:#000}
+.proofBtns{display:flex;gap:8px;margin-top:8px}
+.proofBtns button{flex:1;min-width:0;margin:0}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:2px 10px}
 .skuLine{grid-column:1/-1;min-width:0}
 .skuLine .value{font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;word-break:normal}
@@ -58,10 +70,11 @@ button.busy{filter:brightness(1.25);transform:scale(.97);box-shadow:0 0 0 3px #f
 .photoBookHead{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px;font-weight:800}
 .photoBookHead button{height:28px;font-size:11px}
 .proofPanel{display:none;padding:2px 0 8px;overflow:auto;flex:1;min-height:0}
-.proofCard{background:#fff;border:1px solid #dfe3e8;border-radius:8px;padding:10px;margin-bottom:7px}
-.proofCard b{display:block;font-size:13px;margin-bottom:4px}
+body.libraryMode .proofPanel{display:flex;flex-direction:column;gap:8px}
+.proofCard{background:#fff;border:1px solid #dfe3e8;border-radius:8px;padding:10px;margin-bottom:0;min-width:0}
+.proofCard b.proofTitle{display:block;font-size:13px;margin-bottom:6px}
 .muted{font-size:12px;color:#5f6368;font-weight:600}
-.proofCard button{margin:6px 6px 0 0;min-width:132px}
+.proofCard button{margin:6px 6px 0 0;min-width:0}
 button:disabled{opacity:.45;cursor:not-allowed}
 body.libraryMode{overflow:hidden;height:100%;background:#111}
 body.libraryMode .app{width:100%;height:100%}
@@ -77,6 +90,7 @@ body.libraryMode .camOnly{display:none !important}
 .proofPopStage .cameraFrame{position:absolute;inset:0;width:100%;height:100%;max-height:none;object-fit:contain;background:#000}
 .thumbs{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
 .thumbs img{width:56px;height:56px;object-fit:cover;border-radius:4px;background:#111;border:2px solid #188038}
+body.libraryMode .thumbs img{width:88px;height:88px}
 .again{height:26px;font-size:11px;margin-left:8px;vertical-align:middle}
 .frameBanner{display:none;background:#e6f4ea;border:1px solid #137333;border-radius:8px;padding:10px;margin-bottom:7px;font-size:13px;font-weight:700;text-align:center}
 a.green{display:inline-flex;align-items:center;justify-content:center;height:36px;border-radius:7px;padding:0 10px;font-weight:800;background:#188038;color:#fff;text-decoration:none}
@@ -84,7 +98,7 @@ a.green{display:inline-flex;align-items:center;justify-content:center;height:36p
 #jsErr{display:none;position:fixed;left:8px;right:8px;top:8px;z-index:30;background:#d93025;color:#fff;padding:8px;font-size:12px;white-space:pre-wrap;border-radius:8px}
 </style>
 <script>
-window.DP_VER = 'V173';
+window.DP_VER = 'V174';
 window.DP_PAGE = 'https://yubafashion.github.io/dispatch-proof-camera/';
 window.dpReady = false;
 window.onerror = function (msg, src, line) {
@@ -95,7 +109,7 @@ window.onerror = function (msg, src, line) {
 </script>
 </head>
 <body>
-<div id="boot" style="padding:10px 12px;font-family:Arial,sans-serif;font-weight:800;background:#202124;color:#fff">DISPATCH PROOF V173 — teen tabs. Agar yeh line ke neeche khali hai to Camera.html Save + Deploy New version.</div>
+<div id="boot" style="padding:10px 12px;font-family:Arial,sans-serif;font-weight:800;background:#202124;color:#fff">DISPATCH PROOF V174 — teen tabs. Agar yeh line ke neeche khali hai to Camera.html Save + Deploy New version.</div>
 <div id="jsErr"></div>
 <div class="app">
   <div class="top">
@@ -116,7 +130,7 @@ window.onerror = function (msg, src, line) {
     <button type="button" id="liveWindow" class="green" style="display:none">OPEN LIVE CAMERA</button>
     <span id="cameraState" class="status">Ready</span>
     <span id="driveState" class="status"></span>
-    <span class="status" style="margin-left:auto" id="verBadge">v173</span>
+    <span class="status" style="margin-left:auto" id="verBadge">v174</span>
   </div>
   <div class="scan">
     <input id="awb" autofocus autocomplete="off" placeholder="SCAN AWB BARCODE...">
@@ -128,7 +142,7 @@ window.onerror = function (msg, src, line) {
     <div id="frameBanner" class="frameBanner">
       Keep this sheet box open. The packing camera opens in a new tab.
       <br>
-      <a class="green" id="frameLiveBtn" href="https://yubafashion.github.io/dispatch-proof-camera/?v=V173" target="DP_CAM_V173" rel="opener">Open packing camera</a>
+      <a class="green" id="frameLiveBtn" href="https://yubafashion.github.io/dispatch-proof-camera/?v=V174" target="DP_CAM_V174" rel="opener">Open packing camera</a>
     </div>
     <div id="info" class="info"></div>
     <div id="cameraPanel" class="cameraPanel">
@@ -178,8 +192,10 @@ window.onerror = function (msg, src, line) {
       <video id="returnClipPlayer" class="cameraFrame" controls playsinline style="display:none;margin-top:6px;max-height:140px"></video>
     </div>
     <div id="proofPanel" class="proofPanel">
-      <div id="proofDispatch" class="proofCard"></div>
-      <div id="proofReturn" class="proofCard"></div>
+      <div class="proofCols">
+        <div id="proofDispatch" class="proofCard"></div>
+        <div id="proofReturn" class="proofCard"></div>
+      </div>
       <div id="proofPhotos" class="proofCard"></div>
     </div>
     <div id="empty"></div>
@@ -742,7 +758,7 @@ function demoOrder(awb, videoMode) {
 function gsRun(action, payload, timeoutMs) {
   var act = String(action || '').toUpperCase();
   if (isLocalDemo() && (act === 'HEALTH' || act === 'PING') && !(workerReady && workerSource)) {
-    return Promise.resolve({ ok: true, version: 'V173', found: true, demo: true });
+    return Promise.resolve({ ok: true, version: 'V174', found: true, demo: true });
   }
   if (isLocalDemo() && (act === 'UPLOAD' || act === 'FINISH' || act === 'CHUNK' || act === 'MARK_PENDING' || act === 'CLEAR_PENDING') && !(workerReady && workerSource)) {
     return Promise.resolve({ ok: true, fileId: 'demo', fileName: (payload && payload.fileName) || 'demo.webm', demo: true });
@@ -930,12 +946,12 @@ function b64ToBytes(b64) {
   return out;
 }
 
-async function fetchDriveMedia(rec) {
+async function fetchDriveMedia(rec, quiet) {
   rec = rec || {};
   if (rec.blob) return rec;
   if (rec.blobUrl && /^blob:/i.test(rec.blobUrl)) return rec;
   if (!rec.fileId || !isDriveFileId(rec.fileId)) return rec;
-  note('Video Drive se aa rahi hai…', 'ok');
+  if (!quiet) note('Video Drive se aa rahi hai…', 'ok');
   var meta = await gsRun('PLAY', { fileId: rec.fileId }, 120000);
   if (!meta || meta.ok === false) throw new Error((meta && meta.message) || 'PLAY fail');
   rec.fileName = meta.fileName || rec.fileName;
@@ -1166,6 +1182,60 @@ function blankLibrary() {
   note('', '');
 }
 
+async function fillInlineProof(el, rec) {
+  if (!el || !rec) return;
+  try {
+    if (rec.fileId && isDriveFileId(rec.fileId) && !rec.blobUrl) {
+      rec = await fetchDriveMedia(rec, true);
+    }
+    var src = rec.blobUrl || rec.url || '';
+    if (!src || /drive\.google\.com/i.test(src)) return;
+    el.src = src;
+    el.style.display = 'block';
+  } catch (e) {}
+}
+
+function playInlineOrPop(el, rec, title, anchor) {
+  if (el && el.src) {
+    try { el.play(); } catch (e1) {}
+    return;
+  }
+  playLibClip(rec, title, anchor).catch(function(e) { note(String(e.message || e), 'error'); });
+}
+
+function uniquePhotos(list) {
+  var out = [];
+  var seen = {};
+  (list || []).forEach(function(im) {
+    var k = String(im.fileId || im.fileName || im.url || im.thumb || '');
+    if (!k || seen[k]) return;
+    seen[k] = 1;
+    out.push(im);
+  });
+  return out;
+}
+
+function proofPlayerHtml(kind, ok, vidId, headDlId, closeId, playId, footDlId) {
+  var title = kind === 'RETURN' ? 'RETURN VIDEO' : 'DISPATCH VIDEO';
+  return (
+    '<b class="proofTitle">' + title + '</b>' +
+    '<div class="proofStage">' +
+      '<div class="proofStageHead">' +
+        '<b>' + title + '</b>' +
+        '<button type="button" class="green" id="' + headDlId + '"' + (ok ? '' : ' disabled') + '>DOWNLOAD</button>' +
+        '<button type="button" class="gray" id="' + closeId + '"' + (ok ? '' : ' disabled') + '>CLOSE</button>' +
+      '</div>' +
+      (ok
+        ? '<video id="' + vidId + '" class="proofPreview" controls playsinline></video>'
+        : '<div class="proofEmpty">Abhi nahi bani</div>') +
+    '</div>' +
+    '<div class="proofBtns">' +
+      '<button type="button" class="primary" id="' + playId + '"' + (ok ? '' : ' disabled') + '>PLAY</button>' +
+      '<button type="button" class="green" id="' + footDlId + '"' + (ok ? '' : ' disabled') + '>DOWNLOAD</button>' +
+    '</div>'
+  );
+}
+
 function backendMode(m) {
   m = m || mode;
   return m === 'DISPATCH' ? 'DISPATCH' : 'PROOF';
@@ -1297,12 +1367,12 @@ function showLibrary(r) {
   hidePackingCamera();
   hidePhotoBook();
   if ($('returnClip')) $('returnClip').style.display = 'none';
-  if ($('proofPanel')) $('proofPanel').style.display = 'block';
+  if ($('proofPanel')) $('proofPanel').style.display = 'flex';
   $('empty').style.display = 'none';
   var n = normalizeAwb(r.awb);
   var disp = r.dispatchVideo || (scanMemo[n] && scanMemo[n].dispatchVideo) || null;
   var ret = r.returnVideo || (scanMemo[n] && scanMemo[n].returnVideo) || null;
-  var photos = localPhotos(r.awb);
+  var photos = uniquePhotos(localPhotos(r.awb));
   var dOk = clipOk(disp);
   var rOk = clipOk(ret);
   var pOk = photos.length > 0;
@@ -1323,22 +1393,12 @@ function showLibrary(r) {
   }
   var oid = String(r.orderId || '').trim() || '—';
   var awbLine = String(r.awb || n || '').trim() || '—';
-  var idLine = 'ORDER ID ' + esc(oid) + ' · AWB NUMBER ' + esc(awbLine);
+  var dateLine = String(r.date || '').trim() || '—';
   if (dEl) {
-    dEl.innerHTML =
-      '<b>DISPATCH VIDEO</b>' +
-      '<div class="muted">' + idLine + '</div>' +
-      (dOk ? '' : '<div class="muted">Abhi nahi bani</div>') +
-      '<button type="button" class="primary" id="libPlayDispatch"' + (dOk ? '' : ' disabled') + '>PLAY</button>' +
-      '<button type="button" class="green" id="libDlDispatch"' + (dOk ? '' : ' disabled') + '>DOWNLOAD</button>';
+    dEl.innerHTML = proofPlayerHtml('DISPATCH', dOk, 'libDispVid', 'libHeadDlDispatch', 'libCloseDispatch', 'libPlayDispatch', 'libDlDispatch');
   }
   if (rEl) {
-    rEl.innerHTML =
-      '<b>RETURN VIDEO</b>' +
-      '<div class="muted">' + idLine + '</div>' +
-      (rOk ? '' : '<div class="muted">Abhi nahi bani</div>') +
-      '<button type="button" class="primary" id="libPlayReturn"' + (rOk ? '' : ' disabled') + '>PLAY</button>' +
-      '<button type="button" class="green" id="libDlReturn"' + (rOk ? '' : ' disabled') + '>DOWNLOAD</button>';
+    rEl.innerHTML = proofPlayerHtml('RETURN', rOk, 'libRetVid', 'libHeadDlReturn', 'libCloseReturn', 'libPlayReturn', 'libDlReturn');
   }
   if (pEl) {
     pEl.innerHTML =
@@ -1349,32 +1409,52 @@ function showLibrary(r) {
       }).join('') + '</div>') : '') +
       '<button type="button" class="green" id="libDlZip"' + (pOk ? '' : ' disabled') + '>DOWNLOAD ZIP' + (pOk ? (' (' + photos.length + ')') : '') + '</button>';
   }
+  function bindDl(id, rec, ok, name) {
+    if (!$(id)) return;
+    $(id).onclick = function() {
+      if (!ok) { need(name); return; }
+      lastProofPlayRec = rec;
+      downloadClip(rec, name === 'return video' ? 'RETURN.webm' : 'DISPATCH.webm').catch(function(e) {
+        note(String(e.message || e), 'error');
+      });
+    };
+  }
+  function bindClose(id, vidId) {
+    if (!$(id)) return;
+    $(id).onclick = function() {
+      var v = $(vidId);
+      if (!v) return;
+      try { v.pause(); } catch (e1) {}
+    };
+  }
   if ($('libPlayDispatch')) $('libPlayDispatch').onclick = function() {
     if (!dOk) { need('dispatch video'); return; }
-    playLibClip(disp, 'DISPATCH VIDEO', $('libPlayDispatch')).catch(function(e) { note(String(e.message || e), 'error'); });
+    playInlineOrPop($('libDispVid'), disp, 'DISPATCH VIDEO', $('libPlayDispatch'));
   };
-  if ($('libDlDispatch')) $('libDlDispatch').onclick = function() {
-    if (!dOk) { need('dispatch video'); return; }
-    lastProofPlayRec = disp;
-    downloadClip(disp, 'DISPATCH.webm').then(function() {
-      note('Dispatch video download start.', 'ok');
-    }).catch(function(e) { note(String(e.message || e), 'error'); });
-  };
+  bindDl('libDlDispatch', disp, dOk, 'dispatch video');
+  bindDl('libHeadDlDispatch', disp, dOk, 'dispatch video');
+  bindClose('libCloseDispatch', 'libDispVid');
   if ($('libPlayReturn')) $('libPlayReturn').onclick = function() {
     if (!rOk) { need('return video'); return; }
-    playLibClip(ret, 'RETURN VIDEO', $('libPlayReturn')).catch(function(e) { note(String(e.message || e), 'error'); });
+    playInlineOrPop($('libRetVid'), ret, 'RETURN VIDEO', $('libPlayReturn'));
   };
-  if ($('libDlReturn')) $('libDlReturn').onclick = function() {
-    if (!rOk) { need('return video'); return; }
-    lastProofPlayRec = ret;
-    downloadClip(ret, 'RETURN.webm').catch(function(e) { note(String(e.message || e), 'error'); });
-  };
+  bindDl('libDlReturn', ret, rOk, 'return video');
+  bindDl('libHeadDlReturn', ret, rOk, 'return video');
+  bindClose('libCloseReturn', 'libRetVid');
   if ($('libDlZip')) $('libDlZip').onclick = function() {
     if (!pOk) { need('images'); return; }
     downloadPhotoBook().catch(function(e) { note(String(e.message || e), 'error'); });
   };
-  lineStatus('VIDEO PROOF · ORDER ID ' + esc(oid) + ' · AWB NUMBER ' + esc(awbLine));
+  lineStatus(
+    '<div class="proofHeadLine">' +
+      '<span>VIDEO PROOF &nbsp; AWB-' + esc(awbLine) + '</span>' +
+      '<span>ORDER ID-' + esc(oid) + '</span>' +
+      '<span>DATE-' + esc(dateLine) + '</span>' +
+    '</div>'
+  );
   note('', '');
+  if (dOk) fillInlineProof($('libDispVid'), disp);
+  if (rOk) fillInlineProof($('libRetVid'), ret);
 }
 
 function setMode(next) {
@@ -1528,7 +1608,7 @@ function liveHref(r) {
     ? String(location.href || '').split('#')[0].split('?')[0]
     : (window.DP_PAGE || 'https://yubafashion.github.io/dispatch-proof-camera/');
   var join = page.indexOf('?') >= 0 ? '&' : '?';
-  var u = page + join + 'v=' + encodeURIComponent(window.DP_VER || 'V173') + '&t=' + Date.now();
+  var u = page + join + 'v=' + encodeURIComponent(window.DP_VER || 'V174') + '&t=' + Date.now();
   if (API_URL) u += '&api=' + encodeURIComponent(API_URL);
   if (awb) u += '&awb=' + encodeURIComponent(awb);
   return u;
@@ -1542,7 +1622,7 @@ function packingPopupFeatures() {
 }
 
 function openLiveWindow(r) {
-  window.open(liveHref(r || lastScan), 'DP_CAM_' + (window.DP_VER || 'V173'), packingPopupFeatures());
+  window.open(liveHref(r || lastScan), 'DP_CAM_' + (window.DP_VER || 'V174'), packingPopupFeatures());
   note('Packing popup desktop ke beech. Sheet box Drive ke liye khula rakho.', 'ok');
   return true;
 }
