@@ -1,11 +1,11 @@
 <!doctype html>
-<!-- FILE 2 + FILE 3 : Camera UI V171 — Code.gs is alag file, isme mat paste karo -->
+<!-- FILE 2 + FILE 3 : Camera UI V172 — Code.gs is alag file, isme mat paste karo -->
 <html>
 <head>
 <meta charset="utf-8">
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
-<title>DISPATCH PROOF V171</title>
+<title>DISPATCH PROOF V172</title>
 <style>
 *{box-sizing:border-box}
 html,body{margin:0;width:100%;height:100%;overflow:hidden;font-family:Arial,sans-serif;background:#111;color:#202124}
@@ -68,7 +68,6 @@ body.libraryMode .app{width:100%;height:100%}
 body.libraryMode .main{overflow:auto;flex:1;min-height:0}
 body.libraryMode .cameraPanel,body.libraryMode #photoBook,body.libraryMode #returnClip{display:none !important}
 body.libraryMode .camOnly{display:none !important}
-body.libraryMode #proofPanel{display:block}
 .proofPop{display:none;position:absolute;z-index:50;width:3in;height:3in;max-width:calc(100% - 16px);max-height:calc(100% - 16px);background:#111;border:1px solid #3c4043;border-radius:8px;box-shadow:0 10px 28px rgba(0,0,0,.45);flex-direction:column;overflow:hidden}
 .proofPop.on{display:flex}
 .proofPopHead{flex:0 0 auto;display:flex;align-items:center;gap:4px;padding:4px 6px;background:#202124;color:#fff}
@@ -85,7 +84,7 @@ a.green{display:inline-flex;align-items:center;justify-content:center;height:36p
 #jsErr{display:none;position:fixed;left:8px;right:8px;top:8px;z-index:30;background:#d93025;color:#fff;padding:8px;font-size:12px;white-space:pre-wrap;border-radius:8px}
 </style>
 <script>
-window.DP_VER = 'V171';
+window.DP_VER = 'V172';
 window.DP_PAGE = 'https://yubafashion.github.io/dispatch-proof-camera/';
 window.dpReady = false;
 window.onerror = function (msg, src, line) {
@@ -96,7 +95,7 @@ window.onerror = function (msg, src, line) {
 </script>
 </head>
 <body>
-<div id="boot" style="padding:10px 12px;font-family:Arial,sans-serif;font-weight:800;background:#202124;color:#fff">DISPATCH PROOF V171 — teen tabs. Agar yeh line ke neeche khali hai to Camera.html Save + Deploy New version.</div>
+<div id="boot" style="padding:10px 12px;font-family:Arial,sans-serif;font-weight:800;background:#202124;color:#fff">DISPATCH PROOF V172 — teen tabs. Agar yeh line ke neeche khali hai to Camera.html Save + Deploy New version.</div>
 <div id="jsErr"></div>
 <div class="app">
   <div class="top">
@@ -117,7 +116,7 @@ window.onerror = function (msg, src, line) {
     <button type="button" id="liveWindow" class="green" style="display:none">OPEN LIVE CAMERA</button>
     <span id="cameraState" class="status">Ready</span>
     <span id="driveState" class="status"></span>
-    <span class="status" style="margin-left:auto" id="verBadge">v171</span>
+    <span class="status" style="margin-left:auto" id="verBadge">v172</span>
   </div>
   <div class="scan">
     <input id="awb" autofocus autocomplete="off" placeholder="SCAN AWB BARCODE...">
@@ -129,7 +128,7 @@ window.onerror = function (msg, src, line) {
     <div id="frameBanner" class="frameBanner">
       Keep this sheet box open. The packing camera opens in a new tab.
       <br>
-      <a class="green" id="frameLiveBtn" href="https://yubafashion.github.io/dispatch-proof-camera/?v=V171" target="DP_CAM_V171" rel="opener">Open packing camera</a>
+      <a class="green" id="frameLiveBtn" href="https://yubafashion.github.io/dispatch-proof-camera/?v=V172" target="DP_CAM_V172" rel="opener">Open packing camera</a>
     </div>
     <div id="info" class="info"></div>
     <div id="cameraPanel" class="cameraPanel">
@@ -743,7 +742,7 @@ function demoOrder(awb, videoMode) {
 function gsRun(action, payload, timeoutMs) {
   var act = String(action || '').toUpperCase();
   if (isLocalDemo() && (act === 'HEALTH' || act === 'PING') && !(workerReady && workerSource)) {
-    return Promise.resolve({ ok: true, version: 'V171', found: true, demo: true });
+    return Promise.resolve({ ok: true, version: 'V172', found: true, demo: true });
   }
   if (isLocalDemo() && (act === 'UPLOAD' || act === 'FINISH' || act === 'CHUNK' || act === 'MARK_PENDING' || act === 'CLEAR_PENDING') && !(workerReady && workerSource)) {
     return Promise.resolve({ ok: true, fileId: 'demo', fileName: (payload && payload.fileName) || 'demo.webm', demo: true });
@@ -1156,6 +1155,17 @@ function hideProofPanel() {
   if ($('returnClip')) $('returnClip').style.display = 'none';
 }
 
+function blankLibrary() {
+  lastProofOrder = null;
+  lastProofPlayRec = null;
+  hideProofPanel();
+  hideResultCard();
+  if ($('proofDispatch')) $('proofDispatch').innerHTML = '';
+  if ($('proofReturn')) $('proofReturn').innerHTML = '';
+  if ($('proofPhotos')) $('proofPhotos').innerHTML = '';
+  note('', '');
+}
+
 function backendMode(m) {
   m = m || mode;
   return m === 'DISPATCH' ? 'DISPATCH' : 'PROOF';
@@ -1392,8 +1402,7 @@ function setMode(next) {
   } else if (mode === 'LIBRARY') {
     hidePhotoBook();
     if ($('returnClip')) $('returnClip').style.display = 'none';
-    if (lastScan && lastScan.awb) showLibrary(lastScan);
-    else note('VIDEO PROOF — scan AWB.', 'ok');
+    blankLibrary();
   }
   $('awb').focus();
 }
@@ -1515,7 +1524,7 @@ function liveHref(r) {
     ? String(location.href || '').split('#')[0].split('?')[0]
     : (window.DP_PAGE || 'https://yubafashion.github.io/dispatch-proof-camera/');
   var join = page.indexOf('?') >= 0 ? '&' : '?';
-  var u = page + join + 'v=' + encodeURIComponent(window.DP_VER || 'V171') + '&t=' + Date.now();
+  var u = page + join + 'v=' + encodeURIComponent(window.DP_VER || 'V172') + '&t=' + Date.now();
   if (API_URL) u += '&api=' + encodeURIComponent(API_URL);
   if (awb) u += '&awb=' + encodeURIComponent(awb);
   return u;
@@ -1529,7 +1538,7 @@ function packingPopupFeatures() {
 }
 
 function openLiveWindow(r) {
-  window.open(liveHref(r || lastScan), 'DP_CAM_' + (window.DP_VER || 'V171'), packingPopupFeatures());
+  window.open(liveHref(r || lastScan), 'DP_CAM_' + (window.DP_VER || 'V172'), packingPopupFeatures());
   note('Packing popup desktop ke beech. Sheet box Drive ke liye khula rakho.', 'ok');
   return true;
 }
@@ -2408,6 +2417,7 @@ try {
     }
     $('awb').value = '';
     clearResult();
+    if (mode === 'LIBRARY') blankLibrary();
     note('Cleared — ready for the next AWB scan.', 'ok');
     $('awb').focus();
   });
