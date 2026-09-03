@@ -1,11 +1,11 @@
 <!doctype html>
-<!-- FILE 2 + FILE 3 : Camera UI V174 — Code.gs is alag file, isme mat paste karo -->
+<!-- FILE 2 + FILE 3 : Camera UI V175 — Code.gs is alag file, isme mat paste karo -->
 <html>
 <head>
 <meta charset="utf-8">
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
-<title>DISPATCH PROOF V174</title>
+<title>DISPATCH PROOF V175</title>
 <style>
 *{box-sizing:border-box}
 html,body{margin:0;width:100%;height:100%;overflow:hidden;font-family:Arial,sans-serif;background:#111;color:#202124}
@@ -90,7 +90,11 @@ body.libraryMode .camOnly{display:none !important}
 .proofPopStage .cameraFrame{position:absolute;inset:0;width:100%;height:100%;max-height:none;object-fit:contain;background:#000}
 .thumbs{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
 .thumbs img{width:56px;height:56px;object-fit:cover;border-radius:4px;background:#111;border:2px solid #188038}
-body.libraryMode .thumbs img{width:88px;height:88px}
+body.libraryMode .proofCols{flex:0 0 auto}
+body.libraryMode #proofPhotos{flex:1 1 auto;min-height:130px;overflow:auto}
+body.libraryMode .proofCard b.proofTitle{text-align:center}
+body.libraryMode .thumbs{gap:6px}
+body.libraryMode .thumbs img{width:72px;height:72px}
 .again{height:26px;font-size:11px;margin-left:8px;vertical-align:middle}
 .frameBanner{display:none;background:#e6f4ea;border:1px solid #137333;border-radius:8px;padding:10px;margin-bottom:7px;font-size:13px;font-weight:700;text-align:center}
 a.green{display:inline-flex;align-items:center;justify-content:center;height:36px;border-radius:7px;padding:0 10px;font-weight:800;background:#188038;color:#fff;text-decoration:none}
@@ -98,7 +102,7 @@ a.green{display:inline-flex;align-items:center;justify-content:center;height:36p
 #jsErr{display:none;position:fixed;left:8px;right:8px;top:8px;z-index:30;background:#d93025;color:#fff;padding:8px;font-size:12px;white-space:pre-wrap;border-radius:8px}
 </style>
 <script>
-window.DP_VER = 'V174';
+window.DP_VER = 'V175';
 window.DP_PAGE = 'https://yubafashion.github.io/dispatch-proof-camera/';
 window.dpReady = false;
 window.onerror = function (msg, src, line) {
@@ -109,7 +113,7 @@ window.onerror = function (msg, src, line) {
 </script>
 </head>
 <body>
-<div id="boot" style="padding:10px 12px;font-family:Arial,sans-serif;font-weight:800;background:#202124;color:#fff">DISPATCH PROOF V174 — teen tabs. Agar yeh line ke neeche khali hai to Camera.html Save + Deploy New version.</div>
+<div id="boot" style="padding:10px 12px;font-family:Arial,sans-serif;font-weight:800;background:#202124;color:#fff">DISPATCH PROOF V175 — teen tabs. Agar yeh line ke neeche khali hai to Camera.html Save + Deploy New version.</div>
 <div id="jsErr"></div>
 <div class="app">
   <div class="top">
@@ -130,7 +134,7 @@ window.onerror = function (msg, src, line) {
     <button type="button" id="liveWindow" class="green" style="display:none">OPEN LIVE CAMERA</button>
     <span id="cameraState" class="status">Ready</span>
     <span id="driveState" class="status"></span>
-    <span class="status" style="margin-left:auto" id="verBadge">v174</span>
+    <span class="status" style="margin-left:auto" id="verBadge">v175</span>
   </div>
   <div class="scan">
     <input id="awb" autofocus autocomplete="off" placeholder="SCAN AWB BARCODE...">
@@ -142,7 +146,7 @@ window.onerror = function (msg, src, line) {
     <div id="frameBanner" class="frameBanner">
       Keep this sheet box open. The packing camera opens in a new tab.
       <br>
-      <a class="green" id="frameLiveBtn" href="https://yubafashion.github.io/dispatch-proof-camera/?v=V174" target="DP_CAM_V174" rel="opener">Open packing camera</a>
+      <a class="green" id="frameLiveBtn" href="https://yubafashion.github.io/dispatch-proof-camera/?v=V175" target="DP_CAM_V175" rel="opener">Open packing camera</a>
     </div>
     <div id="info" class="info"></div>
     <div id="cameraPanel" class="cameraPanel">
@@ -394,6 +398,7 @@ function mergeRemotePhotos(r) {
   if (!n) return;
   var local = localPhotos(n);
   (r.returnImages || []).forEach(function(im) {
+    if (!im.url && !im.thumb && !im.fileId) return;
     var name = im.fileName || im.fileId || '';
     var exists = local.some(function(x) {
       return (name && (x.fileName === name || x.fileId === im.fileId)) || (!x.local && x.url && im.url && x.url === im.url);
@@ -758,7 +763,7 @@ function demoOrder(awb, videoMode) {
 function gsRun(action, payload, timeoutMs) {
   var act = String(action || '').toUpperCase();
   if (isLocalDemo() && (act === 'HEALTH' || act === 'PING') && !(workerReady && workerSource)) {
-    return Promise.resolve({ ok: true, version: 'V174', found: true, demo: true });
+    return Promise.resolve({ ok: true, version: 'V175', found: true, demo: true });
   }
   if (isLocalDemo() && (act === 'UPLOAD' || act === 'FINISH' || act === 'CHUNK' || act === 'MARK_PENDING' || act === 'CLEAR_PENDING') && !(workerReady && workerSource)) {
     return Promise.resolve({ ok: true, fileId: 'demo', fileName: (payload && payload.fileName) || 'demo.webm', demo: true });
@@ -936,6 +941,13 @@ function drivePreviewUrl(fileId) {
 
 function driveDownloadUrl(fileId) {
   return 'https://drive.google.com/uc?export=download&id=' + encodeURIComponent(fileId);
+}
+
+function proofStreamUrl(fileId) {
+  var id = String(fileId || '').trim();
+  if (!id || !isDriveFileId(id) || !API_URL) return '';
+  var join = String(API_URL).indexOf('?') >= 0 ? '&' : '?';
+  return API_URL + join + 'action=STREAM&fileId=' + encodeURIComponent(id);
 }
 
 function b64ToBytes(b64) {
@@ -1185,13 +1197,24 @@ function blankLibrary() {
 async function fillInlineProof(el, rec) {
   if (!el || !rec) return;
   try {
-    if (rec.fileId && isDriveFileId(rec.fileId) && !rec.blobUrl) {
-      rec = await fetchDriveMedia(rec, true);
+    var src = rec.blobUrl || rec.playUrl || '';
+    if (!src && rec.fileId && isDriveFileId(rec.fileId)) {
+      src = proofStreamUrl(rec.fileId);
+      rec.playUrl = src;
     }
-    var src = rec.blobUrl || rec.url || '';
-    if (!src || /drive\.google\.com/i.test(src)) return;
+    if (!src || /drive\.google\.com/i.test(src)) {
+      rec = await fetchDriveMedia(rec, true);
+      src = rec.blobUrl || '';
+    }
+    if (!src) return;
     el.src = src;
     el.style.display = 'block';
+    el.onerror = function() {
+      el.onerror = null;
+      fetchDriveMedia(rec, true).then(function(got) {
+        if (got && got.blobUrl) el.src = got.blobUrl;
+      }).catch(function() {});
+    };
   } catch (e) {}
 }
 
@@ -1258,23 +1281,35 @@ function saveBlobFile(blob, name) {
 
 async function downloadClip(rec, fallbackName) {
   rec = rec || lastProofPlayRec || {};
+  var name = rec.fileName || fallbackName || 'video.webm';
+  if (rec.blob) {
+    saveBlobFile(rec.blob, name);
+    return;
+  }
+  if (rec.blobUrl && (rec.blobUrl.indexOf('blob:') === 0 || rec.blobUrl.indexOf('data:') === 0)) {
+    var resb = await fetch(rec.blobUrl);
+    saveBlobFile(await resb.blob(), name);
+    return;
+  }
+  var stream = rec.playUrl || proofStreamUrl(rec.fileId);
+  if (stream) {
+    var a = document.createElement('a');
+    a.href = stream;
+    a.download = name;
+    a.target = '_blank';
+    a.rel = 'noopener';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    return;
+  }
   if (rec.fileId && isDriveFileId(rec.fileId) && !rec.blob) {
     rec = await fetchDriveMedia(rec);
     lastProofPlayRec = rec;
-  }
-  if (rec.blob) {
-    saveBlobFile(rec.blob, rec.fileName || fallbackName);
-    return;
-  }
-  var src = rec.blobUrl || '';
-  if (src.indexOf('blob:') === 0 || src.indexOf('data:') === 0) {
-    var resb = await fetch(src);
-    saveBlobFile(await resb.blob(), rec.fileName || fallbackName);
-    return;
-  }
-  if (rec.url && !/drive\.google\.com/i.test(rec.url)) {
-    window.open(rec.url, '_blank', 'noopener');
-    return;
+    if (rec.blob) {
+      saveBlobFile(rec.blob, rec.fileName || name);
+      return;
+    }
   }
   note('Download file nahi mili.', 'error');
 }
@@ -1402,7 +1437,7 @@ function showLibrary(r) {
   }
   if (pEl) {
     pEl.innerHTML =
-      '<b>IMAGES</b>' +
+      '<b class="proofTitle">IMAGES</b>' +
       '<div class="muted">' + (pOk ? (photos.length + ' photo') : 'Abhi koi image nahi') + '</div>' +
       (pOk ? ('<div class="thumbs">' + photos.map(function(im) {
         return '<img alt="" src="' + esc(im.thumb || im.url || '') + '">';
@@ -1608,7 +1643,7 @@ function liveHref(r) {
     ? String(location.href || '').split('#')[0].split('?')[0]
     : (window.DP_PAGE || 'https://yubafashion.github.io/dispatch-proof-camera/');
   var join = page.indexOf('?') >= 0 ? '&' : '?';
-  var u = page + join + 'v=' + encodeURIComponent(window.DP_VER || 'V174') + '&t=' + Date.now();
+  var u = page + join + 'v=' + encodeURIComponent(window.DP_VER || 'V175') + '&t=' + Date.now();
   if (API_URL) u += '&api=' + encodeURIComponent(API_URL);
   if (awb) u += '&awb=' + encodeURIComponent(awb);
   return u;
@@ -1622,7 +1657,7 @@ function packingPopupFeatures() {
 }
 
 function openLiveWindow(r) {
-  window.open(liveHref(r || lastScan), 'DP_CAM_' + (window.DP_VER || 'V174'), packingPopupFeatures());
+  window.open(liveHref(r || lastScan), 'DP_CAM_' + (window.DP_VER || 'V175'), packingPopupFeatures());
   note('Packing popup desktop ke beech. Sheet box Drive ke liye khula rakho.', 'ok');
   return true;
 }
