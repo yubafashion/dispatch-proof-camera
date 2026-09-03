@@ -1,11 +1,11 @@
 <!doctype html>
-<!-- FILE 2 + FILE 3 : Camera UI V148 — Code.gs is alag file, isme mat paste karo -->
+<!-- FILE 2 + FILE 3 : Camera UI V160 — Code.gs is alag file, isme mat paste karo -->
 <html>
 <head>
 <meta charset="utf-8">
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
-<title>DISPATCH PROOF V148</title>
+<title>DISPATCH PROOF V160</title>
 <style>
 *{box-sizing:border-box}
 html,body{margin:0;width:100%;height:100%;overflow:hidden;font-family:Arial,sans-serif;background:#111;color:#202124}
@@ -29,11 +29,13 @@ button{height:32px;border:0;border-radius:7px;padding:0 10px;font-weight:800;cur
 .primary{background:#1a73e8;color:#fff}.green{background:#188038;color:#fff}.orange{background:#f9ab00;color:#111}.gray{background:#e8eaed;color:#202124}.red{background:#d93025;color:#fff}
 .main{flex:1;min-height:0;padding:6px;display:flex;flex-direction:column;overflow:hidden}
 .notice{display:none;border-radius:7px;padding:6px 8px;margin-bottom:6px;font-size:12px;font-weight:700;flex:0 0 auto}
-.notice.error{background:#fde7e9;color:#b3261e}.notice.ok{background:#e6f4ea;color:#137333}.notice.terminal{background:#fde7e9;color:#b3261e;font-size:14px;text-align:center}
+.notice.error{background:#fde7e9;color:#b3261e}.notice.ok{background:#e6f4ea;color:#137333}.notice.hint{background:#e8f0fe;color:#174ea6}.notice.terminal{background:#fde7e9;color:#b3261e;font-size:14px;text-align:center}
 .info,#empty,#videoModal{display:none !important}
-.card{display:none;background:#fff;border:1px solid #dfe3e8;border-radius:6px;padding:5px 8px;margin-bottom:4px;font-size:12px;font-weight:700;line-height:1.25;flex:0 0 auto}
+.card{display:none;background:#fff;border:1px solid #dfe3e8;border-radius:6px;padding:3px 6px;margin-top:2px;margin-bottom:0;font-size:11px;font-weight:700;line-height:1.2;flex:0 0 auto}
 .card.on{display:block !important}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:4px 8px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:2px 10px}
+.skuLine{grid-column:1/-1;min-width:0}
+.skuLine .value{font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;word-break:normal}
 .label{font-size:8px;color:#6b7280;font-weight:700;letter-spacing:.3px}
 .value{font-weight:800;font-size:12px;word-break:break-all}
 .ready{color:#188038}.required{color:#d93025}
@@ -76,11 +78,10 @@ a.green{display:inline-flex;align-items:center;justify-content:center;height:36p
 @media(max-width:600px){
  html,body,.app{width:100%;height:100%;max-width:none;max-height:none}
  .tools{flex-wrap:wrap}.tools select{flex:1;min-width:120px}
- .grid{grid-template-columns:1fr}
 }
 </style>
 <script>
-window.DP_VER = 'V148';
+window.DP_VER = 'V160';
 window.DP_PAGE = 'https://yubafashion.github.io/dispatch-proof-camera/';
 window.dpReady = false;
 window.onerror = function (msg, src, line) {
@@ -91,7 +92,7 @@ window.onerror = function (msg, src, line) {
 </script>
 </head>
 <body>
-<div id="boot" style="padding:10px 12px;font-family:Arial,sans-serif;font-weight:800;background:#202124;color:#fff">DISPATCH PROOF V148 — teen tabs. Agar yeh line ke neeche khali hai to Camera.html Save + Deploy New version.</div>
+<div id="boot" style="padding:10px 12px;font-family:Arial,sans-serif;font-weight:800;background:#202124;color:#fff">DISPATCH PROOF V160 — teen tabs. Agar yeh line ke neeche khali hai to Camera.html Save + Deploy New version.</div>
 <div id="jsErr"></div>
 <div class="app">
   <div class="top">
@@ -112,7 +113,7 @@ window.onerror = function (msg, src, line) {
     <button type="button" id="liveWindow" class="green" style="display:none">OPEN LIVE CAMERA</button>
     <span id="cameraState" class="status">Ready</span>
     <span id="driveState" class="status"></span>
-    <span class="status" style="margin-left:auto">v148</span>
+    <span class="status" style="margin-left:auto">v159</span>
   </div>
   <div class="scan">
     <input id="awb" autofocus autocomplete="off" placeholder="SCAN AWB BARCODE...">
@@ -124,10 +125,9 @@ window.onerror = function (msg, src, line) {
     <div id="frameBanner" class="frameBanner">
       Keep this sheet box open. The packing camera opens in a new tab.
       <br>
-      <a class="green" id="frameLiveBtn" href="https://yubafashion.github.io/dispatch-proof-camera/?v=V148" target="DP_CAM_V148" rel="opener">Open packing camera</a>
+      <a class="green" id="frameLiveBtn" href="https://yubafashion.github.io/dispatch-proof-camera/?v=V160" target="DP_CAM_V160" rel="opener">Open packing camera</a>
     </div>
     <div id="info" class="info"></div>
-    <div id="result" class="card"></div>
     <div id="cameraPanel" class="cameraPanel">
       <div class="cameraHead">
         <span id="cameraLabel">CAMERA READY</span>
@@ -150,6 +150,7 @@ window.onerror = function (msg, src, line) {
         <button type="button" id="stopBtn" class="red" style="display:none">■ STOP &amp; SAVE</button>
       </div>
     </div>
+    <div id="result" class="card"></div>
     <div id="photoBook" class="photoBook">
       <div class="photoBookHead">
         <span id="photoBookLabel">RETURN PHOTOS · 0</span>
@@ -180,7 +181,7 @@ window.onerror = function (msg, src, line) {
 <script>
 'use strict';
 
-var SCAN_MS = 10000;
+var SCAN_MS = 20000;
 var mode = 'DISPATCH';
 var stream = null;
 var packTimer = null;
@@ -223,7 +224,14 @@ function note(text, kind) {
 }
 
 function normalizeAwb(v) {
-  return String(v == null ? '' : v).replace(/[^\w]/g, '').toUpperCase();
+  if (v == null || v === '') return '';
+  if (typeof v === 'number' && isFinite(v)) return String(Math.round(v));
+  var s = String(v).trim();
+  if (/^\d+\.?\d*[eE][+\-]?\d+$/.test(s.replace(/\s/g, ''))) {
+    var num = Number(s);
+    if (isFinite(num)) return String(Math.round(num));
+  }
+  return s.replace(/[^\w]/g, '').toUpperCase();
 }
 
 function esc(v) {
@@ -405,9 +413,14 @@ async function downloadPhotoBook() {
   note(files.length + ' photos ek ZIP mein download.', 'ok');
 }
 
+function isFakeDemo() {
+  var pageParams = window.__pageParams || new URLSearchParams(location.search);
+  return pageParams.get('demo') === '1';
+}
+
 function isLocalDemo() {
   var pageParams = window.__pageParams || new URLSearchParams(location.search);
-  return pageParams.get('demo') === '1' || location.hostname === '127.0.0.1' || location.hostname === 'localhost';
+  return isFakeDemo() || location.hostname === '127.0.0.1' || location.hostname === 'localhost';
 }
 
 function normalizeApiUrl(raw) {
@@ -472,9 +485,12 @@ function sheetBoxHint() {
 
 function ensureWorker() {
   return new Promise(function(resolve, reject) {
-    if (isLocalDemo()) { resolve(); return; }
     pingSheetBox();
     if (workerReady && workerSource) { resolve(); return; }
+    if (isLocalDemo() && !(window.opener && !window.opener.closed)) {
+      resolve();
+      return;
+    }
     var n = 0;
     var t = setInterval(function() {
       pingSheetBox();
@@ -605,29 +621,97 @@ function gsRunNative(action, payload, timeoutMs) {
   });
 }
 
-function demoOrder(awb) {
+var ORDER_SHEET = [
+  {
+    date: '31-08-2026',
+    orderId: '325531506343972736_1',
+    awb: '1490840510818035',
+    store: 'Dr. Prime',
+    dispatchType: 'COD',
+    sku: 'JHM-LNG-001_LDM Free Size Gold',
+    status: ''
+  },
+  {
+    date: '31-08-2026',
+    orderId: '325534705220968128_1',
+    awb: '1490840510817965',
+    store: 'Dr. Prime',
+    dispatchType: 'COD',
+    sku: 'JHM-LNG-001_LDM Free Size Gold',
+    status: ''
+  },
+  {
+    date: '01-09-2026',
+    orderId: '325947145508320832_1',
+    awb: '149084055657303',
+    store: 'Dr. Prime',
+    dispatchType: 'COD',
+    sku: 'TR-INFINITY-PURPLE-008_LDM Free Size NA'
+  },
+  {
+    date: '01-09-2026',
+    orderId: '32598591377804160_1',
+    awb: '149084055656802',
+    store: 'Dr. Prime',
+    dispatchType: 'COD',
+    sku: 'TR-INFINITY-PURPLE-008_LDM Free Size NA'
+  },
+  {
+    date: '01-09-2026',
+    orderId: '325903002925171328_1',
+    awb: '1490840569033550',
+    store: 'Dr. Prime',
+    dispatchType: 'Prepaid',
+    sku: 'TR-INFINITY-PURPLE-008_LDM Free Size NA'
+  },
+  {
+    date: '02-09-2026',
+    orderId: '326316109392229703_1',
+    awb: '149084055401220',
+    store: 'Dr. Prime',
+    dispatchType: 'COD',
+    sku: 'DR01/A Free Size Gold'
+  }
+];
+
+function demoOrder(awb, videoMode) {
   var n = normalizeAwb(awb);
   if (!n) return { found: false, message: 'Please scan AWB.' };
   if (n === '1499990000111222') {
     return {
       ok: true, found: true, terminal: true, duplicate: false, fast: true,
       date: '02-09-2026', orderId: 'YF-CLOSED', awb: n,
-      dispatchType: 'FORWARD', status: 'Delivered', sku: 'NA', store: 'Hotel Midtown',
+      dispatchType: 'FORWARD', sku: 'NA', skuId: 'NA', store: 'Dr. Prime',
       videoType: 'DISPATCH', dispatchVideo: null, returnVideo: null
     };
   }
+  var i;
+  var hit = null;
+  for (i = 0; i < ORDER_SHEET.length; i++) {
+    if (normalizeAwb(ORDER_SHEET[i].awb) === n) {
+      hit = ORDER_SHEET[i];
+      break;
+    }
+  }
   var rec = scanMemo[n] || {};
   var photos = localProofPhotos[n] || rec.returnImages || [];
+  var vt = String(videoMode || mode || 'DISPATCH').toUpperCase();
+  if (!hit) {
+    return { ok: true, found: false, awb: n, message: 'AWB Order rows mein nahi. Preview sample: 149084055657303' };
+  }
   return {
     ok: true, found: true, terminal: false,
     duplicate: !!(rec.dispatchVideo && rec.dispatchVideo.fileId && rec.dispatchVideo.fileId !== 'demo'),
-    date: new Date().toLocaleDateString('en-GB'),
-    orderId: n === '1490840510818035' ? '321541406115441984_1' : ('YF-' + n.slice(-5)),
-    awb: n,
-    dispatchType: n === '1490840510818035' ? 'Prepaid' : 'COD',
-    sku: n === '1490840510818035' ? 'TORG_06MLSTN_AD_02_LDM Free Size NA' : 'SKU',
-    store: 'Dr. Demo Store',
-    videoType: mode === 'DISPATCH' ? 'DISPATCH' : 'RETURN',
+    date: hit.date,
+    orderId: hit.orderId,
+    awb: hit.awb || n,
+    store: hit.store,
+    dispatchType: hit.dispatchType,
+    sku: hit.sku,
+    skuId: hit.sku,
+    status: hit.status || '',
+    source: 'Order!C',
+    videoType: vt === 'PROOF' || vt === 'RETURN' || vt === 'LIBRARY' ? 'RETURN' : 'DISPATCH',
     dispatchVideo: (rec.dispatchVideo && rec.dispatchVideo.fileId && rec.dispatchVideo.fileId !== 'demo') ? rec.dispatchVideo : null,
     returnVideo: rec.returnVideo || null,
     returnImages: photos,
@@ -637,13 +721,10 @@ function demoOrder(awb) {
 
 function gsRun(action, payload, timeoutMs) {
   var act = String(action || '').toUpperCase();
-  if (isLocalDemo() && (act === 'HEALTH' || act === 'PING')) {
-    return Promise.resolve({ ok: true, version: 'V148', found: true, demo: true });
+  if (isLocalDemo() && (act === 'HEALTH' || act === 'PING') && !(workerReady && workerSource)) {
+    return Promise.resolve({ ok: true, version: 'V160', found: true, demo: true });
   }
-  if (isLocalDemo() && act === 'SCAN') {
-    return Promise.resolve(demoOrder(payload && payload.awb));
-  }
-  if (isLocalDemo() && (act === 'UPLOAD' || act === 'FINISH' || act === 'CHUNK' || act === 'MARK_PENDING' || act === 'CLEAR_PENDING')) {
+  if (isLocalDemo() && (act === 'UPLOAD' || act === 'FINISH' || act === 'CHUNK' || act === 'MARK_PENDING' || act === 'CLEAR_PENDING') && !(workerReady && workerSource)) {
     return Promise.resolve({ ok: true, fileId: 'demo', fileName: (payload && payload.fileName) || 'demo.webm', demo: true });
   }
   if (isLocalDemo() && act === 'PLAY') {
@@ -658,13 +739,22 @@ function gsRun(action, payload, timeoutMs) {
   }
   if (act === 'SCAN') {
     var data = { awb: (payload && payload.awb) || '', mode: (payload && payload.mode) || '' };
-    if (API_URL) {
-      return jsonpCall('SCAN', data, timeoutMs || SCAN_MS);
+    var wait = timeoutMs || SCAN_MS;
+    if (workerReady && workerSource) {
+      return workerCall('SCAN', data, wait).catch(function(err) {
+        if (API_URL) return jsonpCall('SCAN', data, wait);
+        if (isLocalDemo()) return Promise.resolve(demoOrder(payload && payload.awb, payload && payload.mode));
+        throw err;
+      });
     }
+    if (API_URL) return jsonpCall('SCAN', data, wait);
     if (window.google && google.script && google.script.run) {
-      return gsRunNative('SCAN', payload, timeoutMs || SCAN_MS);
+      return gsRunNative('SCAN', payload, wait);
     }
-    return Promise.reject(new Error('SCAN needs api= from the sheet camera link.'));
+    if (isLocalDemo() || isFakeDemo()) {
+      return Promise.resolve(demoOrder(payload && payload.awb, payload && payload.mode));
+    }
+    return Promise.reject(new Error('SCAN needs the sheet Drive box open.'));
   }
   if (act === 'PLAY' || act === 'GET_RECORD' || act === 'DOWNLOAD' || act === 'SHARE') {
     if (API_URL) return jsonpCall(act, payload || {}, timeoutMs || 18000);
@@ -1201,10 +1291,9 @@ function liveHref(r) {
     ? String(location.href || '').split('#')[0].split('?')[0]
     : (window.DP_PAGE || 'https://yubafashion.github.io/dispatch-proof-camera/');
   var join = page.indexOf('?') >= 0 ? '&' : '?';
-  var u = page + join + 'v=V148&t=' + Date.now();
+  var u = page + join + 'v=' + encodeURIComponent(window.DP_VER || 'V160') + '&t=' + Date.now();
   if (API_URL) u += '&api=' + encodeURIComponent(API_URL);
   if (awb) u += '&awb=' + encodeURIComponent(awb);
-  if (isLocalDemo() && u.indexOf('demo=') < 0) u += '&demo=1';
   return u;
 }
 
@@ -1216,7 +1305,7 @@ function packingPopupFeatures() {
 }
 
 function openLiveWindow(r) {
-  window.open(liveHref(r || lastScan), 'DP_CAM_V148', packingPopupFeatures());
+  window.open(liveHref(r || lastScan), 'DP_CAM_' + (window.DP_VER || 'V160'), packingPopupFeatures());
   note('Packing popup desktop ke beech. Sheet box Drive ke liye khula rakho.', 'ok');
   return true;
 }
@@ -1336,23 +1425,12 @@ function lookupAwb(n, m) {
   if (blockRecordAwb && blockRecordAwb !== n) blockRecordAwb = '';
 
   if (m === 'DISPATCH') {
-    if (isLocalDemo()) {
-      var demo = demoOrder(n);
-      if (demo && demo.terminal) {
-        applyFastScan(demo, n, m, 0);
-        return;
-      }
+    if (isLocalDemo() && !(workerReady && workerSource) && !API_URL) {
+      applyFastScan(demoOrder(n, m), n, m, 0);
+      return;
     }
-    var known = scanMemo[n] || {};
-    showDispatch({
-      found: true, ok: true, awb: n,
-      orderId: known.orderId || '',
-      store: known.store || '',
-      dispatchType: known.dispatchType || '',
-      sku: known.sku || '',
-      videoType: 'DISPATCH',
-      checking: true
-    }, false);
+    hideResultCard();
+    note('Order sheet column C se AWB match…', 'ok');
     if (recorder && recorder.state === 'recording') {
       $('awb').value = '';
       $('awb').focus();
@@ -1379,7 +1457,7 @@ function lookupAwb(n, m) {
     if (seq !== lookupSeq) return;
     setDriveState('ok');
     applyFastScan(r, n, m, started);
-  }).catch(function() {
+  }).catch(function(err) {
     if (seq !== lookupSeq) return;
     if (m === 'DISPATCH' && recorder && currentSession && normalizeAwb(currentSession.awb) === n) {
       note('Recording ' + n + ' — sheet check timed out, packing continues. Scan next anytime.', 'ok');
@@ -1397,7 +1475,8 @@ function lookupAwb(n, m) {
     }
     if (m === 'DISPATCH') {
       if (alreadyRecordedAwb(n)) return;
-      if (!started) note('AWB lookup failed. Scan again.', 'error');
+      hideResultCard();
+      if (!started) note(String((err && err.message) || err || 'AWB lookup failed. Scan again.'), 'error');
       return;
     }
     if (!started) note('AWB lookup failed. Scan again.', 'error');
@@ -1414,7 +1493,9 @@ function applyFastScan(r, n, m, started) {
       };
     } else {
       abortRecordingFor(n, true);
-      note(r.message || 'AWB not found.', 'error');
+      hideResultCard();
+      note(r.message || 'AWB not found.', isLocalDemo() ? 'hint' : 'error');
+      if (isLocalDemo()) $('awb').focus();
       return;
     }
   }
@@ -1481,26 +1562,18 @@ function handleScan(r) {
 function showDispatch(r, needsLiveWindow) {
   r = r || {};
   var folder = r.folderUrl || (r.dispatchVideo && (r.dispatchVideo.folderUrl || r.dispatchVideo.rootFolderUrl)) || r.driveRootUrl || '';
-  var recLine = r.already
-    ? (folder ? 'Purani video mili — OPEN FOLDER' : 'ALREADY RECORDED')
-    : (needsLiveWindow
-      ? 'IS BOX MEIN RECORD NAHI — packing camera tab'
-      : (r.checking ? 'AWB check… sheet se details' : 'RECORDING START'));
-  var recCls = r.already || needsLiveWindow ? 'required' : 'ready';
   $('empty').style.display = 'none';
   showResultCard();
   $('result').innerHTML =
     '<div class="grid">' +
       '<div><div class="label">DATE</div><div class="value">' + esc(r.date || '—') + '</div></div>' +
-      '<div><div class="label">AWB</div><div class="value">' + esc(r.awb || '') + '</div></div>' +
       '<div><div class="label">ORDER ID</div><div class="value">' + esc(r.orderId || '—') + '</div></div>' +
-      '<div><div class="label">STORE</div><div class="value">' + esc(r.store || '—') + '</div></div>' +
-      '<div><div class="label">DISPATCH TYPE</div><div class="value">' + esc(r.dispatchType || '—') + '</div></div>' +
-      '<div><div class="label">SKU ID</div><div class="value">' + esc(r.sku || '—') + '</div></div>' +
+      '<div><div class="label">AWB</div><div class="value">' + esc(r.awb || '') + '</div></div>' +
+      '<div><div class="label">ORDER TYPE</div><div class="value">' + esc(r.dispatchType || '—') + '</div></div>' +
+      '<div class="skuLine"><div class="label">SKU ID</div><div class="value">' + esc(r.sku || r.skuId || '—') + '</div></div>' +
     '</div>' +
-    '<div style="margin-top:4px" class="' + recCls + '">' + recLine + '</div>' +
     (r.already && folder
-      ? '<div style="margin-top:6px"><a class="green" href="' + esc(folder) + '" target="_blank" rel="noopener">OPEN FOLDER</a></div>'
+      ? '<div style="margin-top:2px"><a class="green" href="' + esc(folder) + '" target="_blank" rel="noopener" style="height:28px;font-size:11px">OPEN FOLDER</a></div>'
       : '');
 }
 
@@ -1894,12 +1967,12 @@ function queueUpload(s, blob) {
       $('cameraState').textContent = 'Saved ✓';
       note('✓ RETURN VIDEO READY • ' + fileName, 'ok');
       if (mode === 'RETURN') {
-        lastScan = lastScan || demoOrder(s.awb);
+        lastScan = lastScan || demoOrder(s.awb, 'RETURN');
         lastScan.returnVideo = scanMemo[key].returnVideo;
         lastScan.returnImages = localPhotos(s.awb);
         showProof(lastScan);
       } else if (mode === 'LIBRARY') {
-        lastScan = lastScan || demoOrder(s.awb);
+        lastScan = lastScan || demoOrder(s.awb, 'RETURN');
         lastScan.returnVideo = scanMemo[key].returnVideo;
         showLibrary(lastScan);
       }
@@ -2132,6 +2205,9 @@ try {
     } else {
       setDriveState('unknown');
       $('cameraState').textContent = 'Ready';
+    }
+    if (isLocalDemo() && !API_URL) {
+      note('Preview Order rows — SCAN 149084055657303', 'ok');
     }
     if (qAwb && (isLocalDemo() || API_URL)) scan();
     else keepIdleCamera();
