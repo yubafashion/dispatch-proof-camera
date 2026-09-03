@@ -1,11 +1,11 @@
 <!doctype html>
-<!-- FILE 2 + FILE 3 : Camera UI V164 — Code.gs is alag file, isme mat paste karo -->
+<!-- FILE 2 + FILE 3 : Camera UI V166 — Code.gs is alag file, isme mat paste karo -->
 <html>
 <head>
 <meta charset="utf-8">
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
-<title>DISPATCH PROOF V164</title>
+<title>DISPATCH PROOF V166</title>
 <style>
 *{box-sizing:border-box}
 html,body{margin:0;width:100%;height:100%;overflow:hidden;font-family:Arial,sans-serif;background:#111;color:#202124}
@@ -82,7 +82,7 @@ a.green{display:inline-flex;align-items:center;justify-content:center;height:36p
 #jsErr{display:none;position:fixed;left:8px;right:8px;top:8px;z-index:30;background:#d93025;color:#fff;padding:8px;font-size:12px;white-space:pre-wrap;border-radius:8px}
 </style>
 <script>
-window.DP_VER = 'V164';
+window.DP_VER = 'V166';
 window.DP_PAGE = 'https://yubafashion.github.io/dispatch-proof-camera/';
 window.dpReady = false;
 window.onerror = function (msg, src, line) {
@@ -93,7 +93,7 @@ window.onerror = function (msg, src, line) {
 </script>
 </head>
 <body>
-<div id="boot" style="padding:10px 12px;font-family:Arial,sans-serif;font-weight:800;background:#202124;color:#fff">DISPATCH PROOF V164 — teen tabs. Agar yeh line ke neeche khali hai to Camera.html Save + Deploy New version.</div>
+<div id="boot" style="padding:10px 12px;font-family:Arial,sans-serif;font-weight:800;background:#202124;color:#fff">DISPATCH PROOF V166 — teen tabs. Agar yeh line ke neeche khali hai to Camera.html Save + Deploy New version.</div>
 <div id="jsErr"></div>
 <div class="app">
   <div class="top">
@@ -114,7 +114,7 @@ window.onerror = function (msg, src, line) {
     <button type="button" id="liveWindow" class="green" style="display:none">OPEN LIVE CAMERA</button>
     <span id="cameraState" class="status">Ready</span>
     <span id="driveState" class="status"></span>
-    <span class="status" style="margin-left:auto" id="verBadge">v164</span>
+    <span class="status" style="margin-left:auto" id="verBadge">v166</span>
   </div>
   <div class="scan">
     <input id="awb" autofocus autocomplete="off" placeholder="SCAN AWB BARCODE...">
@@ -126,7 +126,7 @@ window.onerror = function (msg, src, line) {
     <div id="frameBanner" class="frameBanner">
       Keep this sheet box open. The packing camera opens in a new tab.
       <br>
-      <a class="green" id="frameLiveBtn" href="https://yubafashion.github.io/dispatch-proof-camera/?v=V164" target="DP_CAM_V164" rel="opener">Open packing camera</a>
+      <a class="green" id="frameLiveBtn" href="https://yubafashion.github.io/dispatch-proof-camera/?v=V166" target="DP_CAM_V166" rel="opener">Open packing camera</a>
     </div>
     <div id="info" class="info"></div>
     <div id="cameraPanel" class="cameraPanel">
@@ -731,7 +731,7 @@ function demoOrder(awb, videoMode) {
 function gsRun(action, payload, timeoutMs) {
   var act = String(action || '').toUpperCase();
   if (isLocalDemo() && (act === 'HEALTH' || act === 'PING') && !(workerReady && workerSource)) {
-    return Promise.resolve({ ok: true, version: 'V164', found: true, demo: true });
+    return Promise.resolve({ ok: true, version: 'V166', found: true, demo: true });
   }
   if (isLocalDemo() && (act === 'UPLOAD' || act === 'FINISH' || act === 'CHUNK' || act === 'MARK_PENDING' || act === 'CLEAR_PENDING') && !(workerReady && workerSource)) {
     return Promise.resolve({ ok: true, fileId: 'demo', fileName: (payload && payload.fileName) || 'demo.webm', demo: true });
@@ -1033,10 +1033,7 @@ function showAlreadyRecorded(r) {
   r.already = true;
   r.checking = false;
   showDispatch(r, false);
-  var folder = r.folderUrl || (r.dispatchVideo && (r.dispatchVideo.folderUrl || r.dispatchVideo.rootFolderUrl)) || r.driveRootUrl || '';
-  note(folder
-    ? 'Purani video Drive par mili. OPEN FOLDER dabao.'
-    : 'Drive par is AWB ki live video nahi mili — naya record start ho sakta hai.', 'ok');
+  note('This AWB number already recorded.', 'error');
 }
 
 function showSaving(r) {
@@ -1424,7 +1421,7 @@ function liveHref(r) {
     ? String(location.href || '').split('#')[0].split('?')[0]
     : (window.DP_PAGE || 'https://yubafashion.github.io/dispatch-proof-camera/');
   var join = page.indexOf('?') >= 0 ? '&' : '?';
-  var u = page + join + 'v=' + encodeURIComponent(window.DP_VER || 'V164') + '&t=' + Date.now();
+  var u = page + join + 'v=' + encodeURIComponent(window.DP_VER || 'V166') + '&t=' + Date.now();
   if (API_URL) u += '&api=' + encodeURIComponent(API_URL);
   if (awb) u += '&awb=' + encodeURIComponent(awb);
   return u;
@@ -1438,7 +1435,7 @@ function packingPopupFeatures() {
 }
 
 function openLiveWindow(r) {
-  window.open(liveHref(r || lastScan), 'DP_CAM_' + (window.DP_VER || 'V164'), packingPopupFeatures());
+  window.open(liveHref(r || lastScan), 'DP_CAM_' + (window.DP_VER || 'V166'), packingPopupFeatures());
   note('Packing popup desktop ke beech. Sheet box Drive ke liye khula rakho.', 'ok');
   return true;
 }
@@ -1566,9 +1563,18 @@ function lookupAwb(n, m) {
       applyFastScan(demoOrder(n, m), n, m, 0);
       return;
     }
-    hideResultCard();
-    note('Order sheet column C se AWB match…', 'ok');
-    if (recorder && recorder.state === 'recording') {
+    if (blockRecordAwb === n) blockRecordAwb = '';
+    if (!(recorder && recorder.state === 'recording')) {
+      var guess = {
+        found: true, ok: true, awb: n, orderId: n, date: '', dispatchType: '',
+        sku: '', status: '', videoType: 'DISPATCH', checking: true, duplicate: false
+      };
+      lastScan = guess;
+      showDispatch(guess, false);
+      note('Recording ' + n + ' — AWB check 1–2s (Drive save wait nahi).', 'ok');
+      startRecording(guess);
+      started = 1;
+    } else {
       $('awb').value = '';
       $('awb').focus();
     }
@@ -1611,7 +1617,10 @@ function lookupAwb(n, m) {
       return;
     }
     if (m === 'DISPATCH') {
-      if (alreadyRecordedAwb(n)) return;
+      if (alreadyRecordedAwb(n)) {
+        note('This AWB number already recorded.', 'error');
+        return;
+      }
       hideResultCard();
       if (!started) note(String((err && err.message) || err || 'AWB lookup failed. Scan again.'), 'error');
       return;
@@ -1685,12 +1694,8 @@ function applyFastScan(r, n, m, started) {
   if (m === 'RETURN' || m === 'PROOF') showProof(r);
   if (m === 'LIBRARY') showLibrary(r);
   if (m === 'DISPATCH' && !started && !(recorder && recorder.state === 'recording')) {
-    if (r.duplicate && r.dispatchVideo && r.dispatchVideo.fileId &&
-        r.dispatchVideo.fileId !== 'demo' && r.dispatchVideo.fileId !== 'drive' && !r.replaceDispatch) {
-      showAlreadyRecorded(r);
-    } else {
-      startRecording(r);
-    }
+    showDispatch(r, false);
+    startRecording(r);
   }
 }
 
@@ -2289,18 +2294,13 @@ try {
     var rec = proofRec;
     var v = $('returnClipPlayer');
     if (!clipOk(rec) || !v) return;
-    var src = rec.blobUrl || rec.url || rec.previewUrl || (isDriveFileId(rec.fileId) ? drivePreviewUrl(rec.fileId) : '');
-    if (!src) {
-      note('Return clip play ke liye file nahi.', 'error');
-      return;
-    }
-    if (/drive\.google\.com/i.test(src)) {
-      window.open(src, '_blank', 'noopener');
-      return;
-    }
-    v.style.display = 'block';
-    v.src = src;
-    v.play().catch(function() {});
+    fetchDriveMedia(rec).then(function(got) {
+      v.style.display = 'block';
+      v.src = got.blobUrl;
+      v.play().catch(function() {});
+    }).catch(function(e) {
+      note('Return play: ' + (e.message || e), 'error');
+    });
   });
   if ($('dlReturnClip')) $('dlReturnClip').addEventListener('click', function() {
     downloadClip(proofRec, 'RETURN.webm').catch(function(e) { note(String(e.message || e), 'error'); });
