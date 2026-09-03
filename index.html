@@ -1,11 +1,11 @@
 <!doctype html>
-<!-- FILE 2 + FILE 3 : Camera UI V172 — Code.gs is alag file, isme mat paste karo -->
+<!-- FILE 2 + FILE 3 : Camera UI V173 — Code.gs is alag file, isme mat paste karo -->
 <html>
 <head>
 <meta charset="utf-8">
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
-<title>DISPATCH PROOF V172</title>
+<title>DISPATCH PROOF V173</title>
 <style>
 *{box-sizing:border-box}
 html,body{margin:0;width:100%;height:100%;overflow:hidden;font-family:Arial,sans-serif;background:#111;color:#202124}
@@ -84,7 +84,7 @@ a.green{display:inline-flex;align-items:center;justify-content:center;height:36p
 #jsErr{display:none;position:fixed;left:8px;right:8px;top:8px;z-index:30;background:#d93025;color:#fff;padding:8px;font-size:12px;white-space:pre-wrap;border-radius:8px}
 </style>
 <script>
-window.DP_VER = 'V172';
+window.DP_VER = 'V173';
 window.DP_PAGE = 'https://yubafashion.github.io/dispatch-proof-camera/';
 window.dpReady = false;
 window.onerror = function (msg, src, line) {
@@ -95,7 +95,7 @@ window.onerror = function (msg, src, line) {
 </script>
 </head>
 <body>
-<div id="boot" style="padding:10px 12px;font-family:Arial,sans-serif;font-weight:800;background:#202124;color:#fff">DISPATCH PROOF V172 — teen tabs. Agar yeh line ke neeche khali hai to Camera.html Save + Deploy New version.</div>
+<div id="boot" style="padding:10px 12px;font-family:Arial,sans-serif;font-weight:800;background:#202124;color:#fff">DISPATCH PROOF V173 — teen tabs. Agar yeh line ke neeche khali hai to Camera.html Save + Deploy New version.</div>
 <div id="jsErr"></div>
 <div class="app">
   <div class="top">
@@ -116,7 +116,7 @@ window.onerror = function (msg, src, line) {
     <button type="button" id="liveWindow" class="green" style="display:none">OPEN LIVE CAMERA</button>
     <span id="cameraState" class="status">Ready</span>
     <span id="driveState" class="status"></span>
-    <span class="status" style="margin-left:auto" id="verBadge">v172</span>
+    <span class="status" style="margin-left:auto" id="verBadge">v173</span>
   </div>
   <div class="scan">
     <input id="awb" autofocus autocomplete="off" placeholder="SCAN AWB BARCODE...">
@@ -128,7 +128,7 @@ window.onerror = function (msg, src, line) {
     <div id="frameBanner" class="frameBanner">
       Keep this sheet box open. The packing camera opens in a new tab.
       <br>
-      <a class="green" id="frameLiveBtn" href="https://yubafashion.github.io/dispatch-proof-camera/?v=V172" target="DP_CAM_V172" rel="opener">Open packing camera</a>
+      <a class="green" id="frameLiveBtn" href="https://yubafashion.github.io/dispatch-proof-camera/?v=V173" target="DP_CAM_V173" rel="opener">Open packing camera</a>
     </div>
     <div id="info" class="info"></div>
     <div id="cameraPanel" class="cameraPanel">
@@ -742,7 +742,7 @@ function demoOrder(awb, videoMode) {
 function gsRun(action, payload, timeoutMs) {
   var act = String(action || '').toUpperCase();
   if (isLocalDemo() && (act === 'HEALTH' || act === 'PING') && !(workerReady && workerSource)) {
-    return Promise.resolve({ ok: true, version: 'V172', found: true, demo: true });
+    return Promise.resolve({ ok: true, version: 'V173', found: true, demo: true });
   }
   if (isLocalDemo() && (act === 'UPLOAD' || act === 'FINISH' || act === 'CHUNK' || act === 'MARK_PENDING' || act === 'CLEAR_PENDING') && !(workerReady && workerSource)) {
     return Promise.resolve({ ok: true, fileId: 'demo', fileName: (payload && payload.fileName) || 'demo.webm', demo: true });
@@ -1321,17 +1321,22 @@ function showLibrary(r) {
   function need(kind) {
     note('Is AWB ki ' + kind + ' abhi nahi bani.', 'error');
   }
+  var oid = String(r.orderId || '').trim() || '—';
+  var awbLine = String(r.awb || n || '').trim() || '—';
+  var idLine = 'ORDER ID ' + esc(oid) + ' · AWB NUMBER ' + esc(awbLine);
   if (dEl) {
     dEl.innerHTML =
       '<b>DISPATCH VIDEO</b>' +
-      '<div class="muted">' + (dOk ? esc(disp.fileName || 'READY') : 'Abhi nahi bani') + '</div>' +
+      '<div class="muted">' + idLine + '</div>' +
+      (dOk ? '' : '<div class="muted">Abhi nahi bani</div>') +
       '<button type="button" class="primary" id="libPlayDispatch"' + (dOk ? '' : ' disabled') + '>PLAY</button>' +
       '<button type="button" class="green" id="libDlDispatch"' + (dOk ? '' : ' disabled') + '>DOWNLOAD</button>';
   }
   if (rEl) {
     rEl.innerHTML =
       '<b>RETURN VIDEO</b>' +
-      '<div class="muted">' + (rOk ? esc(ret.fileName || 'READY') : 'Abhi nahi bani') + '</div>' +
+      '<div class="muted">' + idLine + '</div>' +
+      (rOk ? '' : '<div class="muted">Abhi nahi bani</div>') +
       '<button type="button" class="primary" id="libPlayReturn"' + (rOk ? '' : ' disabled') + '>PLAY</button>' +
       '<button type="button" class="green" id="libDlReturn"' + (rOk ? '' : ' disabled') + '>DOWNLOAD</button>';
   }
@@ -1368,8 +1373,7 @@ function showLibrary(r) {
     if (!pOk) { need('images'); return; }
     downloadPhotoBook().catch(function(e) { note(String(e.message || e), 'error'); });
   };
-  var oid = r.orderId && normalizeAwb(r.orderId) !== n ? (' · ' + esc(r.orderId)) : '';
-  lineStatus('VIDEO PROOF · AWB ' + esc(r.awb || '') + oid);
+  lineStatus('VIDEO PROOF · ORDER ID ' + esc(oid) + ' · AWB NUMBER ' + esc(awbLine));
   note('', '');
 }
 
@@ -1524,7 +1528,7 @@ function liveHref(r) {
     ? String(location.href || '').split('#')[0].split('?')[0]
     : (window.DP_PAGE || 'https://yubafashion.github.io/dispatch-proof-camera/');
   var join = page.indexOf('?') >= 0 ? '&' : '?';
-  var u = page + join + 'v=' + encodeURIComponent(window.DP_VER || 'V172') + '&t=' + Date.now();
+  var u = page + join + 'v=' + encodeURIComponent(window.DP_VER || 'V173') + '&t=' + Date.now();
   if (API_URL) u += '&api=' + encodeURIComponent(API_URL);
   if (awb) u += '&awb=' + encodeURIComponent(awb);
   return u;
@@ -1538,7 +1542,7 @@ function packingPopupFeatures() {
 }
 
 function openLiveWindow(r) {
-  window.open(liveHref(r || lastScan), 'DP_CAM_' + (window.DP_VER || 'V172'), packingPopupFeatures());
+  window.open(liveHref(r || lastScan), 'DP_CAM_' + (window.DP_VER || 'V173'), packingPopupFeatures());
   note('Packing popup desktop ke beech. Sheet box Drive ke liye khula rakho.', 'ok');
   return true;
 }
