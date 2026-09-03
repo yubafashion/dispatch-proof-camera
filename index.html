@@ -1,11 +1,11 @@
 <!doctype html>
-<!-- FILE 2 + FILE 3 : Camera UI V145 — Code.gs is alag file, isme mat paste karo -->
+<!-- FILE 2 + FILE 3 : Camera UI V147 — Code.gs is alag file, isme mat paste karo -->
 <html>
 <head>
 <meta charset="utf-8">
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
-<title>DISPATCH PROOF V145</title>
+<title>DISPATCH PROOF V147</title>
 <style>
 *{box-sizing:border-box}
 html,body{margin:0;width:100%;height:100%;overflow:hidden;font-family:Arial,sans-serif;background:#111;color:#202124}
@@ -80,7 +80,7 @@ a.green{display:inline-flex;align-items:center;justify-content:center;height:36p
 }
 </style>
 <script>
-window.DP_VER = 'V145';
+window.DP_VER = 'V147';
 window.DP_PAGE = 'https://yubafashion.github.io/dispatch-proof-camera/';
 window.dpReady = false;
 window.onerror = function (msg, src, line) {
@@ -91,7 +91,7 @@ window.onerror = function (msg, src, line) {
 </script>
 </head>
 <body>
-<div id="boot" style="padding:10px 12px;font-family:Arial,sans-serif;font-weight:800;background:#202124;color:#fff">DISPATCH PROOF V145 — teen tabs. Agar yeh line ke neeche khali hai to Camera.html Save + Deploy New version.</div>
+<div id="boot" style="padding:10px 12px;font-family:Arial,sans-serif;font-weight:800;background:#202124;color:#fff">DISPATCH PROOF V147 — teen tabs. Agar yeh line ke neeche khali hai to Camera.html Save + Deploy New version.</div>
 <div id="jsErr"></div>
 <div class="app">
   <div class="top">
@@ -112,7 +112,7 @@ window.onerror = function (msg, src, line) {
     <button type="button" id="liveWindow" class="green" style="display:none">OPEN LIVE CAMERA</button>
     <span id="cameraState" class="status">Ready</span>
     <span id="driveState" class="status"></span>
-    <span class="status" style="margin-left:auto">v145</span>
+    <span class="status" style="margin-left:auto">v147</span>
   </div>
   <div class="scan">
     <input id="awb" autofocus autocomplete="off" placeholder="SCAN AWB BARCODE...">
@@ -124,7 +124,7 @@ window.onerror = function (msg, src, line) {
     <div id="frameBanner" class="frameBanner">
       Keep this sheet box open. The packing camera opens in a new tab.
       <br>
-      <a class="green" id="frameLiveBtn" href="https://yubafashion.github.io/dispatch-proof-camera/?v=V145" target="DP_CAM_V145" rel="opener">Open packing camera</a>
+      <a class="green" id="frameLiveBtn" href="https://yubafashion.github.io/dispatch-proof-camera/?v=V147" target="DP_CAM_V147" rel="opener">Open packing camera</a>
     </div>
     <div id="info" class="info"></div>
     <div id="result" class="card"></div>
@@ -620,16 +620,15 @@ function demoOrder(awb) {
   var photos = localProofPhotos[n] || rec.returnImages || [];
   return {
     ok: true, found: true, terminal: false,
-    duplicate: !!(rec && rec.dispatchVideo),
+    duplicate: !!(rec.dispatchVideo && rec.dispatchVideo.fileId && rec.dispatchVideo.fileId !== 'demo'),
     date: new Date().toLocaleDateString('en-GB'),
-    orderId: n === '1490840510818035' ? 'YF-88421' : ('YF-' + n.slice(-5)),
+    orderId: n === '1490840510818035' ? '321541406115441984_1' : ('YF-' + n.slice(-5)),
     awb: n,
-    dispatchType: 'FORWARD',
-    status: 'Packed',
-    sku: 'MIDTOWN POLO',
-    store: 'Hotel Midtown',
+    dispatchType: n === '1490840510818035' ? 'Prepaid' : 'COD',
+    sku: n === '1490840510818035' ? 'TORG_06MLSTN_AD_02_LDM Free Size NA' : 'SKU',
+    store: 'Dr. Demo Store',
     videoType: mode === 'DISPATCH' ? 'DISPATCH' : 'RETURN',
-    dispatchVideo: rec.dispatchVideo || null,
+    dispatchVideo: (rec.dispatchVideo && rec.dispatchVideo.fileId && rec.dispatchVideo.fileId !== 'demo') ? rec.dispatchVideo : null,
     returnVideo: rec.returnVideo || null,
     returnImages: photos,
     fast: true
@@ -639,7 +638,7 @@ function demoOrder(awb) {
 function gsRun(action, payload, timeoutMs) {
   var act = String(action || '').toUpperCase();
   if (isLocalDemo() && (act === 'HEALTH' || act === 'PING')) {
-    return Promise.resolve({ ok: true, version: 'V145', found: true, demo: true });
+    return Promise.resolve({ ok: true, version: 'V147', found: true, demo: true });
   }
   if (isLocalDemo() && act === 'SCAN') {
     return Promise.resolve(demoOrder(payload && payload.awb));
@@ -844,11 +843,9 @@ function hasDispatchOnDrive(awb) {
 function alreadyRecordedAwb(awb) {
   var n = normalizeAwb(awb);
   if (!n) return false;
-  if (hasDispatchOnDrive(n)) return true;
-  if (isDispatchLocked(n)) return true;
-  var rec = scanMemo[n] || lastScan;
-  if (rec && normalizeAwb(rec.awb) === n && rec.duplicate && rec.dispatchVideo) return true;
-  return false;
+  var rec = scanMemo[n] || {};
+  var dv = rec.dispatchVideo || {};
+  return !!(rec.duplicate && dv.fileId && dv.fileId !== 'demo' && dv.fileId !== 'drive');
 }
 
 function showResultCard() {
@@ -877,7 +874,10 @@ function showAlreadyRecorded(r) {
   r.already = true;
   r.checking = false;
   showDispatch(r, false);
-  note('Ye AWB pehle record ho chuki hai. Drive par video hai — dobara record nahi hoga.', 'ok');
+  var folder = r.folderUrl || (r.dispatchVideo && (r.dispatchVideo.folderUrl || r.dispatchVideo.rootFolderUrl)) || r.driveRootUrl || '';
+  note(folder
+    ? 'Purani video Drive par mili. OPEN FOLDER dabao.'
+    : 'Drive par is AWB ki live video nahi mili — naya record start ho sakta hai.', 'ok');
 }
 
 function showSaving(r) {
@@ -1201,7 +1201,7 @@ function liveHref(r) {
     ? String(location.href || '').split('#')[0].split('?')[0]
     : (window.DP_PAGE || 'https://yubafashion.github.io/dispatch-proof-camera/');
   var join = page.indexOf('?') >= 0 ? '&' : '?';
-  var u = page + join + 'v=V145&t=' + Date.now();
+  var u = page + join + 'v=V147&t=' + Date.now();
   if (API_URL) u += '&api=' + encodeURIComponent(API_URL);
   if (awb) u += '&awb=' + encodeURIComponent(awb);
   if (isLocalDemo() && u.indexOf('demo=') < 0) u += '&demo=1';
@@ -1216,7 +1216,7 @@ function packingPopupFeatures() {
 }
 
 function openLiveWindow(r) {
-  window.open(liveHref(r || lastScan), 'DP_CAM_V145', packingPopupFeatures());
+  window.open(liveHref(r || lastScan), 'DP_CAM_V147', packingPopupFeatures());
   note('Packing popup desktop ke beech. Sheet box Drive ke liye khula rakho.', 'ok');
   return true;
 }
@@ -1346,19 +1346,14 @@ function lookupAwb(n, m) {
     var known = scanMemo[n] || {};
     showDispatch({
       found: true, ok: true, awb: n,
-      orderId: known.orderId || n,
-      date: known.date || '',
+      orderId: known.orderId || '',
+      store: known.store || '',
       dispatchType: known.dispatchType || '',
-      status: known.status || '',
       sku: known.sku || '',
       videoType: 'DISPATCH',
       checking: true
     }, false);
-    if (alreadyRecordedAwb(n) && !(recorder && currentSession && normalizeAwb(currentSession.awb) === n)) {
-      showAlreadyRecorded(scanMemo[n] || lastScan || { awb: n, orderId: known.orderId || n });
-      $('awb').value = '';
-      $('awb').focus();
-    } else if (recorder && recorder.state === 'recording') {
+    if (recorder && recorder.state === 'recording') {
       $('awb').value = '';
       $('awb').focus();
     }
@@ -1453,6 +1448,9 @@ function applyFastScan(r, n, m, started) {
   }
   lastScan = r;
   scanMemo[n] = r;
+  if (m === 'DISPATCH' && !(r.dispatchVideo && r.dispatchVideo.fileId)) {
+    if (blockRecordAwb === n) blockRecordAwb = '';
+  }
   if (m === 'DISPATCH') {
     if (currentSession && normalizeAwb(currentSession.awb) === n) {
       if (r.orderId) currentSession.orderId = r.orderId;
@@ -1468,7 +1466,7 @@ function applyFastScan(r, n, m, started) {
   if (m === 'RETURN' || m === 'PROOF') showProof(r);
   if (m === 'LIBRARY') showLibrary(r);
   if (m === 'DISPATCH' && !started && !(recorder && recorder.state === 'recording')) {
-    if (alreadyRecordedAwb(n) || r.duplicate) {
+    if (r.dispatchVideo && r.dispatchVideo.fileId && r.dispatchVideo.fileId !== 'demo' && r.dispatchVideo.fileId !== 'drive') {
       showAlreadyRecorded(r);
     } else {
       startRecording(r);
@@ -1482,26 +1480,27 @@ function handleScan(r) {
 
 function showDispatch(r, needsLiveWindow) {
   r = r || {};
-  var st = String(r.status || '');
-  var bad = !!(r.terminal || /deliver|rto|cancel|lost|hold/i.test(st));
-  var recCls = needsLiveWindow || bad || r.already ? 'required' : 'ready';
+  var folder = r.folderUrl || (r.dispatchVideo && (r.dispatchVideo.folderUrl || r.dispatchVideo.rootFolderUrl)) || r.driveRootUrl || '';
   var recLine = r.already
-    ? 'ALREADY RECORDED — Drive par video hai, dobara nahi'
+    ? (folder ? 'Purani video mili — OPEN FOLDER' : 'ALREADY RECORDED')
     : (needsLiveWindow
       ? 'IS BOX MEIN RECORD NAHI — packing camera tab'
-      : (r.checking ? 'AWB check… details aa rahe hain' : (bad ? ('STOP · ' + (st || 'blocked')) : 'RECORDING START')));
+      : (r.checking ? 'AWB check… sheet se details' : 'RECORDING START'));
+  var recCls = r.already || needsLiveWindow ? 'required' : 'ready';
   $('empty').style.display = 'none';
   showResultCard();
   $('result').innerHTML =
     '<div class="grid">' +
-      '<div><div class="label">DATE</div><div class="value">' + esc(r.date || '—') + '</div></div>' +
       '<div><div class="label">AWB</div><div class="value">' + esc(r.awb || '') + '</div></div>' +
-      '<div><div class="label">ORDER NO</div><div class="value">' + esc(r.orderId || r.awb || '') + '</div></div>' +
-      '<div><div class="label">ORDER TYPE</div><div class="value">' + esc(r.dispatchType || '—') + '</div></div>' +
+      '<div><div class="label">ORDER ID</div><div class="value">' + esc(r.orderId || '—') + '</div></div>' +
+      '<div><div class="label">STORE</div><div class="value">' + esc(r.store || '—') + '</div></div>' +
+      '<div><div class="label">DISPATCH TYPE</div><div class="value">' + esc(r.dispatchType || '—') + '</div></div>' +
       '<div><div class="label">SKU ID</div><div class="value">' + esc(r.sku || '—') + '</div></div>' +
-      '<div><div class="label">ORDER STATUS</div><div class="value ' + (bad ? 'required' : 'ready') + '">' + esc(st || (r.checking ? 'Checking…' : 'Packed')) + '</div></div>' +
     '</div>' +
-    '<div style="margin-top:4px" class="' + recCls + '">' + recLine + '</div>';
+    '<div style="margin-top:4px" class="' + recCls + '">' + recLine + '</div>' +
+    (r.already && folder
+      ? '<div style="margin-top:6px"><a class="green" href="' + esc(folder) + '" target="_blank" rel="noopener">OPEN FOLDER</a></div>'
+      : '');
 }
 
 function localPhotos(awb) {
@@ -1704,8 +1703,9 @@ async function startRecording(r) {
   var token = recordToken;
   var awbN = normalizeAwb(r.awb);
   if (blockRecordAwb && blockRecordAwb === awbN) return;
-  if (!r.replaceDispatch && alreadyRecordedAwb(awbN)) {
-    showAlreadyRecorded(scanMemo[awbN] || r);
+  if (!r.replaceDispatch && r.dispatchVideo && r.dispatchVideo.fileId &&
+      r.dispatchVideo.fileId !== 'demo' && r.dispatchVideo.fileId !== 'drive') {
+    showAlreadyRecorded(r);
     return;
   }
   if (!cameraReady) {
