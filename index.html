@@ -1,11 +1,11 @@
 <!doctype html>
-<!-- FILE 2 + FILE 3 : Camera UI V170 — Code.gs is alag file, isme mat paste karo -->
+<!-- FILE 2 + FILE 3 : Camera UI V171 — Code.gs is alag file, isme mat paste karo -->
 <html>
 <head>
 <meta charset="utf-8">
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
-<title>DISPATCH PROOF V170</title>
+<title>DISPATCH PROOF V171</title>
 <style>
 *{box-sizing:border-box}
 html,body{margin:0;width:100%;height:100%;overflow:hidden;font-family:Arial,sans-serif;background:#111;color:#202124}
@@ -45,11 +45,8 @@ body:not(.libraryMode) .cameraPanel{display:flex !important}
 .live{color:#ff7777;font-weight:900}.timer{font-size:17px;font-weight:900;margin-left:6px}
 .cameraWrap{position:relative;flex:1 1 auto;min-height:0;background:#000;border-radius:6px;overflow:hidden}
 .camStamp{pointer-events:none;position:absolute;inset:0;z-index:2;font:700 10px ui-monospace,Menlo,Consolas,monospace;color:#fff;text-shadow:0 0 3px #000,0 1px 2px #000}
-.camStamp span{position:absolute;max-width:46%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:.02em}
-.camStamp .tl{top:5px;left:6px}
-.camStamp .tr{top:5px;right:6px;text-align:right}
-.camStamp .bl{bottom:5px;left:6px}
-.camStamp .br{bottom:5px;right:6px;text-align:right}
+.camStamp .stampStack{position:absolute;top:5px;right:6px;text-align:right;max-width:58%}
+.camStamp .stampStack span{display:block;position:static;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:.02em;line-height:1.25}
 .cameraFrame{display:block;width:100%;height:100%;max-height:none;object-fit:cover;background:#000;border-radius:0}
 .cameraWrap .cameraFrame{position:absolute;inset:0;max-height:none !important}
 #camFlash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:2}
@@ -88,7 +85,7 @@ a.green{display:inline-flex;align-items:center;justify-content:center;height:36p
 #jsErr{display:none;position:fixed;left:8px;right:8px;top:8px;z-index:30;background:#d93025;color:#fff;padding:8px;font-size:12px;white-space:pre-wrap;border-radius:8px}
 </style>
 <script>
-window.DP_VER = 'V170';
+window.DP_VER = 'V171';
 window.DP_PAGE = 'https://yubafashion.github.io/dispatch-proof-camera/';
 window.dpReady = false;
 window.onerror = function (msg, src, line) {
@@ -99,7 +96,7 @@ window.onerror = function (msg, src, line) {
 </script>
 </head>
 <body>
-<div id="boot" style="padding:10px 12px;font-family:Arial,sans-serif;font-weight:800;background:#202124;color:#fff">DISPATCH PROOF V170 — teen tabs. Agar yeh line ke neeche khali hai to Camera.html Save + Deploy New version.</div>
+<div id="boot" style="padding:10px 12px;font-family:Arial,sans-serif;font-weight:800;background:#202124;color:#fff">DISPATCH PROOF V171 — teen tabs. Agar yeh line ke neeche khali hai to Camera.html Save + Deploy New version.</div>
 <div id="jsErr"></div>
 <div class="app">
   <div class="top">
@@ -120,7 +117,7 @@ window.onerror = function (msg, src, line) {
     <button type="button" id="liveWindow" class="green" style="display:none">OPEN LIVE CAMERA</button>
     <span id="cameraState" class="status">Ready</span>
     <span id="driveState" class="status"></span>
-    <span class="status" style="margin-left:auto" id="verBadge">v170</span>
+    <span class="status" style="margin-left:auto" id="verBadge">v171</span>
   </div>
   <div class="scan">
     <input id="awb" autofocus autocomplete="off" placeholder="SCAN AWB BARCODE...">
@@ -132,7 +129,7 @@ window.onerror = function (msg, src, line) {
     <div id="frameBanner" class="frameBanner">
       Keep this sheet box open. The packing camera opens in a new tab.
       <br>
-      <a class="green" id="frameLiveBtn" href="https://yubafashion.github.io/dispatch-proof-camera/?v=V170" target="DP_CAM_V170" rel="opener">Open packing camera</a>
+      <a class="green" id="frameLiveBtn" href="https://yubafashion.github.io/dispatch-proof-camera/?v=V171" target="DP_CAM_V171" rel="opener">Open packing camera</a>
     </div>
     <div id="info" class="info"></div>
     <div id="cameraPanel" class="cameraPanel">
@@ -150,10 +147,12 @@ window.onerror = function (msg, src, line) {
         <iframe id="clipIframe" class="cameraFrame" style="display:none;border:0" allow="autoplay; fullscreen" title="Recorded video"></iframe>
         <div id="camFlash"></div>
         <div id="camStamp" class="camStamp" aria-hidden="true">
-          <span id="stampAwb" class="tl"></span>
-          <span id="stampOid" class="tr"></span>
-          <span id="stampDate" class="bl"></span>
-          <span id="stampTime" class="br"></span>
+          <div class="stampStack">
+            <span id="stampAwb"></span>
+            <span id="stampOid"></span>
+            <span id="stampDate"></span>
+            <span id="stampTime"></span>
+          </div>
         </div>
       </div>
       <div class="cameraControls">
@@ -201,7 +200,7 @@ window.onerror = function (msg, src, line) {
 <script>
 'use strict';
 
-var SCAN_MS = 20000;
+var SCAN_MS = 12000;
 var mode = 'DISPATCH';
 var stream = null;
 var packTimer = null;
@@ -744,7 +743,7 @@ function demoOrder(awb, videoMode) {
 function gsRun(action, payload, timeoutMs) {
   var act = String(action || '').toUpperCase();
   if (isLocalDemo() && (act === 'HEALTH' || act === 'PING') && !(workerReady && workerSource)) {
-    return Promise.resolve({ ok: true, version: 'V170', found: true, demo: true });
+    return Promise.resolve({ ok: true, version: 'V171', found: true, demo: true });
   }
   if (isLocalDemo() && (act === 'UPLOAD' || act === 'FINISH' || act === 'CHUNK' || act === 'MARK_PENDING' || act === 'CLEAR_PENDING') && !(workerReady && workerSource)) {
     return Promise.resolve({ ok: true, fileId: 'demo', fileName: (payload && payload.fileName) || 'demo.webm', demo: true });
@@ -884,27 +883,25 @@ function startStampClock() {
 
 function paintCornerStamps(ctx, w, h, r) {
   var s = proofStampParts(r);
-  var fs = Math.max(8, Math.round(Math.min(w, h) * 0.028));
+  var fs = Math.max(8, Math.round(Math.min(w, h) * 0.026));
   var pad = Math.max(4, Math.round(w * 0.012));
+  var gap = Math.round(fs * 1.28);
+  var x = w - pad;
+  var y = pad;
+  var lines = [s.awb, s.order, s.date, s.time];
   ctx.save();
   ctx.font = '700 ' + fs + 'px ui-monospace, Menlo, Consolas, monospace';
   ctx.lineWidth = Math.max(2, Math.round(fs / 4));
   ctx.strokeStyle = 'rgba(0,0,0,0.88)';
   ctx.fillStyle = 'rgba(255,255,255,0.96)';
   ctx.textBaseline = 'top';
-  ctx.textAlign = 'left';
-  ctx.strokeText(s.awb, pad, pad);
-  ctx.fillText(s.awb, pad, pad);
   ctx.textAlign = 'right';
-  ctx.strokeText(s.order, w - pad, pad);
-  ctx.fillText(s.order, w - pad, pad);
-  ctx.textBaseline = 'bottom';
-  ctx.textAlign = 'left';
-  ctx.strokeText(s.date, pad, h - pad);
-  ctx.fillText(s.date, pad, h - pad);
-  ctx.textAlign = 'right';
-  ctx.strokeText(s.time, w - pad, h - pad);
-  ctx.fillText(s.time, w - pad, h - pad);
+  var i;
+  for (i = 0; i < lines.length; i++) {
+    ctx.strokeText(lines[i], x, y);
+    ctx.fillText(lines[i], x, y);
+    y += gap;
+  }
   ctx.restore();
   syncLiveStampOverlay(s);
 }
@@ -1518,7 +1515,7 @@ function liveHref(r) {
     ? String(location.href || '').split('#')[0].split('?')[0]
     : (window.DP_PAGE || 'https://yubafashion.github.io/dispatch-proof-camera/');
   var join = page.indexOf('?') >= 0 ? '&' : '?';
-  var u = page + join + 'v=' + encodeURIComponent(window.DP_VER || 'V170') + '&t=' + Date.now();
+  var u = page + join + 'v=' + encodeURIComponent(window.DP_VER || 'V171') + '&t=' + Date.now();
   if (API_URL) u += '&api=' + encodeURIComponent(API_URL);
   if (awb) u += '&awb=' + encodeURIComponent(awb);
   return u;
@@ -1532,7 +1529,7 @@ function packingPopupFeatures() {
 }
 
 function openLiveWindow(r) {
-  window.open(liveHref(r || lastScan), 'DP_CAM_' + (window.DP_VER || 'V170'), packingPopupFeatures());
+  window.open(liveHref(r || lastScan), 'DP_CAM_' + (window.DP_VER || 'V171'), packingPopupFeatures());
   note('Packing popup desktop ke beech. Sheet box Drive ke liye khula rakho.', 'ok');
   return true;
 }
