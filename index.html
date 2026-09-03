@@ -1,16 +1,16 @@
 <!doctype html>
-<!-- FILE 2 + FILE 3 : Camera UI V142 — Code.gs is alag file, isme mat paste karo -->
+<!-- FILE 2 + FILE 3 : Camera UI V144 — Code.gs is alag file, isme mat paste karo -->
 <html>
 <head>
 <meta charset="utf-8">
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
-<title>DISPATCH PROOF V142</title>
+<title>DISPATCH PROOF V144</title>
 <style>
 *{box-sizing:border-box}
-html,body{margin:0;width:100%;height:100%;font-family:Arial,sans-serif;background:#6b7380;color:#202124}
-body{display:flex;align-items:center;justify-content:center;overflow:hidden}
-.app{width:760px;height:500px;max-width:72vw;max-height:52vh;margin:0;background:#f4f6f8;border:1px solid #3c4043;border-radius:10px;box-shadow:0 18px 50px rgba(0,0,0,.35);overflow:hidden;display:flex;flex-direction:column}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;font-family:Arial,sans-serif;background:#111;color:#202124}
+body{padding:0;display:flex;align-items:center;justify-content:center}
+.app{width:8in;height:8in;max-width:8in;max-height:8in;margin:0;background:#f4f6f8;border:0;border-radius:0;overflow:hidden;display:flex;flex-direction:column;min-height:0;flex:none}
 .top{flex:0 0 auto;background:#fff;padding:6px 10px;border-bottom:1px solid #d9dee5;text-align:center}
 .title{font-size:16px;font-weight:800;line-height:1.1}
 .ag{font-size:10px;font-weight:600;letter-spacing:.4px;color:#6b7280;margin-top:2px}
@@ -36,13 +36,13 @@ button{height:32px;border:0;border-radius:7px;padding:0 10px;font-weight:800;cur
 .label{font-size:9px;color:#6b7280;font-weight:700;letter-spacing:.3px}
 .value{font-weight:800;font-size:13px}
 .ready{color:#188038}.required{color:#d93025}
-.cameraPanel{display:none;flex:0 0 auto;width:68%;max-width:460px;margin:8px auto 0;background:#111;border-radius:10px;padding:6px;color:#fff;flex-direction:column;box-shadow:0 12px 32px rgba(0,0,0,.45)}
-.cameraPanel[style*="block"],.cameraPanel[style*="flex"]{display:flex !important}
+.cameraPanel{display:flex;flex:1 1 auto;min-height:0;background:#111;border-radius:8px;padding:5px;color:#fff;flex-direction:column}
+body:not(.libraryMode) .cameraPanel{display:flex !important}
 .cameraHead{display:flex;justify-content:space-between;align-items:center;font-size:11px;font-weight:800;margin-bottom:4px;flex:0 0 auto}
 .live{color:#ff7777;font-weight:900}.timer{font-size:17px;font-weight:900;margin-left:6px}
-.cameraWrap{position:relative;width:100%;aspect-ratio:16/9;max-height:220px;height:auto;flex:none;background:#000;border-radius:7px;overflow:hidden}
-.cameraFrame{display:block;width:100%;height:100%;max-height:220px;object-fit:contain;background:#000;border-radius:0}
-.cameraWrap .cameraFrame{position:absolute;inset:0}
+.cameraWrap{position:relative;flex:1 1 auto;min-height:0;background:#000;border-radius:6px;overflow:hidden}
+.cameraFrame{display:block;width:100%;height:100%;max-height:none;object-fit:cover;background:#000;border-radius:0}
+.cameraWrap .cameraFrame{position:absolute;inset:0;max-height:none !important}
 #camFlash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:2}
 #camFlash.on{opacity:.8}
 .cameraControls{display:flex;justify-content:flex-end;align-items:center;gap:8px;margin-top:6px;flex:0 0 auto}
@@ -57,13 +57,13 @@ button.busy{filter:brightness(1.25);transform:scale(.97);box-shadow:0 0 0 3px #f
 .muted{font-size:12px;color:#5f6368;font-weight:600}
 .proofCard button{margin:6px 6px 0 0;min-width:132px}
 button:disabled{opacity:.45;cursor:not-allowed}
-body.libraryMode{display:block;overflow:auto;align-items:stretch}
-body.libraryMode .app{height:auto;min-height:500px;max-height:none;max-width:760px;margin:16px auto}
-body.libraryMode .main{overflow:auto}
+body.libraryMode{overflow:hidden;height:100%;background:#111}
+body.libraryMode .app{width:8in;height:8in;max-width:8in;max-height:8in;overflow:hidden}
+body.libraryMode .main{overflow:auto;flex:1;min-height:0}
 body.libraryMode .cameraPanel,body.libraryMode #photoBook,body.libraryMode #returnClip{display:none !important}
 body.libraryMode .camOnly{display:none !important}
 body.libraryMode #proofPanel{display:block}
-#libPlayWrap{margin-top:6px;background:#111;border-radius:8px;padding:6px;height:240px;position:relative}
+#libPlayWrap{margin-top:6px;background:#111;border-radius:8px;padding:6px;position:relative;height:min(52vh,420px)}
 #libPlayWrap .cameraFrame{position:absolute;inset:0;max-height:none}
 .thumbs{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
 .thumbs img{width:56px;height:56px;object-fit:cover;border-radius:4px;background:#111;border:2px solid #188038}
@@ -73,15 +73,13 @@ a.green{display:inline-flex;align-items:center;justify-content:center;height:36p
 .frameBanner a.green{height:44px;font-size:14px;margin-top:8px}
 #jsErr{display:none;position:fixed;left:8px;right:8px;top:8px;z-index:30;background:#d93025;color:#fff;padding:8px;font-size:12px;white-space:pre-wrap;border-radius:8px}
 @media(max-width:600px){
- body{display:block}.app{width:100%;height:100%;max-width:none;max-height:none;border-radius:0;border:0}
- .cameraPanel{width:auto;max-width:none;margin:6px}
- .cameraWrap{max-height:180px}
- .tools{flex-wrap:wrap}.tools select{flex:1;min-width:130px}
+ html,body,.app{width:100%;height:100%;max-width:none;max-height:none}
+ .tools{flex-wrap:wrap}.tools select{flex:1;min-width:120px}
  .grid{grid-template-columns:1fr}
 }
 </style>
 <script>
-window.DP_VER = 'V142';
+window.DP_VER = 'V144';
 window.DP_PAGE = 'https://yubafashion.github.io/dispatch-proof-camera/';
 window.dpReady = false;
 window.onerror = function (msg, src, line) {
@@ -92,7 +90,7 @@ window.onerror = function (msg, src, line) {
 </script>
 </head>
 <body>
-<div id="boot" style="padding:10px 12px;font-family:Arial,sans-serif;font-weight:800;background:#202124;color:#fff">DISPATCH PROOF V142 — teen tabs. Agar yeh line ke neeche khali hai to Camera.html Save + Deploy New version.</div>
+<div id="boot" style="padding:10px 12px;font-family:Arial,sans-serif;font-weight:800;background:#202124;color:#fff">DISPATCH PROOF V144 — teen tabs. Agar yeh line ke neeche khali hai to Camera.html Save + Deploy New version.</div>
 <div id="jsErr"></div>
 <div class="app">
   <div class="top">
@@ -113,7 +111,7 @@ window.onerror = function (msg, src, line) {
     <button type="button" id="liveWindow" class="green" style="display:none">OPEN LIVE CAMERA</button>
     <span id="cameraState" class="status">Ready</span>
     <span id="driveState" class="status"></span>
-    <span class="status" style="margin-left:auto">v142</span>
+    <span class="status" style="margin-left:auto">v144</span>
   </div>
   <div class="scan">
     <input id="awb" autofocus autocomplete="off" placeholder="SCAN AWB BARCODE...">
@@ -125,7 +123,7 @@ window.onerror = function (msg, src, line) {
     <div id="frameBanner" class="frameBanner">
       Keep this sheet box open. The packing camera opens in a new tab.
       <br>
-      <a class="green" id="frameLiveBtn" href="https://yubafashion.github.io/dispatch-proof-camera/?v=V142" target="DP_CAM_V142" rel="opener">Open packing camera</a>
+      <a class="green" id="frameLiveBtn" href="https://yubafashion.github.io/dispatch-proof-camera/?v=V144" target="DP_CAM_V144" rel="opener">Open packing camera</a>
     </div>
     <div id="info" class="info"></div>
     <div id="cameraPanel" class="cameraPanel">
@@ -640,7 +638,7 @@ function demoOrder(awb) {
 function gsRun(action, payload, timeoutMs) {
   var act = String(action || '').toUpperCase();
   if (isLocalDemo() && (act === 'HEALTH' || act === 'PING')) {
-    return Promise.resolve({ ok: true, version: 'V142', found: true, demo: true });
+    return Promise.resolve({ ok: true, version: 'V144', found: true, demo: true });
   }
   if (isLocalDemo() && act === 'SCAN') {
     return Promise.resolve(demoOrder(payload && payload.awb));
@@ -1194,7 +1192,7 @@ function liveHref(r) {
     ? String(location.href || '').split('#')[0].split('?')[0]
     : (window.DP_PAGE || 'https://yubafashion.github.io/dispatch-proof-camera/');
   var join = page.indexOf('?') >= 0 ? '&' : '?';
-  var u = page + join + 'v=V142&t=' + Date.now();
+  var u = page + join + 'v=V144&t=' + Date.now();
   if (API_URL) u += '&api=' + encodeURIComponent(API_URL);
   if (awb) u += '&awb=' + encodeURIComponent(awb);
   if (isLocalDemo() && u.indexOf('demo=') < 0) u += '&demo=1';
@@ -1202,14 +1200,14 @@ function liveHref(r) {
 }
 
 function packingPopupFeatures() {
-  var w = 760, h = 500;
+  var w = 768, h = 768;
   var L = Math.max(0, Math.floor(((screen.availWidth || screen.width) - w) / 2));
   var T = Math.max(0, Math.floor(((screen.availHeight || screen.height) - h) / 2));
   return 'popup=yes,width=' + w + ',height=' + h + ',left=' + L + ',top=' + T + ',scrollbars=yes,resizable=yes';
 }
 
 function openLiveWindow(r) {
-  window.open(liveHref(r || lastScan), 'DP_CAM_V142', packingPopupFeatures());
+  window.open(liveHref(r || lastScan), 'DP_CAM_V144', packingPopupFeatures());
   note('Packing popup desktop ke beech. Sheet box Drive ke liye khula rakho.', 'ok');
   return true;
 }
