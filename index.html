@@ -1,16 +1,16 @@
 <!doctype html>
-<!-- FILE 2 + FILE 3 : Camera UI V160 — Code.gs is alag file, isme mat paste karo -->
+<!-- FILE 2 + FILE 3 : Camera UI V161 — Code.gs is alag file, isme mat paste karo -->
 <html>
 <head>
 <meta charset="utf-8">
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
-<title>DISPATCH PROOF V160</title>
+<title>DISPATCH PROOF V161</title>
 <style>
 *{box-sizing:border-box}
 html,body{margin:0;width:100%;height:100%;overflow:hidden;font-family:Arial,sans-serif;background:#111;color:#202124}
 body{padding:0;display:flex;align-items:center;justify-content:center}
-.app{width:8in;height:8in;max-width:8in;max-height:8in;margin:0;background:#f4f6f8;border:0;border-radius:0;overflow:hidden;display:flex;flex-direction:column;min-height:0;flex:none}
+.app{width:10in;height:10in;max-width:10in;max-height:10in;margin:0;background:#f4f6f8;border:0;border-radius:0;overflow:hidden;display:flex;flex-direction:column;min-height:0;flex:none}
 .top{flex:0 0 auto;background:#fff;padding:6px 10px;border-bottom:1px solid #d9dee5;text-align:center}
 .title{font-size:16px;font-weight:800;line-height:1.1}
 .ag{font-size:10px;font-weight:600;letter-spacing:.4px;color:#6b7280;margin-top:2px}
@@ -61,13 +61,18 @@ button.busy{filter:brightness(1.25);transform:scale(.97);box-shadow:0 0 0 3px #f
 .proofCard button{margin:6px 6px 0 0;min-width:132px}
 button:disabled{opacity:.45;cursor:not-allowed}
 body.libraryMode{overflow:hidden;height:100%;background:#111}
-body.libraryMode .app{width:8in;height:8in;max-width:8in;max-height:8in;overflow:hidden}
+body.libraryMode .app{width:10in;height:10in;max-width:10in;max-height:10in;overflow:hidden}
 body.libraryMode .main{overflow:auto;flex:1;min-height:0}
 body.libraryMode .cameraPanel,body.libraryMode #photoBook,body.libraryMode #returnClip{display:none !important}
 body.libraryMode .camOnly{display:none !important}
 body.libraryMode #proofPanel{display:block}
-#libPlayWrap{margin-top:6px;background:#111;border-radius:8px;padding:6px;position:relative;height:min(52vh,420px)}
-#libPlayWrap .cameraFrame{position:absolute;inset:0;max-height:none}
+.proofPop{display:none;position:fixed;z-index:50;width:3in;height:3in;background:#111;border:1px solid #3c4043;border-radius:8px;box-shadow:0 10px 28px rgba(0,0,0,.45);flex-direction:column;overflow:hidden}
+.proofPop.on{display:flex}
+.proofPopHead{flex:0 0 auto;display:flex;align-items:center;gap:4px;padding:4px 6px;background:#202124;color:#fff}
+.proofPopHead b{flex:1;font-size:10px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.proofPopHead button{height:24px;font-size:10px;padding:0 8px}
+.proofPopStage{flex:1;position:relative;min-height:0;background:#000}
+.proofPopStage .cameraFrame{position:absolute;inset:0;width:100%;height:100%;max-height:none;object-fit:contain;background:#000}
 .thumbs{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
 .thumbs img{width:56px;height:56px;object-fit:cover;border-radius:4px;background:#111;border:2px solid #188038}
 .again{height:26px;font-size:11px;margin-left:8px;vertical-align:middle}
@@ -81,7 +86,7 @@ a.green{display:inline-flex;align-items:center;justify-content:center;height:36p
 }
 </style>
 <script>
-window.DP_VER = 'V160';
+window.DP_VER = 'V161';
 window.DP_PAGE = 'https://yubafashion.github.io/dispatch-proof-camera/';
 window.dpReady = false;
 window.onerror = function (msg, src, line) {
@@ -92,7 +97,7 @@ window.onerror = function (msg, src, line) {
 </script>
 </head>
 <body>
-<div id="boot" style="padding:10px 12px;font-family:Arial,sans-serif;font-weight:800;background:#202124;color:#fff">DISPATCH PROOF V160 — teen tabs. Agar yeh line ke neeche khali hai to Camera.html Save + Deploy New version.</div>
+<div id="boot" style="padding:10px 12px;font-family:Arial,sans-serif;font-weight:800;background:#202124;color:#fff">DISPATCH PROOF V161 — teen tabs. Agar yeh line ke neeche khali hai to Camera.html Save + Deploy New version.</div>
 <div id="jsErr"></div>
 <div class="app">
   <div class="top">
@@ -113,7 +118,7 @@ window.onerror = function (msg, src, line) {
     <button type="button" id="liveWindow" class="green" style="display:none">OPEN LIVE CAMERA</button>
     <span id="cameraState" class="status">Ready</span>
     <span id="driveState" class="status"></span>
-    <span class="status" style="margin-left:auto">v159</span>
+    <span class="status" style="margin-left:auto" id="verBadge">v161</span>
   </div>
   <div class="scan">
     <input id="awb" autofocus autocomplete="off" placeholder="SCAN AWB BARCODE...">
@@ -125,7 +130,7 @@ window.onerror = function (msg, src, line) {
     <div id="frameBanner" class="frameBanner">
       Keep this sheet box open. The packing camera opens in a new tab.
       <br>
-      <a class="green" id="frameLiveBtn" href="https://yubafashion.github.io/dispatch-proof-camera/?v=V160" target="DP_CAM_V160" rel="opener">Open packing camera</a>
+      <a class="green" id="frameLiveBtn" href="https://yubafashion.github.io/dispatch-proof-camera/?v=V161" target="DP_CAM_V161" rel="opener">Open packing camera</a>
     </div>
     <div id="info" class="info"></div>
     <div id="cameraPanel" class="cameraPanel">
@@ -170,12 +175,19 @@ window.onerror = function (msg, src, line) {
       <div id="proofDispatch" class="proofCard"></div>
       <div id="proofReturn" class="proofCard"></div>
       <div id="proofPhotos" class="proofCard"></div>
-      <div id="libPlayWrap" class="cameraWrap" style="display:none">
-        <video id="libVideo" class="cameraFrame" controls playsinline></video>
-        <iframe id="libIframe" class="cameraFrame" style="display:none;border:0" allow="autoplay; fullscreen" title="Proof video"></iframe>
-      </div>
     </div>
     <div id="empty"></div>
+  </div>
+</div>
+<div id="proofPop" class="proofPop" aria-hidden="true">
+  <div class="proofPopHead">
+    <b id="proofPopTitle">VIDEO</b>
+    <button type="button" id="proofPopDl" class="green">DOWNLOAD</button>
+    <button type="button" id="proofPopClose" class="gray">CLOSE</button>
+  </div>
+  <div class="proofPopStage">
+    <video id="libVideo" class="cameraFrame" controls playsinline></video>
+    <iframe id="libIframe" class="cameraFrame" style="display:none;border:0" allow="autoplay; fullscreen" title="Proof video"></iframe>
   </div>
 </div>
 <script>
@@ -210,6 +222,7 @@ var proofRec = null;
 var driveStatus = 'unknown';
 var healthPromise = null;
 var lastReviewRec = null;
+var lastProofPlayRec = null;
 var scanMemo = {};
 var sessionReturn = {};
 var lastEmergency = null;
@@ -722,18 +735,21 @@ function demoOrder(awb, videoMode) {
 function gsRun(action, payload, timeoutMs) {
   var act = String(action || '').toUpperCase();
   if (isLocalDemo() && (act === 'HEALTH' || act === 'PING') && !(workerReady && workerSource)) {
-    return Promise.resolve({ ok: true, version: 'V160', found: true, demo: true });
+    return Promise.resolve({ ok: true, version: 'V161', found: true, demo: true });
   }
   if (isLocalDemo() && (act === 'UPLOAD' || act === 'FINISH' || act === 'CHUNK' || act === 'MARK_PENDING' || act === 'CLEAR_PENDING') && !(workerReady && workerSource)) {
     return Promise.resolve({ ok: true, fileId: 'demo', fileName: (payload && payload.fileName) || 'demo.webm', demo: true });
   }
-  if (isLocalDemo() && act === 'PLAY') {
-    var rec = lastReviewRec || {};
+  if (isLocalDemo() && (act === 'PLAY' || act === 'DOWNLOAD' || act === 'SHARE') && !(workerReady && workerSource)) {
+    var rec = lastProofPlayRec || lastReviewRec || {};
+    var src = rec.previewUrl || rec.blobUrl || rec.url || rec.downloadUrl || '';
     return Promise.resolve({
       ok: true,
       fileId: rec.fileId || 'demo',
       fileName: rec.fileName || 'dispatch.webm',
-      previewUrl: rec.previewUrl || rec.blobUrl || rec.url || '',
+      previewUrl: src,
+      url: src,
+      downloadUrl: src,
       demo: true
     });
   }
@@ -757,7 +773,17 @@ function gsRun(action, payload, timeoutMs) {
     return Promise.reject(new Error('SCAN needs the sheet Drive box open.'));
   }
   if (act === 'PLAY' || act === 'GET_RECORD' || act === 'DOWNLOAD' || act === 'SHARE') {
-    if (API_URL) return jsonpCall(act, payload || {}, timeoutMs || 18000);
+    var waitPlay = timeoutMs || 18000;
+    if (workerReady && workerSource) {
+      return workerCall(act, payload || {}, waitPlay).catch(function(err) {
+        if (API_URL) return jsonpCall(act, payload || {}, waitPlay);
+        throw err;
+      });
+    }
+    if (window.google && google.script && google.script.run) {
+      return gsRunNative(act, payload, waitPlay);
+    }
+    if (API_URL) return jsonpCall(act, payload || {}, waitPlay);
   }
   if (window.google && google.script && google.script.run) {
     return gsRunNative(action, payload, timeoutMs);
@@ -814,6 +840,10 @@ function isDriveFileId(id) {
 
 function drivePreviewUrl(fileId) {
   return 'https://drive.google.com/file/d/' + encodeURIComponent(fileId) + '/preview';
+}
+
+function driveDownloadUrl(fileId) {
+  return 'https://drive.google.com/uc?export=download&id=' + encodeURIComponent(fileId);
 }
 
 function hideReviewClip() {
@@ -991,7 +1021,7 @@ function clearResult() {
 
 function hideProofPanel() {
   if ($('proofPanel')) $('proofPanel').style.display = 'none';
-  if ($('libPlayWrap')) $('libPlayWrap').style.display = 'none';
+  closeProofPop();
   if ($('returnClip')) $('returnClip').style.display = 'none';
 }
 
@@ -1016,7 +1046,7 @@ function saveBlobFile(blob, name) {
 }
 
 async function downloadClip(rec, fallbackName) {
-  rec = rec || {};
+  rec = rec || lastProofPlayRec || {};
   if (rec.blob) {
     saveBlobFile(rec.blob, rec.fileName || fallbackName);
     return;
@@ -1028,11 +1058,16 @@ async function downloadClip(rec, fallbackName) {
     return;
   }
   if (rec.fileId && isDriveFileId(rec.fileId)) {
-    var link = await gsRun('DOWNLOAD', { fileId: rec.fileId }, 18000);
-    if (link && link.url) {
-      window.open(link.url, '_blank', 'noopener');
-      return;
-    }
+    try {
+      var link = await gsRun('DOWNLOAD', { fileId: rec.fileId }, 18000);
+      var href = (link && (link.downloadUrl || link.url)) || '';
+      if (href) {
+        window.open(href, '_blank', 'noopener');
+        return;
+      }
+    } catch (eDl) {}
+    window.open(driveDownloadUrl(rec.fileId), '_blank', 'noopener');
+    return;
   }
   if (rec.url || rec.downloadUrl) {
     window.open(rec.url || rec.downloadUrl, '_blank', 'noopener');
@@ -1041,19 +1076,70 @@ async function downloadClip(rec, fallbackName) {
   note('Download file nahi mili.', 'error');
 }
 
-function playLibClip(rec, title) {
-  rec = rec || {};
-  var wrap = $('libPlayWrap');
+function closeProofPop() {
+  var pop = $('proofPop');
   var v = $('libVideo');
   var f = $('libIframe');
-  if (!wrap || !v || !f) {
+  if (v) {
+    try { v.pause(); } catch (e1) {}
+    v.removeAttribute('src');
+    v.style.display = 'none';
+  }
+  if (f) {
+    f.removeAttribute('src');
+    f.style.display = 'none';
+  }
+  if (pop) {
+    pop.classList.remove('on');
+    pop.style.display = 'none';
+    pop.setAttribute('aria-hidden', 'true');
+  }
+}
+
+function placeProofPop(anchor) {
+  var pop = $('proofPop');
+  var app = document.querySelector('.app');
+  if (!pop || !app) return;
+  pop.style.display = 'flex';
+  pop.classList.add('on');
+  var box = app.getBoundingClientRect();
+  var ar = (anchor && anchor.getBoundingClientRect) ? anchor.getBoundingClientRect() : box;
+  var w = pop.offsetWidth || 288;
+  var h = pop.offsetHeight || 288;
+  var left = ar.left;
+  var top = ar.bottom + 6;
+  if (left + w > box.right - 6) left = box.right - w - 6;
+  if (left < box.left + 6) left = box.left + 6;
+  if (top + h > box.bottom - 6) top = ar.top - h - 6;
+  if (top < box.top + 6) top = box.top + 6;
+  pop.style.left = Math.round(left) + 'px';
+  pop.style.top = Math.round(top) + 'px';
+  pop.setAttribute('aria-hidden', 'false');
+}
+
+async function playLibClip(rec, title, anchor) {
+  rec = rec || {};
+  lastProofPlayRec = rec;
+  var pop = $('proofPop');
+  var v = $('libVideo');
+  var f = $('libIframe');
+  if (!pop || !v || !f) {
     showReviewClip(rec, title);
     return;
   }
-  wrap.style.display = 'block';
-  var src = rec.blobUrl || rec.url || '';
-  if (src && (/^blob:/i.test(src) || /^data:/i.test(src))) {
+  if ($('proofPopTitle')) $('proofPopTitle').textContent = title || 'VIDEO';
+  placeProofPop(anchor);
+  if (rec.fileId && isDriveFileId(rec.fileId) && !rec.previewUrl && !isLocalDemo()) {
+    try {
+      var res = await gsRun('PLAY', { fileId: rec.fileId }, 18000);
+      if (res && res.previewUrl) rec.previewUrl = res.previewUrl;
+      if (res && res.fileName) rec.fileName = res.fileName;
+    } catch (ePlay) {}
+  }
+  var src = rec.blobUrl || rec.url || rec.downloadUrl || '';
+  if (src && (/^blob:/i.test(src) || /^data:/i.test(src) || /^https?:/i.test(src))) {
     f.style.display = 'none';
+    f.removeAttribute('src');
     v.style.display = 'block';
     v.src = src;
     v.play().catch(function() {});
@@ -1062,10 +1148,13 @@ function playLibClip(rec, title) {
   var preview = rec.previewUrl || (isDriveFileId(rec.fileId) ? drivePreviewUrl(rec.fileId) : '');
   if (preview) {
     v.style.display = 'none';
+    try { v.pause(); } catch (e2) {}
+    v.removeAttribute('src');
     f.style.display = 'block';
     f.src = preview;
     return;
   }
+  closeProofPop();
   note((title || 'Video') + ' play ke liye file nahi.', 'error');
 }
 
@@ -1086,6 +1175,15 @@ function showLibrary(r) {
   var dOk = clipOk(disp);
   var rOk = clipOk(ret);
   var pOk = photos.length > 0;
+  if (isLocalDemo() && !dOk) {
+    disp = {
+      fileId: 'demo',
+      fileName: (r.orderId || n) + '_' + n + '_DISPATCH.webm',
+      url: 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4',
+      blobUrl: 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4'
+    };
+    dOk = true;
+  }
   var dEl = $('proofDispatch');
   var pEl = $('proofPhotos');
   var rEl = $('proofReturn');
@@ -1097,14 +1195,14 @@ function showLibrary(r) {
       '<b>DISPATCH VIDEO</b>' +
       '<div class="muted">' + (dOk ? esc(disp.fileName || 'READY') : 'Abhi nahi bani') + '</div>' +
       '<button type="button" class="primary" id="libPlayDispatch"' + (dOk ? '' : ' disabled') + '>PLAY</button>' +
-      '<button type="button" class="green" id="libDlDispatch">DOWNLOAD</button>';
+      '<button type="button" class="green" id="libDlDispatch"' + (dOk ? '' : ' disabled') + '>DOWNLOAD</button>';
   }
   if (rEl) {
     rEl.innerHTML =
       '<b>RETURN VIDEO</b>' +
       '<div class="muted">' + (rOk ? esc(ret.fileName || 'READY') : 'Abhi nahi bani') + '</div>' +
       '<button type="button" class="primary" id="libPlayReturn"' + (rOk ? '' : ' disabled') + '>PLAY</button>' +
-      '<button type="button" class="green" id="libDlReturn">DOWNLOAD</button>';
+      '<button type="button" class="green" id="libDlReturn"' + (rOk ? '' : ' disabled') + '>DOWNLOAD</button>';
   }
   if (pEl) {
     pEl.innerHTML =
@@ -1113,22 +1211,26 @@ function showLibrary(r) {
       (pOk ? ('<div class="thumbs">' + photos.map(function(im) {
         return '<img alt="" src="' + esc(im.thumb || im.url || '') + '">';
       }).join('') + '</div>') : '') +
-      '<button type="button" class="green" id="libDlZip">DOWNLOAD ZIP' + (pOk ? (' (' + photos.length + ')') : '') + '</button>';
+      '<button type="button" class="green" id="libDlZip"' + (pOk ? '' : ' disabled') + '>DOWNLOAD ZIP' + (pOk ? (' (' + photos.length + ')') : '') + '</button>';
   }
   if ($('libPlayDispatch')) $('libPlayDispatch').onclick = function() {
     if (!dOk) { need('dispatch video'); return; }
-    playLibClip(disp, 'DISPATCH VIDEO');
+    playLibClip(disp, 'DISPATCH VIDEO', $('libPlayDispatch')).catch(function(e) { note(String(e.message || e), 'error'); });
   };
   if ($('libDlDispatch')) $('libDlDispatch').onclick = function() {
     if (!dOk) { need('dispatch video'); return; }
-    downloadClip(disp, 'DISPATCH.webm').catch(function(e) { note(String(e.message || e), 'error'); });
+    lastProofPlayRec = disp;
+    downloadClip(disp, 'DISPATCH.webm').then(function() {
+      note('Dispatch video download start.', 'ok');
+    }).catch(function(e) { note(String(e.message || e), 'error'); });
   };
   if ($('libPlayReturn')) $('libPlayReturn').onclick = function() {
     if (!rOk) { need('return video'); return; }
-    playLibClip(ret, 'RETURN VIDEO');
+    playLibClip(ret, 'RETURN VIDEO', $('libPlayReturn')).catch(function(e) { note(String(e.message || e), 'error'); });
   };
   if ($('libDlReturn')) $('libDlReturn').onclick = function() {
     if (!rOk) { need('return video'); return; }
+    lastProofPlayRec = ret;
     downloadClip(ret, 'RETURN.webm').catch(function(e) { note(String(e.message || e), 'error'); });
   };
   if ($('libDlZip')) $('libDlZip').onclick = function() {
@@ -1137,7 +1239,9 @@ function showLibrary(r) {
   };
   var oid = r.orderId && normalizeAwb(r.orderId) !== n ? (' · ' + esc(r.orderId)) : '';
   lineStatus('VIDEO PROOF · AWB ' + esc(r.awb || '') + oid);
-  note('Teen DOWNLOAD: dispatch video, return video, images ZIP.', 'ok');
+  note(dOk
+    ? 'Dispatch PLAY 3×3 pop-up. DOWNLOAD dispatch video return ke bina bhi.'
+    : 'Is AWB ki dispatch video abhi nahi mili.', dOk ? 'ok' : 'error');
 }
 
 function setMode(next) {
@@ -1291,21 +1395,21 @@ function liveHref(r) {
     ? String(location.href || '').split('#')[0].split('?')[0]
     : (window.DP_PAGE || 'https://yubafashion.github.io/dispatch-proof-camera/');
   var join = page.indexOf('?') >= 0 ? '&' : '?';
-  var u = page + join + 'v=' + encodeURIComponent(window.DP_VER || 'V160') + '&t=' + Date.now();
+  var u = page + join + 'v=' + encodeURIComponent(window.DP_VER || 'V161') + '&t=' + Date.now();
   if (API_URL) u += '&api=' + encodeURIComponent(API_URL);
   if (awb) u += '&awb=' + encodeURIComponent(awb);
   return u;
 }
 
 function packingPopupFeatures() {
-  var w = 768, h = 768;
+  var w = 960, h = 960;
   var L = Math.max(0, Math.floor(((screen.availWidth || screen.width) - w) / 2));
   var T = Math.max(0, Math.floor(((screen.availHeight || screen.height) - h) / 2));
   return 'popup=yes,width=' + w + ',height=' + h + ',left=' + L + ',top=' + T + ',scrollbars=yes,resizable=yes';
 }
 
 function openLiveWindow(r) {
-  window.open(liveHref(r || lastScan), 'DP_CAM_' + (window.DP_VER || 'V160'), packingPopupFeatures());
+  window.open(liveHref(r || lastScan), 'DP_CAM_' + (window.DP_VER || 'V161'), packingPopupFeatures());
   note('Packing popup desktop ke beech. Sheet box Drive ke liye khula rakho.', 'ok');
   return true;
 }
@@ -1359,6 +1463,10 @@ function pingDrive() {
   if (isLocalDemo()) {
     setDriveState('ok');
     return Promise.resolve({ ok: true, demo: true });
+  }
+  if (workerReady && workerSource) {
+    setDriveState('ok');
+    return Promise.resolve({ ok: true, worker: true });
   }
   if (!API_URL) {
     setDriveState('fail');
@@ -2117,6 +2225,16 @@ try {
   $('refreshCamera').addEventListener('click', refreshCameras);
   $('testCamera').addEventListener('click', testCamera);
   $('connectSheet').addEventListener('click', function() { connectSheet(false); });
+  if ($('proofPopClose')) $('proofPopClose').addEventListener('click', closeProofPop);
+  if ($('proofPopDl')) $('proofPopDl').addEventListener('click', function() {
+    if (!lastProofPlayRec) {
+      note('Pehle PLAY dabao, ya DISPATCH DOWNLOAD.', 'error');
+      return;
+    }
+    downloadClip(lastProofPlayRec, lastProofPlayRec.fileName || 'DISPATCH.webm').then(function() {
+      note('Download start.', 'ok');
+    }).catch(function(e) { note(String(e.message || e), 'error'); });
+  });
   $('liveWindow').addEventListener('click', function() { openLiveWindow(lastScan); });
   $('scanBtn').addEventListener('click', scan);
   $('refreshBtn').addEventListener('click', function() {
@@ -2214,7 +2332,12 @@ try {
   }
   pingSheetBox();
   setInterval(pingSheetBox, 2000);
-  if (isLocalDemo() || API_URL) pingDrive();
+  if (isLocalDemo()) pingDrive();
+  else {
+    setTimeout(function() {
+      if (!workerReady) pingDrive().catch(function() {});
+    }, 1500);
+  }
   $('awb').focus();
 })();
 </script>
