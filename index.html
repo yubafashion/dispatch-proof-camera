@@ -788,6 +788,12 @@ function gsRun(action, payload, timeoutMs) {
   }
   if (act === 'PLAY' || act === 'PLAY_PART' || act === 'GET_RECORD' || act === 'DOWNLOAD' || act === 'SHARE') {
     var waitPlay = timeoutMs || (act === 'PLAY' ? 120000 : 30000);
+    if (act === 'PLAY_PART' && API_URL) {
+      return jsonpCall(act, payload || {}, waitPlay).catch(function(err) {
+        if (workerReady && workerSource) return workerCall(act, payload || {}, waitPlay);
+        throw err;
+      });
+    }
     if (workerReady && workerSource) {
       return workerCall(act, payload || {}, waitPlay).catch(function(err) {
         if (API_URL) return jsonpCall(act, payload || {}, waitPlay);
@@ -948,12 +954,68 @@ function proofStreamUrl(fileId) {
   return API_URL + join + 'action=STREAM&fileId=' + encodeURIComponent(id);
 }
 
+function driveDownloadUrl(fileId) {
+  var id = String(fileId || '').trim();
+  if (!id || !isDriveFileId(id)) return '';
+  return 'https://drive.google.com/uc?export=download&id=' + encodeURIComponent(id);
+}
+
 function b64ToBytes(b64) {
   var bin = atob(String(b64 || '').replace(/[^A-Za-z0-9+\/=]/g, ''));
   var out = new Uint8Array(bin.length);
   var i;
   for (i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
   return out;
+}
+
+function keepLocalMedia(into, from) {
+  if (!into || !from) return into;
+  if (from.blob && !into.blob) into.blob = from.blob;
+  if (from.blobUrl && /^blob:/i.test(from.blobUrl) && !into.blobUrl) into.blobUrl = from.blobUrl;
+  return into;
+}
+
+function rememberLocalClip(awb, kind, fileName, blob) {
+  var key = normalizeAwb(awb);
+  if (!key || !blob) return;
+  scanMemo[key] = scanMemo[key] || {};
+  var url = URL.createObjectURL(blob);
+  var rec = { fileName: fileName, blob: blob, blobUrl: url, url: url };
+  kind = String(kind || 'DISPATCH').toUpperCase();
+  if (kind === 'RETURN') scanMemo[key].returnVideo = Object.assign({}, scanMemo[key].returnVideo || {}, rec);
+  else if (kind !== 'RETURN_IMG') scanMemo[key].dispatchVideo = Object.assign({}, scanMemo[key].dispatchVideo || {}, rec);
+}
+
+function mergeKeptMedia(n, r) {
+  var prev = scanMemo[n];
+  if (!r || !prev) return r;
+  if (r.dispatchVideo) keepLocalMedia(r.dispatchVideo, prev.dispatchVideo);
+  else if (prev.dispatchVideo && (prev.dispatchVideo.blob || prev.dispatchVideo.blobUrl)) r.dispatchVideo = prev.dispatchVideo;
+  if (r.returnVideo) keepLocalMedia(r.returnVideo, prev.returnVideo);
+  else if (prev.returnVideo && (prev.returnVideo.blob || prev.returnVideo.blobUrl)) r.returnVideo = prev.returnVideo;
+  return r;
+}
+
+async function fetchPlayParts(cacheKey, parts) {
+  var slots = new Array(parts);
+  var next = 0;
+  var done = 0;
+  async function pump() {
+    while (next < parts) {
+      var i = next++;
+      var part = await gsRun('PLAY_PART', { cacheKey: cacheKey, index: String(i) }, 30000);
+      if (!part || !part.data) throw new Error('Play chunk ' + (i + 1) + ' missing');
+      slots[i] = part.data;
+      done++;
+      $('cameraState').textContent = 'Play ' + done + '/' + parts;
+    }
+  }
+  var n = Math.min(8, Math.max(1, parts));
+  var jobs = [];
+  var p;
+  for (p = 0; p < n; p++) jobs.push(pump());
+  await Promise.all(jobs);
+  return slots.join('');
 }
 
 async function fetchDriveMedia(rec, quiet) {
@@ -966,16 +1028,15 @@ async function fetchDriveMedia(rec, quiet) {
   if (!meta || meta.ok === false) throw new Error((meta && meta.message) || 'PLAY fail');
   rec.fileName = meta.fileName || rec.fileName;
   rec.mime = meta.mime || rec.mime || 'video/webm';
+  if (meta.streamUrl && !meta.base64 && !meta.cacheKey) {
+    rec.playUrl = meta.streamUrl;
+    rec.blobUrl = meta.streamUrl;
+    return rec;
+  }
   var raw = '';
   if (meta.base64) raw = meta.base64;
   else if (meta.cacheKey && meta.parts) {
-    var i;
-    for (i = 0; i < Number(meta.parts); i++) {
-      var part = await gsRun('PLAY_PART', { cacheKey: meta.cacheKey, index: String(i) }, 30000);
-      if (!part || !part.data) throw new Error('Play chunk ' + (i + 1) + ' missing');
-      raw += part.data;
-      $('cameraState').textContent = 'Play ' + (i + 1) + '/' + meta.parts;
-    }
+    raw = await fetchPlayParts(meta.cacheKey, Number(meta.parts));
   } else {
     throw new Error(meta.message || 'Play data nahi mili');
   }
@@ -1177,25 +1238,42 @@ function blankLibrary() {
 
 async function fillInlineProof(el, rec) {
   if (!el || !rec) return;
-  try {
-    var src = rec.blobUrl || rec.playUrl || '';
-    if (!src && rec.fileId && isDriveFileId(rec.fileId)) {
-      src = proofStreamUrl(rec.fileId);
-      rec.playUrl = src;
-    }
-    if (!src || /drive\.google\.com/i.test(src)) {
-      rec = await fetchDriveMedia(rec, true);
-      src = rec.blobUrl || '';
-    }
+  function setSrc(src) {
     if (!src) return;
     el.src = src;
     el.style.display = 'block';
-    el.onerror = function() {
-      el.onerror = null;
-      fetchDriveMedia(rec, true).then(function(got) {
-        if (got && got.blobUrl) el.src = got.blobUrl;
-      }).catch(function() {});
-    };
+  }
+  function loadBytes() {
+    fetchDriveMedia(rec, true).then(function(got) {
+      if (got && got.blobUrl) setSrc(got.blobUrl);
+    }).catch(function() {});
+  }
+  try {
+    if (rec.blobUrl && /^blob:/i.test(rec.blobUrl)) {
+      setSrc(rec.blobUrl);
+      return;
+    }
+    var drive = rec.fileId && isDriveFileId(rec.fileId) ? driveDownloadUrl(rec.fileId) : '';
+    var stream = proofStreamUrl(rec.fileId);
+    var first = drive || stream || rec.playUrl || '';
+    if (first && !/drive\.google\.com\/file\//i.test(first)) {
+      rec.playUrl = first;
+      setSrc(first);
+      el.onerror = function() {
+        el.onerror = null;
+        if (stream && first !== stream) {
+          setSrc(stream);
+          el.onerror = function() {
+            el.onerror = null;
+            loadBytes();
+          };
+          return;
+        }
+        loadBytes();
+      };
+      return;
+    }
+    loadBytes();
   } catch (e) {}
 }
 
@@ -1771,6 +1849,7 @@ function applyFastScan(r, n, m, started) {
       return;
     }
   }
+  r = mergeKeptMedia(n, r);
   if (m === 'DISPATCH' && (isExistingDispatchClip(r) || r.duplicate)) {
     if (waitingOrder && normalizeAwb(waitingOrder.awb) === n) waitingOrder.discard = true;
     abortRecordingFor(n, true);
@@ -2261,6 +2340,7 @@ function queueUpload(s, blob) {
   var fileName = (s.orderId || 'NA') + '_' + s.awb + '_' + kind +
     (kind === 'RETURN_IMG' ? ('_' + Date.now()) : '') + fileExtForMime(blob.type);
   lastEmergency = { fileName: fileName, blob: blob };
+  if (kind !== 'RETURN_IMG') rememberLocalClip(s.awb, kind, fileName, blob);
   if (kind === 'DISPATCH') {
     lockDispatchAwb(s.awb);
     gsRun('MARK_PENDING', { awb: s.awb, orderId: s.orderId }, 8000).catch(function() {});
@@ -2326,7 +2406,7 @@ function submitUpload(payload) {
         $('cameraState').textContent = 'Saving…';
       }
       var res = null;
-      if (raw.length <= 900000) {
+      if (raw.length <= 180000) {
         try {
           res = await gsRun('UPLOAD', {
             awb: payload.awb, orderId: payload.orderId, videoType: type,
@@ -2355,7 +2435,7 @@ function submitUpload(payload) {
             $('cameraState').textContent = 'Saving ' + done + '/' + total;
           }
         }
-        await Promise.all([pump(), pump(), pump(), pump()]);
+        await Promise.all([pump(), pump(), pump(), pump(), pump(), pump()]);
         $('cameraState').textContent = 'Writing Drive file…';
         res = await gsRun('FINISH', {
           uploadId: uploadId, total: String(total), awb: payload.awb || '',
@@ -2391,7 +2471,9 @@ function submitUpload(payload) {
             awb: payload.awb,
             orderId: payload.orderId || (scanMemo[dn] && scanMemo[dn].orderId) || '',
             duplicate: true,
-            dispatchVideo: { fileId: res.fileId || 'drive', fileName: res.fileName || '', url: res.url || '', demo: !!res.demo }
+            dispatchVideo: Object.assign({}, (scanMemo[dn] && scanMemo[dn].dispatchVideo) || {}, {
+              fileId: res.fileId || 'drive', fileName: res.fileName || '', url: res.url || '', demo: !!res.demo
+            })
           });
           if (mode === 'DISPATCH') showAlreadyRecorded(scanMemo[dn]);
         }
@@ -2405,7 +2487,9 @@ function submitUpload(payload) {
         var sn = normalizeAwb(payload.awb);
         scanMemo[sn] = Object.assign({}, scanMemo[sn] || lastScan || {}, {
           awb: payload.awb, orderId: payload.orderId || '', duplicate: true,
-          dispatchVideo: { fileId: res.fileId, fileName: res.fileName, url: res.url, demo: !!res.demo }
+          dispatchVideo: Object.assign({}, (scanMemo[sn] && scanMemo[sn].dispatchVideo) || {}, {
+            fileId: res.fileId, fileName: res.fileName, url: res.url, demo: !!res.demo
+          })
         });
         lockDispatchAwb(payload.awb);
       }
@@ -2415,6 +2499,7 @@ function submitUpload(payload) {
       if (String(type).toUpperCase() === 'RETURN') {
         gsRun('SCAN', { awb: payload.awb, mode: 'PROOF' }, SCAN_MS).then(function(scanRes) {
           if (scanRes && scanRes.found && !(recorder && recorder.state === 'recording')) {
+            scanRes = mergeKeptMedia(normalizeAwb(payload.awb), scanRes);
             if (mode === 'LIBRARY') showLibrary(scanRes);
             else showProof(scanRes);
           }
