@@ -42,6 +42,7 @@ body.libraryMode .card.on{max-height:none;overflow:visible;padding:8px 10px}
 .proofStageHead b{flex:1;font-size:11px;font-weight:800;margin:0;color:#fff}
 .proofStageHead button{height:24px;font-size:10px;padding:0 8px;min-width:0;margin:0}
 .proofPreview{width:100%;height:3in;max-height:36vh;margin:0;background:#000;object-fit:contain;display:block}
+iframe.proofPreview{border:0;object-fit:unset}
 .proofEmpty{height:3in;max-height:36vh;display:flex;align-items:center;justify-content:center;color:#9aa0a6;font-size:13px;font-weight:700;background:#000}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:2px 10px}
 .skuLine{grid-column:1/-1;min-width:0}
@@ -426,8 +427,8 @@ function renderPhotoBook(awb) {
     btn.textContent = photos.length ? ('DOWNLOAD ZIP (' + photos.length + ')') : 'DOWNLOAD ZIP';
   }
   thumbs.innerHTML = photos.map(function(im, idx) {
-    var src = im.thumb || im.url || '';
-    return '<img alt="photo ' + (idx + 1) + '" src="' + esc(src) + '">';
+    var src = displayPhotoSrc(im);
+    return '<img alt="photo ' + (idx + 1) + '" referrerpolicy="no-referrer" src="' + esc(src) + '">';
   }).join('');
 }
 
@@ -445,11 +446,12 @@ function mergeRemotePhotos(r) {
       return !x.local && x.url && im.url && x.url === im.url;
     });
     if (exists) return;
+    var fid = extractDriveFileId(im.fileId || im.url || im.thumb || im.downloadUrl);
     local.push({
       url: im.url || im.thumb || '',
-      thumb: im.thumb || im.url || '',
+      thumb: displayPhotoSrc(im),
       fileName: im.fileName || '',
-      fileId: im.fileId || '',
+      fileId: fid || im.fileId || '',
       remote: true
     });
   });
@@ -787,7 +789,7 @@ function gsRun(action, payload, timeoutMs) {
     }
     return Promise.reject(new Error('SCAN needs the sheet Drive box open.'));
   }
-  if (act === 'PLAY' || act === 'PLAY_PART' || act === 'GET_RECORD' || act === 'DOWNLOAD' || act === 'SHARE') {
+  if (act === 'PLAY' || act === 'PLAY_PART' || act === 'GET_RECORD' || act === 'DOWNLOAD' || act === 'SHARE' || act === 'SHARE_MANY') {
     var waitPlay = timeoutMs || (act === 'PLAY' ? 120000 : 30000);
     if (act === 'PLAY_PART' && API_URL) {
       return jsonpCall(act, payload || {}, waitPlay).catch(function(err) {
@@ -956,9 +958,66 @@ function proofStreamUrl(fileId) {
 }
 
 function driveDownloadUrl(fileId) {
-  var id = String(fileId || '').trim();
-  if (!id || !isDriveFileId(id)) return '';
+  var id = extractDriveFileId(fileId);
+  if (!id) return '';
   return 'https://drive.google.com/uc?export=download&id=' + encodeURIComponent(id);
+}
+
+function extractDriveFileId(v) {
+  var s = String(v || '').trim();
+  if (!s || s === 'demo' || s === 'drive' || s.indexOf('demo-') === 0) return '';
+  if (isDriveFileId(s)) return s;
+  var m = s.match(/\/d\/([A-Za-z0-9_-]{20,})/);
+  if (m) return m[1];
+  m = s.match(/[?&]id=([A-Za-z0-9_-]{20,})/);
+  if (m) return m[1];
+  return '';
+}
+
+function drivePreviewUrl(fileId) {
+  var id = extractDriveFileId(fileId);
+  if (!id) return '';
+  return 'https://drive.google.com/file/d/' + id + '/preview';
+}
+
+function driveThumbUrl(fileId, size) {
+  var id = extractDriveFileId(fileId);
+  if (!id) return '';
+  return 'https://drive.google.com/thumbnail?id=' + encodeURIComponent(id) + '&sz=w' + (size || 400);
+}
+
+function enrichDriveRec(rec) {
+  if (!rec) return rec;
+  var id = extractDriveFileId(rec.fileId || rec.url || rec.downloadUrl || rec.previewUrl);
+  if (!id) return rec;
+  rec.fileId = id;
+  if (!rec.previewUrl || !/\/preview(?:\?|$)/i.test(String(rec.previewUrl))) rec.previewUrl = drivePreviewUrl(id);
+  if (!rec.thumb || /drive\.google\.com\/file\//i.test(String(rec.thumb))) rec.thumb = driveThumbUrl(id, 400);
+  return rec;
+}
+
+function displayPhotoSrc(im) {
+  if (!im) return '';
+  if (im.thumb && /^(data:|blob:)/i.test(im.thumb)) return im.thumb;
+  if (im.url && /^(data:|blob:)/i.test(im.url)) return im.url;
+  var id = extractDriveFileId(im.fileId || im.thumb || im.url || im.downloadUrl);
+  if (id) return driveThumbUrl(id, 400);
+  return im.thumb || im.url || '';
+}
+
+function shareProofMedia(r) {
+  if (!r || (isLocalDemo() && !API_URL)) return;
+  var ids = [];
+  function add(rec) {
+    var id = extractDriveFileId(rec && (rec.fileId || rec.url || rec.downloadUrl));
+    if (id && ids.indexOf(id) < 0) ids.push(id);
+  }
+  add(r.dispatchVideo);
+  add(r.returnVideo);
+  (r.returnImages || []).forEach(add);
+  uniquePhotos(localPhotos(r.awb)).forEach(add);
+  if (!ids.length) return;
+  gsRun('SHARE_MANY', { fileIds: ids.join(',') }, 20000).catch(function() {});
 }
 
 function b64ToBytes(b64) {
@@ -1237,48 +1296,51 @@ function blankLibrary() {
   note('', '');
 }
 
-async function fillInlineProof(el, rec) {
-  if (!el || !rec) return;
-  function setSrc(src) {
-    if (!src) return;
-    el.src = src;
-    el.style.display = 'block';
+function fillInlineProof(vidEl, rec, frameEl) {
+  if ((!vidEl && !frameEl) || !rec) return;
+  rec = enrichDriveRec(rec);
+  function showVideo(src) {
+    if (!vidEl || !src) return;
+    if (frameEl) {
+      frameEl.removeAttribute('src');
+      frameEl.style.display = 'none';
+    }
+    vidEl.src = src;
+    vidEl.style.display = 'block';
   }
-  function loadBytes() {
-    fetchDriveMedia(rec, true).then(function(got) {
-      if (got && got.blobUrl) setSrc(got.blobUrl);
-    }).catch(function() {});
+  function showFrame(src) {
+    if (!frameEl || !src) return;
+    if (vidEl) {
+      try { vidEl.pause(); } catch (e1) {}
+      vidEl.removeAttribute('src');
+      vidEl.style.display = 'none';
+    }
+    frameEl.src = src;
+    frameEl.style.display = 'block';
   }
   try {
-    if (rec.blobUrl && /^blob:/i.test(rec.blobUrl)) {
-      setSrc(rec.blobUrl);
+    var localSrc = '';
+    if (rec.blobUrl && /^(blob:|data:)/i.test(rec.blobUrl)) localSrc = rec.blobUrl;
+    else if (rec.url && /^(blob:|data:)/i.test(rec.url)) localSrc = rec.url;
+    if (localSrc) {
+      showVideo(localSrc);
       return;
     }
-    var drive = rec.fileId && isDriveFileId(rec.fileId) ? driveDownloadUrl(rec.fileId) : '';
-    var stream = proofStreamUrl(rec.fileId);
-    var first = drive || stream || rec.playUrl || '';
-    if (first && !/drive\.google\.com\/file\//i.test(first)) {
-      rec.playUrl = first;
-      setSrc(first);
-      el.onerror = function() {
-        el.onerror = null;
-        if (stream && first !== stream) {
-          setSrc(stream);
-          el.onerror = function() {
-            el.onerror = null;
-            loadBytes();
-          };
-          return;
-        }
-        loadBytes();
-      };
+    var preview = '';
+    if (rec.previewUrl && /\/preview(?:\?|$)/i.test(String(rec.previewUrl))) preview = rec.previewUrl;
+    else preview = drivePreviewUrl(rec.fileId || rec.url || rec.downloadUrl);
+    if (preview) {
+      showFrame(preview);
       return;
     }
-    loadBytes();
+    var httpSrc = rec.blobUrl || rec.playUrl || rec.url || '';
+    if (httpSrc && /^https?:/i.test(httpSrc) && !/drive\.google\.com\/file\//i.test(httpSrc)) {
+      showVideo(httpSrc);
+    }
   } catch (e) {}
 }
 
-function proofPlayerHtml(kind, ok, vidId, headDlId, closeId) {
+function proofPlayerHtml(kind, ok, vidId, headDlId, closeId, frameId) {
   var title = kind === 'RETURN' ? 'RETURN VIDEO' : 'DISPATCH VIDEO';
   return (
     '<b class="proofTitle">' + title + '</b>' +
@@ -1289,7 +1351,8 @@ function proofPlayerHtml(kind, ok, vidId, headDlId, closeId) {
         '<button type="button" class="gray" id="' + closeId + '"' + (ok ? '' : ' disabled') + '>CLOSE</button>' +
       '</div>' +
       (ok
-        ? '<video id="' + vidId + '" class="proofPreview" controls playsinline></video>'
+        ? '<video id="' + vidId + '" class="proofPreview" controls playsinline style="display:none"></video>' +
+          '<iframe id="' + frameId + '" class="proofPreview" style="display:none" allow="autoplay; fullscreen" title="' + title + '"></iframe>'
         : '<div class="proofEmpty">Abhi nahi bani</div>') +
     '</div>'
   );
@@ -1376,8 +1439,8 @@ function showLibrary(r) {
   if ($('proofPanel')) $('proofPanel').style.display = 'flex';
   $('empty').style.display = 'none';
   var n = normalizeAwb(r.awb);
-  var disp = r.dispatchVideo || (scanMemo[n] && scanMemo[n].dispatchVideo) || null;
-  var ret = r.returnVideo || (scanMemo[n] && scanMemo[n].returnVideo) || null;
+  var disp = enrichDriveRec(r.dispatchVideo || (scanMemo[n] && scanMemo[n].dispatchVideo) || null);
+  var ret = enrichDriveRec(r.returnVideo || (scanMemo[n] && scanMemo[n].returnVideo) || null);
   var photos = uniquePhotos(localPhotos(r.awb));
   var dOk = clipOk(disp);
   var rOk = clipOk(ret);
@@ -1398,14 +1461,14 @@ function showLibrary(r) {
   var oid = String(r.orderId || '').trim() || '—';
   var awbLine = String(r.awb || n || '').trim() || '—';
   var dateLine = String(r.date || '').trim() || '—';
-  if (dEl) dEl.innerHTML = proofPlayerHtml('DISPATCH', dOk, 'libDispVid', 'libHeadDlDispatch', 'libCloseDispatch');
-  if (rEl) rEl.innerHTML = proofPlayerHtml('RETURN', rOk, 'libRetVid', 'libHeadDlReturn', 'libCloseReturn');
+  if (dEl) dEl.innerHTML = proofPlayerHtml('DISPATCH', dOk, 'libDispVid', 'libHeadDlDispatch', 'libCloseDispatch', 'libDispFrame');
+  if (rEl) rEl.innerHTML = proofPlayerHtml('RETURN', rOk, 'libRetVid', 'libHeadDlReturn', 'libCloseReturn', 'libRetFrame');
   if (pEl) {
     pEl.innerHTML =
       '<b class="proofTitle">IMAGES</b>' +
       '<div class="muted">' + (pOk ? (photos.length + ' photo') : 'Abhi koi image nahi') + '</div>' +
       (pOk ? ('<div class="thumbs">' + photos.map(function(im) {
-        return '<img alt="" src="' + esc(im.thumb || im.url || '') + '">';
+        return '<img alt="" referrerpolicy="no-referrer" src="' + esc(displayPhotoSrc(im)) + '">';
       }).join('') + '</div>') : '') +
       '<button type="button" class="green" id="libDlZip"' + (pOk ? '' : ' disabled') + '>DOWNLOAD ZIP' + (pOk ? (' (' + photos.length + ')') : '') + '</button>';
   }
@@ -1419,18 +1482,24 @@ function showLibrary(r) {
       });
     };
   }
-  function bindClose(id, vidId) {
+  function bindClose(id, vidId, frameId) {
     if (!$(id)) return;
     $(id).onclick = function() {
       var v = $(vidId);
-      if (!v) return;
-      try { v.pause(); } catch (e1) {}
+      var f = $(frameId);
+      if (v) {
+        try { v.pause(); } catch (e1) {}
+      }
+      if (f) {
+        f.removeAttribute('src');
+        f.style.display = 'none';
+      }
     };
   }
   bindDl('libHeadDlDispatch', disp, dOk, 'dispatch video');
-  bindClose('libCloseDispatch', 'libDispVid');
+  bindClose('libCloseDispatch', 'libDispVid', 'libDispFrame');
   bindDl('libHeadDlReturn', ret, rOk, 'return video');
-  bindClose('libCloseReturn', 'libRetVid');
+  bindClose('libCloseReturn', 'libRetVid', 'libRetFrame');
   if ($('libDlZip')) $('libDlZip').onclick = function() {
     if (!pOk) { need('images'); return; }
     downloadPhotoBook().catch(function(e) { note(String(e.message || e), 'error'); });
@@ -1443,8 +1512,9 @@ function showLibrary(r) {
     '</div>'
   );
   note('', '');
-  if (dOk) fillInlineProof($('libDispVid'), disp);
-  if (rOk) fillInlineProof($('libRetVid'), ret);
+  if (dOk) fillInlineProof($('libDispVid'), disp, $('libDispFrame'));
+  if (rOk) fillInlineProof($('libRetVid'), ret, $('libRetFrame'));
+  shareProofMedia(r);
 }
 
 function setMode(next) {
@@ -1477,8 +1547,14 @@ function setMode(next) {
   } else if (mode === 'LIBRARY') {
     hidePhotoBook();
     if ($('returnClip')) $('returnClip').style.display = 'none';
-    blankLibrary();
-    note('', '');
+    var awbNow = normalizeAwb($('awb') && $('awb').value) || (lastScan && normalizeAwb(lastScan.awb)) || '';
+    var cached = (awbNow && scanMemo[awbNow]) || lastScan;
+    if (cached && (cached.dispatchVideo || cached.returnVideo || (cached.returnImages && cached.returnImages.length) || cached.awb)) {
+      showLibrary(cached);
+    } else {
+      blankLibrary();
+      note('VIDEO PROOF — AWB scan karo. Dispatch, return aur images yahin dikhengi.', 'ok');
+    }
   }
   $('awb').focus();
 }
@@ -2472,18 +2548,21 @@ function finishRecording() {
   var mime = savedChunks[0].type || recorderMime || 'video/mp4';
   var blob = new Blob(savedChunks, {type: mime});
   if (!blob.size) {
+    abortLiveUpload();
     note('VIDEO SAVE ERROR: recorded video is empty.', 'error');
     if (queued && queued.awb) lookupAwb(normalizeAwb(queued.awb), queued.videoType === 'RETURN' ? 'RETURN' : 'DISPATCH');
     return;
-  }
-  if (queued && queued.awb) {
-    lookupAwb(normalizeAwb(queued.awb), queued.videoType === 'RETURN' ? 'RETURN' : 'DISPATCH');
   }
   var fileName = (s.orderId || 'NA') + '_' + s.awb + '_' + String(s.videoType || 'DISPATCH').toUpperCase() +
     fileExtForMime(blob.type);
   lastEmergency = { fileName: fileName, blob: blob };
   rememberLocalClip(s.awb, s.videoType, fileName, blob);
-  var liveDone = (!isLocalDemo() && (liveUpload && liveUpload.awb === s.awb)) ? finishLiveUpload() : Promise.resolve(null);
+  var liveDone = (!isLocalDemo() && liveUpload && normalizeAwb(liveUpload.awb) === normalizeAwb(s.awb))
+    ? finishLiveUpload()
+    : null;
+  if (queued && queued.awb) {
+    lookupAwb(normalizeAwb(queued.awb), queued.videoType === 'RETURN' ? 'RETURN' : 'DISPATCH');
+  }
   if (liveDone) {
     if (String(s.videoType || '').toUpperCase() === 'DISPATCH') {
       lockDispatchAwb(s.awb);
