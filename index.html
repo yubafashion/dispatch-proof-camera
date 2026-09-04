@@ -161,7 +161,7 @@ window.onerror = function (msg, src, line) {
       </div>
       <div class="cameraWrap">
         <video id="cameraFrame" class="cameraFrame" autoplay muted playsinline></video>
-        <video id="clipVideo" class="cameraFrame" controls playsinline style="display:none"></video>
+        <video id="clipVideo" class="cameraFrame" controls muted playsinline style="display:none"></video>
         <iframe id="clipIframe" class="cameraFrame" style="display:none;border:0" allow="autoplay; fullscreen" title="Recorded video"></iframe>
         <div id="camFlash"></div>
         <div id="camStamp" class="camStamp" aria-hidden="true">
@@ -194,7 +194,7 @@ window.onerror = function (msg, src, line) {
         <button type="button" id="playReturnClip" class="primary">PLAY</button>
         <button type="button" id="dlReturnClip" class="green">DOWNLOAD VIDEO</button>
       </div>
-      <video id="returnClipPlayer" class="cameraFrame" controls playsinline style="display:none;margin-top:6px;max-height:140px"></video>
+      <video id="returnClipPlayer" class="cameraFrame" controls muted playsinline style="display:none;margin-top:6px;max-height:140px"></video>
     </div>
     <div id="proofPanel" class="proofPanel">
       <div class="proofCols">
@@ -212,7 +212,7 @@ window.onerror = function (msg, src, line) {
       <button type="button" id="proofPopClose" class="gray">CLOSE</button>
     </div>
     <div class="proofPopStage">
-      <video id="libVideo" class="cameraFrame" controls playsinline></video>
+      <video id="libVideo" class="cameraFrame" controls muted playsinline></video>
       <iframe id="libIframe" class="cameraFrame" style="display:none;border:0" allow="autoplay; fullscreen" title="Proof video"></iframe>
     </div>
   </div>
@@ -220,7 +220,7 @@ window.onerror = function (msg, src, line) {
 <script>
 'use strict';
 
-/* HD capture — packing UI/theme unchanged. Old path was 640x360 @ 12fps / 110kbps / JPEG 0.72. */
+/* HD capture, video-only (no mic / no audio track). Packing UI/theme unchanged. */
 var QUALITY = {
   liveW: 1920,
   liveH: 1080,
@@ -228,7 +228,6 @@ var QUALITY = {
   recMaxH: 720,
   recFps: 24,
   videoBps: 2800000,
-  audioBps: 96000,
   jpegQ: 0.92
 };
 
@@ -1305,6 +1304,9 @@ function fillInlineProof(vidEl, rec, frameEl) {
       frameEl.removeAttribute('src');
       frameEl.style.display = 'none';
     }
+    vidEl.muted = true;
+    vidEl.defaultMuted = true;
+    vidEl.volume = 0;
     vidEl.src = src;
     vidEl.style.display = 'block';
   }
@@ -1351,7 +1353,7 @@ function proofPlayerHtml(kind, ok, vidId, headDlId, closeId, frameId) {
         '<button type="button" class="gray" id="' + closeId + '"' + (ok ? '' : ' disabled') + '>CLOSE</button>' +
       '</div>' +
       (ok
-        ? '<video id="' + vidId + '" class="proofPreview" controls playsinline style="display:none"></video>' +
+        ? '<video id="' + vidId + '" class="proofPreview" controls muted playsinline style="display:none"></video>' +
           '<iframe id="' + frameId + '" class="proofPreview" style="display:none" allow="autoplay; fullscreen" title="' + title + '"></iframe>'
         : '<div class="proofEmpty">Abhi nahi bani</div>') +
     '</div>'
@@ -1662,11 +1664,21 @@ async function startCamera() {
   attachCameraStream_(stream);
 }
 
+function stripAudioFromStream(s) {
+  if (!s || !s.getAudioTracks) return s;
+  s.getAudioTracks().forEach(function(t) {
+    try { s.removeTrack(t); } catch (e1) {}
+    try { t.enabled = false; t.stop(); } catch (e2) {}
+  });
+  return s;
+}
+
 function attachCameraStream_(s) {
-  stream = s;
+  stream = stripAudioFromStream(s);
   var v = $('cameraFrame');
-  v.srcObject = s;
+  v.srcObject = stream;
   v.muted = true;
+  v.volume = 0;
   v.playsInline = true;
   v.play().catch(function () {});
   $('cameraPanel').style.display = 'flex';
@@ -2184,8 +2196,9 @@ function chooseMime() {
   var types = [
     'video/webm;codecs=vp9',
     'video/webm;codecs=vp8',
-    'video/webm',
-    'video/mp4'
+    'video/webm;codecs=vp9.0',
+    'video/webm;codecs=vp8.0',
+    'video/mp4;codecs=avc1.42E01E'
   ];
   for (var i = 0; i < types.length; i++) {
     if (window.MediaRecorder && MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(types[i])) {
@@ -2216,11 +2229,8 @@ function startPackStream() {
   }
   draw();
   packTimer = setInterval(draw, Math.round(1000 / QUALITY.recFps));
-  if (!canvas.captureStream) return stream;
-  recordStream = canvas.captureStream(QUALITY.recFps);
-  stream.getAudioTracks().forEach(function(t) {
-    try { recordStream.addTrack(t); } catch (e2) {}
-  });
+  if (!canvas.captureStream) return stripAudioFromStream(stream);
+  recordStream = stripAudioFromStream(canvas.captureStream(QUALITY.recFps));
   return recordStream;
 }
 
@@ -2415,10 +2425,10 @@ async function startRecording(r) {
   }
   if (token !== recordToken || blockRecordAwb === awbN) return;
   if (recorder && recorder.state === 'recording') return;
-  var recStream = startPackStream() || stream;
+  var recStream = stripAudioFromStream(startPackStream() || stream);
   var mime = chooseMime();
   recorderMime = mime;
-  var recOpts = { videoBitsPerSecond: QUALITY.videoBps, audioBitsPerSecond: QUALITY.audioBps };
+  var recOpts = { videoBitsPerSecond: QUALITY.videoBps };
   try {
     recorder = mime
       ? new MediaRecorder(recStream, Object.assign({ mimeType: mime }, recOpts))
