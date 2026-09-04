@@ -267,6 +267,7 @@ var lastProofPlayRec = null;
 var scanMemo = {};
 var sessionReturn = {};
 var lastEmergency = null;
+var liveUpload = null;
 
 function $(id) { return document.getElementById(id); }
 
@@ -2153,6 +2154,163 @@ function fileExtForMime(mime) {
   return /mp4/i.test(t) ? '.mp4' : '.webm';
 }
 
+function bytesToWebSafeB64(bytes) {
+  var bin = '';
+  var step = 0x8000;
+  var i;
+  for (i = 0; i < bytes.length; i += step) {
+    bin += String.fromCharCode.apply(null, bytes.subarray(i, Math.min(i + step, bytes.length)));
+  }
+  return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+}
+
+function concatBytes(a, b) {
+  var o = new Uint8Array(a.length + b.length);
+  o.set(a, 0);
+  o.set(b, a.length);
+  return o;
+}
+
+function abortLiveUpload() {
+  if (!liveUpload) return;
+  liveUpload.failed = true;
+  liveUpload.doneFeeding = true;
+  var wait = liveUpload.wait || [];
+  liveUpload.wait = [];
+  wait.forEach(function(fn) { try { fn(); } catch (e1) {} });
+  liveUpload = null;
+}
+
+function startLiveUpload(s, mime, fileName) {
+  if (isLocalDemo() || !s || String(s.videoType || '').toUpperCase() === 'RETURN_IMG') return;
+  liveUpload = {
+    uploadId: 'u' + Date.now() + '_' + Math.floor(Math.random() * 1000000),
+    awb: s.awb,
+    orderId: s.orderId,
+    videoType: String(s.videoType || 'DISPATCH').toUpperCase(),
+    mimeType: mime || 'video/webm',
+    fileName: fileName,
+    replaceDispatch: !!(s && s.replaceDispatch),
+    pieces: [],
+    cursor: 0,
+    sent: 0,
+    b64: '',
+    tail: new Uint8Array(0),
+    chain: Promise.resolve(),
+    failed: false,
+    doneFeeding: false,
+    wait: []
+  };
+  gsRun('MARK_PENDING', { awb: s.awb, orderId: s.orderId }, 8000).catch(function() {});
+  var n = 0;
+  for (n = 0; n < 6; n++) liveUploadWorker(liveUpload);
+}
+
+function liveWake(u) {
+  var wait = u.wait || [];
+  u.wait = [];
+  wait.forEach(function(fn) { try { fn(); } catch (e1) {} });
+}
+
+function liveEnqueueB64(u, piece) {
+  if (!u || u.failed || !piece) return;
+  u.pieces.push(piece);
+  liveWake(u);
+}
+
+function liveFeedBlob(blob) {
+  var u = liveUpload;
+  if (!u || u.failed || !blob || !blob.size) return;
+  u.chain = u.chain.then(function() {
+    return blob.arrayBuffer();
+  }).then(function(buf) {
+    if (!u || u.failed) return;
+    var bytes = concatBytes(u.tail, new Uint8Array(buf));
+    var n = Math.floor(bytes.length / 3) * 3;
+    if (n) {
+      u.b64 += bytesToWebSafeB64(bytes.subarray(0, n));
+      while (u.b64.length >= 90000) {
+        liveEnqueueB64(u, u.b64.slice(0, 90000));
+        u.b64 = u.b64.slice(90000);
+      }
+      u.tail = bytes.subarray(n);
+    } else {
+      u.tail = bytes;
+    }
+  }).catch(function() {
+    u.failed = true;
+    u.doneFeeding = true;
+    liveWake(u);
+  });
+}
+
+async function liveUploadWorker(u) {
+  while (u && !u.failed) {
+    if (u.cursor >= u.pieces.length) {
+      if (u.doneFeeding) return;
+      await new Promise(function(resolve) { u.wait.push(resolve); });
+      continue;
+    }
+    var i = u.cursor++;
+    var data = u.pieces[i];
+    try {
+      var chunkRes = await gsRun('CHUNK', {
+        uploadId: u.uploadId,
+        index: String(i),
+        data: data,
+        awb: u.awb || '',
+        orderId: u.orderId || ''
+      }, 60000);
+      if (chunkRes && chunkRes.ok === false) throw new Error(chunkRes.message || 'chunk failed');
+      u.sent++;
+      $('cameraState').textContent = 'Saving ' + u.sent;
+    } catch (err) {
+      u.failed = true;
+      u.doneFeeding = true;
+      liveWake(u);
+      return;
+    }
+  }
+}
+
+function finishLiveUpload() {
+  var u = liveUpload;
+  liveUpload = null;
+  if (!u) return Promise.resolve(null);
+  return u.chain.then(function() {
+    if (u.failed) return null;
+    if (u.tail && u.tail.length) {
+      u.b64 += bytesToWebSafeB64(u.tail);
+      u.tail = new Uint8Array(0);
+    }
+    while (u.b64.length) {
+      liveEnqueueB64(u, u.b64.slice(0, 90000));
+      u.b64 = u.b64.slice(90000);
+    }
+    u.doneFeeding = true;
+    liveWake(u);
+    var workers = [];
+    var n;
+    for (n = 0; n < 6; n++) workers.push(liveUploadWorker(u));
+    return Promise.all(workers);
+  }).then(function() {
+    if (u.failed || !u.pieces.length) return null;
+    $('cameraState').textContent = 'Writing Drive file…';
+    return gsRun('FINISH', {
+      uploadId: u.uploadId,
+      total: String(u.pieces.length),
+      awb: u.awb || '',
+      orderId: u.orderId || '',
+      videoType: u.videoType,
+      mimeType: u.mimeType,
+      fileName: u.fileName || '',
+      replaceDispatch: u.replaceDispatch ? '1' : ''
+    }, 180000);
+  }).catch(function() {
+    return null;
+  });
+}
+
 async function startRecording(r) {
   if (!r) return;
   hideReviewClip();
@@ -2211,8 +2369,14 @@ async function startRecording(r) {
     if (currentSession.videoType === 'DISPATCH') showDispatch(lastScan, false);
   }
   chunks = [];
+  var liveName = (currentSession.orderId || 'NA') + '_' + currentSession.awb + '_' +
+    String(currentSession.videoType || 'DISPATCH').toUpperCase() + fileExtForMime(mime);
+  startLiveUpload(currentSession, mime || recorderMime, liveName);
   recorder.ondataavailable = function(ev) {
-    if (ev.data && ev.data.size) chunks.push(ev.data);
+    if (ev.data && ev.data.size) {
+      chunks.push(ev.data);
+      liveFeedBlob(ev.data);
+    }
   };
   recorder.onerror = function() { note('Recorder error.', 'error'); };
   recorder.onstop = finishRecording;
@@ -2290,6 +2454,7 @@ function finishRecording() {
     }
   }
   if ((s && s.discard) || (queued && queued.discard && normalizeAwb(queued.awb) === (s && normalizeAwb(s.awb)))) {
+    abortLiveUpload();
     if (s) unlockDispatchAwb(s.awb);
     if (lastScan && lastScan.terminal) {
       note('This Order ID is already delivered successfully. No video proof is required.', 'terminal');
@@ -2299,6 +2464,7 @@ function finishRecording() {
     return;
   }
   if (!s || !savedChunks.length) {
+    abortLiveUpload();
     note('VIDEO SAVE ERROR: recorded video is empty.', 'error');
     if (queued && queued.awb) lookupAwb(normalizeAwb(queued.awb), queued.videoType === 'RETURN' ? 'RETURN' : 'DISPATCH');
     return;
@@ -2312,6 +2478,26 @@ function finishRecording() {
   }
   if (queued && queued.awb) {
     lookupAwb(normalizeAwb(queued.awb), queued.videoType === 'RETURN' ? 'RETURN' : 'DISPATCH');
+  }
+  var fileName = (s.orderId || 'NA') + '_' + s.awb + '_' + String(s.videoType || 'DISPATCH').toUpperCase() +
+    fileExtForMime(blob.type);
+  lastEmergency = { fileName: fileName, blob: blob };
+  rememberLocalClip(s.awb, s.videoType, fileName, blob);
+  var liveDone = (!isLocalDemo() && (liveUpload && liveUpload.awb === s.awb)) ? finishLiveUpload() : Promise.resolve(null);
+  if (liveDone) {
+    if (String(s.videoType || '').toUpperCase() === 'DISPATCH') {
+      lockDispatchAwb(s.awb);
+      if (!(recorder && recorder.state === 'recording')) showSaving(s);
+    }
+    $('cameraState').textContent = 'Saving…';
+    liveDone.then(function(res) {
+      if (res && (res.ok || res.fileId || res.duplicate || res.closed)) {
+        applyDriveSaveResult(s, fileName, res);
+        return;
+      }
+      queueUpload(s, blob);
+    });
+    return;
   }
   queueUpload(s, blob);
 }
@@ -2327,6 +2513,72 @@ function blobToWebSafeBase64(blob) {
     }
     return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
   });
+}
+
+function applyDriveSaveResult(s, fileName, res) {
+  var type = String((s && s.videoType) || 'DISPATCH').toUpperCase();
+  var awb = s && s.awb;
+  if (res && res.closed) {
+    $('cameraState').textContent = 'Closed';
+    note(res.message || 'Order is on Closed sheet.', 'terminal');
+    return;
+  }
+  if (res && res.duplicate) {
+    $('cameraState').textContent = 'Already on Drive';
+    var dn = normalizeAwb(awb);
+    if (type === 'RETURN') {
+      scanMemo[dn] = Object.assign({}, scanMemo[dn] || lastScan || {}, {
+        awb: awb,
+        orderId: (s && s.orderId) || (scanMemo[dn] && scanMemo[dn].orderId) || '',
+        returnDuplicate: true,
+        returnVideo: Object.assign({}, (scanMemo[dn] && scanMemo[dn].returnVideo) || {}, {
+          fileId: res.fileId || 'drive', fileName: res.fileName || fileName, url: res.url || '', demo: !!res.demo
+        })
+      });
+      if (mode === 'RETURN' && !(recorder && recorder.state === 'recording' && currentSession &&
+          normalizeAwb(currentSession.awb) !== dn)) {
+        showAlreadyRecorded(scanMemo[dn]);
+        if ($('recReturnBtn')) $('recReturnBtn').style.display = 'none';
+      }
+    } else {
+      lockDispatchAwb(awb);
+      scanMemo[dn] = Object.assign({}, scanMemo[dn] || lastScan || {}, {
+        awb: awb,
+        orderId: (s && s.orderId) || (scanMemo[dn] && scanMemo[dn].orderId) || '',
+        duplicate: true,
+        dispatchVideo: Object.assign({}, (scanMemo[dn] && scanMemo[dn].dispatchVideo) || {}, {
+          fileId: res.fileId || 'drive', fileName: res.fileName || fileName, url: res.url || '', demo: !!res.demo
+        })
+      });
+      if (mode === 'DISPATCH') showAlreadyRecorded(scanMemo[dn]);
+    }
+    return;
+  }
+  if (!res || !res.ok || !res.fileId) {
+    note('VIDEO SAVE ERROR: ' + ((res && res.message) || 'Drive file not created.'), 'error');
+    return;
+  }
+  $('cameraState').textContent = 'Saved ✓';
+  if (type === 'DISPATCH') {
+    var sn = normalizeAwb(awb);
+    scanMemo[sn] = Object.assign({}, scanMemo[sn] || lastScan || {}, {
+      awb: awb, orderId: (s && s.orderId) || '', duplicate: true,
+      dispatchVideo: Object.assign({}, (scanMemo[sn] && scanMemo[sn].dispatchVideo) || {}, {
+        fileId: res.fileId, fileName: res.fileName || fileName, url: res.url, demo: !!res.demo
+      })
+    });
+    lockDispatchAwb(awb);
+  }
+  if (type !== 'RETURN_IMG') note('Saved to Drive • ' + (res.fileName || fileName), 'ok');
+  if (type === 'RETURN') {
+    gsRun('SCAN', { awb: awb, mode: 'PROOF' }, SCAN_MS).then(function(scanRes) {
+      if (scanRes && scanRes.found && !(recorder && recorder.state === 'recording')) {
+        scanRes = mergeKeptMedia(normalizeAwb(awb), scanRes);
+        if (mode === 'LIBRARY') showLibrary(scanRes);
+        else showProof(scanRes);
+      }
+    }).catch(function() {});
+  }
 }
 
 function queueUpload(s, blob) {
