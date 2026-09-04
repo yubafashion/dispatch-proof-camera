@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- FILE 2 + FILE 3 : Camera UI V185 — Code.gs is alag file, isme mat paste karo -->
+<!-- FILE 2 + FILE 3 : Camera UI V185 HD — Code.gs is alag file -->
 <html>
 <head>
 <meta charset="utf-8">
@@ -43,14 +43,12 @@ body.libraryMode .card.on{max-height:none;overflow:visible;padding:8px 10px}
 .proofStageHead button{height:24px;font-size:10px;padding:0 8px;min-width:0;margin:0}
 .proofPreview{width:100%;height:3in;max-height:36vh;margin:0;background:#000;object-fit:contain;display:block}
 .proofEmpty{height:3in;max-height:36vh;display:flex;align-items:center;justify-content:center;color:#9aa0a6;font-size:13px;font-weight:700;background:#000}
-.proofBtns{display:flex;gap:8px;margin-top:8px}
-.proofBtns button{flex:1;min-width:0;margin:0}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:2px 10px}
 .skuLine{grid-column:1/-1;min-width:0}
 .skuLine .value{font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;word-break:normal}
 .label{font-size:8px;color:#6b7280;font-weight:700;letter-spacing:.3px}
 .value{font-weight:800;font-size:12px;word-break:break-all}
-.ready{color:#188038}.required{color:#d93025}
+.ready{color:#188038}
 .cameraPanel{display:flex;flex:1 1 auto;min-height:0;background:#111;border-radius:8px;padding:5px;color:#fff;flex-direction:column}
 body:not(.libraryMode) .cameraPanel{display:flex !important}
 .cameraHead{display:flex;justify-content:space-between;align-items:center;font-size:11px;font-weight:800;margin-bottom:4px;flex:0 0 auto}
@@ -65,7 +63,6 @@ body:not(.libraryMode) .cameraPanel{display:flex !important}
 #camFlash.on{opacity:.8}
 .cameraControls{display:flex;justify-content:flex-end;align-items:center;gap:8px;margin-top:6px;flex:0 0 auto}
 .shotCount{margin-right:auto;font-size:12px;font-weight:800;color:#f9ab00}
-button.busy{filter:brightness(1.25);transform:scale(.97);box-shadow:0 0 0 3px #fff inset}
 .photoBook{display:none;background:#fff;border:1px solid #dfe3e8;border-radius:8px;padding:8px 10px;flex:0 0 auto}
 .photoBookHead{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px;font-weight:800}
 .photoBookHead button{height:28px;font-size:11px}
@@ -98,11 +95,11 @@ body.libraryMode .proofPop{display:none !important}
 body.libraryMode .proofCard b.proofTitle{text-align:center}
 body.libraryMode .thumbs{gap:6px}
 body.libraryMode .thumbs img{width:72px;height:72px}
-.again{height:26px;font-size:11px;margin-left:8px;vertical-align:middle}
 .frameBanner{display:none;background:#e6f4ea;border:1px solid #137333;border-radius:8px;padding:10px;margin-bottom:7px;font-size:13px;font-weight:700;text-align:center}
 a.green{display:inline-flex;align-items:center;justify-content:center;height:36px;border-radius:7px;padding:0 10px;font-weight:800;background:#188038;color:#fff;text-decoration:none}
 .frameBanner a.green{height:44px;font-size:14px;margin-top:8px}
 #jsErr{display:none;position:fixed;left:8px;right:8px;top:8px;z-index:30;background:#d93025;color:#fff;padding:8px;font-size:12px;white-space:pre-wrap;border-radius:8px}
+
 </style>
 <script>
 window.DP_VER = 'V185';
@@ -222,6 +219,18 @@ window.onerror = function (msg, src, line) {
 <script>
 'use strict';
 
+/* HD capture — packing UI/theme unchanged. Old path was 640x360 @ 12fps / 110kbps / JPEG 0.72. */
+var QUALITY = {
+  liveW: 1920,
+  liveH: 1080,
+  recMaxW: 1280,
+  recMaxH: 720,
+  recFps: 24,
+  videoBps: 2800000,
+  audioBps: 96000,
+  jpegQ: 0.92
+};
+
 var SCAN_MS = 12000;
 var LIB_SCAN_MS = 8000;
 var mode = 'DISPATCH';
@@ -294,9 +303,7 @@ function strBytes(s) {
 
 function crc32(buf) {
   var table = crc32.t;
-  var n;
-  var k;
-  var c;
+  var n, k, c;
   if (!table) {
     table = crc32.t = new Uint32Array(256);
     for (n = 0; n < 256; n++) {
@@ -316,10 +323,7 @@ function le32(n) {
   return new Uint8Array([n & 255, (n >>> 8) & 255, (n >>> 16) & 255, (n >>> 24) & 255]);
 }
 function concatU8(arrs) {
-  var len = 0;
-  var i;
-  var o = 0;
-  var out;
+  var len = 0, i, o = 0, out;
   for (i = 0; i < arrs.length; i++) len += arrs[i].length;
   out = new Uint8Array(len);
   for (i = 0; i < arrs.length; i++) { out.set(arrs[i], o); o += arrs[i].length; }
@@ -327,10 +331,7 @@ function concatU8(arrs) {
 }
 
 function buildZip(files) {
-  var locals = [];
-  var centrals = [];
-  var offset = 0;
-  var i;
+  var locals = [], centrals = [], offset = 0, i;
   for (i = 0; i < files.length; i++) {
     var name = strBytes(String(files[i].name || ('photo_' + (i + 1) + '.jpg')).replace(/[^\w.\-]/g, '_'));
     var data = files[i].bytes;
@@ -369,6 +370,37 @@ function dataUrlToJpeg(url) {
 
 function hidePhotoBook() {
   if ($('photoBook')) $('photoBook').style.display = 'none';
+}
+
+function uniquePhotos(list) {
+  var remotes = [], locals = [], seenId = {}, seenName = {}, seenThumb = {};
+  (list || []).forEach(function(im) {
+    if (!im) return;
+    var id = String(im.fileId || '');
+    var goodId = id && id !== 'demo' && id !== 'drive' && String(id).indexOf('demo-') !== 0;
+    if (goodId) {
+      if (seenId[id]) return;
+      seenId[id] = 1;
+      remotes.push(im);
+      return;
+    }
+    var name = String(im.fileName || '').toLowerCase();
+    if (name) {
+      if (seenName[name]) return;
+      seenName[name] = 1;
+    }
+    var thumb = String(im.thumb || im.url || '');
+    if (thumb && seenThumb[thumb]) return;
+    if (thumb) seenThumb[thumb] = 1;
+    locals.push(im);
+  });
+  return remotes.length ? remotes : locals;
+}
+
+function localPhotos(awb) {
+  var n = normalizeAwb(awb);
+  if (!localProofPhotos[n]) localProofPhotos[n] = [];
+  return localProofPhotos[n];
 }
 
 function renderPhotoBook(awb) {
@@ -671,56 +703,12 @@ function gsRunNative(action, payload, timeoutMs) {
 }
 
 var ORDER_SHEET = [
-  {
-    date: '31-08-2026',
-    orderId: '325531506343972736_1',
-    awb: '1490840510818035',
-    store: 'Dr. Prime',
-    dispatchType: 'COD',
-    sku: 'JHM-LNG-001_LDM Free Size Gold',
-    status: ''
-  },
-  {
-    date: '31-08-2026',
-    orderId: '325534705220968128_1',
-    awb: '1490840510817965',
-    store: 'Dr. Prime',
-    dispatchType: 'COD',
-    sku: 'JHM-LNG-001_LDM Free Size Gold',
-    status: ''
-  },
-  {
-    date: '01-09-2026',
-    orderId: '325947145508320832_1',
-    awb: '149084055657303',
-    store: 'Dr. Prime',
-    dispatchType: 'COD',
-    sku: 'TR-INFINITY-PURPLE-008_LDM Free Size NA'
-  },
-  {
-    date: '01-09-2026',
-    orderId: '32598591377804160_1',
-    awb: '149084055656802',
-    store: 'Dr. Prime',
-    dispatchType: 'COD',
-    sku: 'TR-INFINITY-PURPLE-008_LDM Free Size NA'
-  },
-  {
-    date: '01-09-2026',
-    orderId: '325903002925171328_1',
-    awb: '1490840569033550',
-    store: 'Dr. Prime',
-    dispatchType: 'Prepaid',
-    sku: 'TR-INFINITY-PURPLE-008_LDM Free Size NA'
-  },
-  {
-    date: '02-09-2026',
-    orderId: '326316109392229703_1',
-    awb: '149084055401220',
-    store: 'Dr. Prime',
-    dispatchType: 'COD',
-    sku: 'DR01/A Free Size Gold'
-  }
+  { date: '31-08-2026', orderId: '325531506343972736_1', awb: '1490840510818035', store: 'Dr. Prime', dispatchType: 'COD', sku: 'JHM-LNG-001_LDM Free Size Gold', status: '' },
+  { date: '31-08-2026', orderId: '325534705220968128_1', awb: '1490840510817965', store: 'Dr. Prime', dispatchType: 'COD', sku: 'JHM-LNG-001_LDM Free Size Gold', status: '' },
+  { date: '01-09-2026', orderId: '325947145508320832_1', awb: '149084055657303', store: 'Dr. Prime', dispatchType: 'COD', sku: 'TR-INFINITY-PURPLE-008_LDM Free Size NA' },
+  { date: '01-09-2026', orderId: '32598591377804160_1', awb: '149084055656802', store: 'Dr. Prime', dispatchType: 'COD', sku: 'TR-INFINITY-PURPLE-008_LDM Free Size NA' },
+  { date: '01-09-2026', orderId: '325903002925171328_1', awb: '1490840569033550', store: 'Dr. Prime', dispatchType: 'Prepaid', sku: 'TR-INFINITY-PURPLE-008_LDM Free Size NA' },
+  { date: '02-09-2026', orderId: '326316109392229703_1', awb: '149084055401220', store: 'Dr. Prime', dispatchType: 'COD', sku: 'DR01/A Free Size Gold' }
 ];
 
 function demoOrder(awb, videoMode) {
@@ -734,13 +722,9 @@ function demoOrder(awb, videoMode) {
       videoType: 'DISPATCH', dispatchVideo: null, returnVideo: null
     };
   }
-  var i;
-  var hit = null;
+  var i, hit = null;
   for (i = 0; i < ORDER_SHEET.length; i++) {
-    if (normalizeAwb(ORDER_SHEET[i].awb) === n) {
-      hit = ORDER_SHEET[i];
-      break;
-    }
+    if (normalizeAwb(ORDER_SHEET[i].awb) === n) { hit = ORDER_SHEET[i]; break; }
   }
   var rec = scanMemo[n] || {};
   var photos = localProofPhotos[n] || rec.returnImages || [];
@@ -754,14 +738,8 @@ function demoOrder(awb, videoMode) {
   return {
     ok: true, found: true, terminal: false,
     duplicate: !!(rec.dispatchVideo && rec.dispatchVideo.fileId && rec.dispatchVideo.fileId !== 'demo'),
-    date: hit.date,
-    orderId: hit.orderId,
-    awb: hit.awb || n,
-    store: hit.store,
-    dispatchType: hit.dispatchType,
-    sku: hit.sku,
-    skuId: hit.sku,
-    status: hit.status || '',
+    date: hit.date, orderId: hit.orderId, awb: hit.awb || n, store: hit.store,
+    dispatchType: hit.dispatchType, sku: hit.sku, skuId: hit.sku, status: hit.status || '',
     source: 'Order!C',
     videoType: vt === 'PROOF' || vt === 'RETURN' || vt === 'LIBRARY' ? 'RETURN' : 'DISPATCH',
     dispatchVideo: (rec.dispatchVideo && rec.dispatchVideo.fileId && rec.dispatchVideo.fileId !== 'demo') ? rec.dispatchVideo : null,
@@ -783,13 +761,8 @@ function gsRun(action, payload, timeoutMs) {
     var rec = lastProofPlayRec || lastReviewRec || {};
     var src = rec.previewUrl || rec.blobUrl || rec.url || rec.downloadUrl || '';
     return Promise.resolve({
-      ok: true,
-      fileId: rec.fileId || 'demo',
-      fileName: rec.fileName || 'dispatch.webm',
-      previewUrl: src,
-      url: src,
-      downloadUrl: src,
-      demo: true
+      ok: true, fileId: rec.fileId || 'demo', fileName: rec.fileName || 'dispatch.webm',
+      previewUrl: src, url: src, downloadUrl: src, demo: true
     });
   }
   if (act === 'SCAN') {
@@ -852,17 +825,6 @@ function unlockDispatchAwb(awb) {
   try { localStorage.setItem('DP_LOCKED_AWB', JSON.stringify(savedAwbs)); } catch (e1) {}
 }
 
-function isDispatchLocked(awb) {
-  var n = normalizeAwb(awb);
-  var t = savedAwbs[n];
-  if (!t) return false;
-  if (typeof t === 'number' && Date.now() - t > 20 * 60 * 1000) {
-    unlockDispatchAwb(n);
-    return false;
-  }
-  return true;
-}
-
 function hidePackingCamera() {
   hideReviewClip();
   $('cameraPanel').style.display = 'none';
@@ -897,9 +859,7 @@ function proofStampParts(r) {
   var oid = String(r.orderId || order.orderId || (currentSession && currentSession.orderId) || '').trim();
   var date = String(r.date || order.date || '').trim();
   if (awb && !date) date = pad2(now.getDate()) + '-' + pad2(now.getMonth() + 1) + '-' + now.getFullYear();
-  if (!awb) {
-    return { awb: '', order: '', date: '', time: '' };
-  }
+  if (!awb) return { awb: '', order: '', date: '', time: '' };
   return {
     awb: awb,
     order: oid || '—',
@@ -924,10 +884,7 @@ function startStampClock() {
 
 function paintCornerStamps(ctx, w, h, r) {
   var s = proofStampParts(r);
-  if (!s.awb) {
-    syncLiveStampOverlay(s);
-    return;
-  }
+  if (!s.awb) { syncLiveStampOverlay(s); return; }
   var fs = Math.max(8, Math.round(Math.min(w, h) * 0.026));
   var pad = Math.max(4, Math.round(w * 0.012));
   var gap = Math.round(fs * 1.28);
@@ -982,14 +939,6 @@ function syncReturnReadyButtons() {
     if (isExistingReturnClip(r)) $('recReturnBtn').style.display = 'none';
     else $('recReturnBtn').style.display = returnHasAnyPhoto(r) ? 'inline-block' : 'none';
   }
-}
-
-function drivePreviewUrl(fileId) {
-  return 'https://drive.google.com/file/d/' + encodeURIComponent(fileId) + '/preview';
-}
-
-function driveDownloadUrl(fileId) {
-  return 'https://drive.google.com/uc?export=download&id=' + encodeURIComponent(fileId);
 }
 
 function proofStreamUrl(fileId) {
@@ -1101,9 +1050,7 @@ function showReviewClip(rec, title) {
 async function playReviewClip() {
   var cv = $('clipVideo');
   if (cv && cv.style.display !== 'none' && cv.getAttribute('src')) {
-    try {
-      await cv.play();
-    } catch (e1) {
+    try { await cv.play(); } catch (e1) {
       note('Video yahin play hogi. Browser allow kare.', 'error');
     }
     return;
@@ -1121,14 +1068,6 @@ async function playReviewClip() {
     showReviewClip(rec, $('cameraLabel').textContent);
     if (cv && cv.style.display !== 'none' && cv.src) await cv.play();
   } catch (e2) {
-    if (isDriveFileId(rec.fileId)) {
-      try {
-        rec = await fetchDriveMedia(rec);
-        lastReviewRec = rec;
-        showReviewClip(rec, $('cameraLabel').textContent);
-        return;
-      } catch (e3) {}
-    }
     note('Video play nahi hui. ' + (e2.message || e2), 'error');
   }
 }
@@ -1148,14 +1087,6 @@ function keepIdleCamera() {
   if (!cameraReady && !isFramed()) {
     startCamera().catch(function() {});
   }
-}
-
-function hasDispatchOnDrive(awb) {
-  var n = normalizeAwb(awb);
-  if (!n) return false;
-  var rec = scanMemo[n] || {};
-  var dv = rec.dispatchVideo || (lastScan && normalizeAwb(lastScan.awb) === n && lastScan.dispatchVideo);
-  return !!(dv && (dv.fileId || dv.url || dv.blobUrl || dv.demo));
 }
 
 function alreadyRecordedAwb(awb) {
@@ -1219,18 +1150,18 @@ function showSaving(r) {
   note('', '');
 }
 
+function hideProofPanel() {
+  if ($('proofPanel')) $('proofPanel').style.display = 'none';
+  closeProofPop();
+  if ($('returnClip')) $('returnClip').style.display = 'none';
+}
+
 function clearResult() {
   hidePackingCamera();
   hidePhotoBook();
   hideProofPanel();
   hideResultCard();
   $('empty').style.display = 'block';
-}
-
-function hideProofPanel() {
-  if ($('proofPanel')) $('proofPanel').style.display = 'none';
-  closeProofPop();
-  if ($('returnClip')) $('returnClip').style.display = 'none';
 }
 
 function blankLibrary() {
@@ -1266,43 +1197,6 @@ async function fillInlineProof(el, rec) {
       }).catch(function() {});
     };
   } catch (e) {}
-}
-
-function playInlineOrPop(el, rec, title, anchor) {
-  if (el && el.src) {
-    try { el.play(); } catch (e1) {}
-    return;
-  }
-  playLibClip(rec, title, anchor).catch(function(e) { note(String(e.message || e), 'error'); });
-}
-
-function uniquePhotos(list) {
-  var remotes = [];
-  var locals = [];
-  var seenId = {};
-  var seenName = {};
-  var seenThumb = {};
-  (list || []).forEach(function(im) {
-    if (!im) return;
-    var id = String(im.fileId || '');
-    var goodId = id && id !== 'demo' && id !== 'drive' && String(id).indexOf('demo-') !== 0;
-    if (goodId) {
-      if (seenId[id]) return;
-      seenId[id] = 1;
-      remotes.push(im);
-      return;
-    }
-    var name = String(im.fileName || '').toLowerCase();
-    if (name) {
-      if (seenName[name]) return;
-      seenName[name] = 1;
-    }
-    var thumb = String(im.thumb || im.url || '');
-    if (thumb && seenThumb[thumb]) return;
-    if (thumb) seenThumb[thumb] = 1;
-    locals.push(im);
-  });
-  return remotes.length ? remotes : locals;
 }
 
 function proofPlayerHtml(kind, ok, vidId, headDlId, closeId) {
@@ -1345,19 +1239,16 @@ function saveBlobFile(blob, name) {
 async function downloadClip(rec, fallbackName) {
   rec = rec || lastProofPlayRec || {};
   var name = rec.fileName || fallbackName || 'video.webm';
-  if (rec.blob) {
-    saveBlobFile(rec.blob, name);
-    return;
-  }
+  if (rec.blob) { saveBlobFile(rec.blob, name); return; }
   if (rec.blobUrl && (rec.blobUrl.indexOf('blob:') === 0 || rec.blobUrl.indexOf('data:') === 0)) {
     var resb = await fetch(rec.blobUrl);
     saveBlobFile(await resb.blob(), name);
     return;
   }
-  var stream = rec.playUrl || proofStreamUrl(rec.fileId);
-  if (stream) {
+  var streamUrl = rec.playUrl || proofStreamUrl(rec.fileId);
+  if (streamUrl) {
     var a = document.createElement('a');
-    a.href = stream;
+    a.href = streamUrl;
     a.download = name;
     a.target = '_blank';
     a.rel = 'noopener';
@@ -1369,10 +1260,7 @@ async function downloadClip(rec, fallbackName) {
   if (rec.fileId && isDriveFileId(rec.fileId) && !rec.blob) {
     rec = await fetchDriveMedia(rec);
     lastProofPlayRec = rec;
-    if (rec.blob) {
-      saveBlobFile(rec.blob, rec.fileName || name);
-      return;
-    }
+    if (rec.blob) { saveBlobFile(rec.blob, rec.fileName || name); return; }
   }
   note('Download file nahi mili.', 'error');
 }
@@ -1395,66 +1283,6 @@ function closeProofPop() {
     pop.style.display = 'none';
     pop.setAttribute('aria-hidden', 'true');
   }
-}
-
-function placeProofPop(anchor) {
-  var pop = $('proofPop');
-  var app = document.querySelector('.app');
-  if (!pop || !app) return;
-  pop.style.display = 'flex';
-  pop.classList.add('on');
-  var box = app.getBoundingClientRect();
-  var ar = (anchor && anchor.getBoundingClientRect) ? anchor.getBoundingClientRect() : box;
-  var w = pop.offsetWidth || 288;
-  var h = pop.offsetHeight || 288;
-  var left = ar.left - box.left;
-  var top = ar.bottom - box.top + 6;
-  if (left + w > box.width - 6) left = box.width - w - 6;
-  if (left < 6) left = 6;
-  if (top + h > box.height - 6) top = ar.top - box.top - h - 6;
-  if (top < 6) top = 6;
-  pop.style.left = Math.round(left) + 'px';
-  pop.style.top = Math.round(top) + 'px';
-  pop.setAttribute('aria-hidden', 'false');
-}
-
-async function playLibClip(rec, title, anchor) {
-  rec = rec || {};
-  lastProofPlayRec = rec;
-  var pop = $('proofPop');
-  var v = $('libVideo');
-  var f = $('libIframe');
-  if (!pop || !v || !f) {
-    showReviewClip(rec, title);
-    return;
-  }
-  if ($('proofPopTitle')) $('proofPopTitle').textContent = title || 'VIDEO';
-  placeProofPop(anchor);
-  f.style.display = 'none';
-  f.removeAttribute('src');
-  try {
-    if (rec.fileId && isDriveFileId(rec.fileId) && !rec.blobUrl) {
-      rec = await fetchDriveMedia(rec);
-      lastProofPlayRec = rec;
-    }
-  } catch (ePlay) {
-    note('Play Drive preview nahi — ' + (ePlay.message || ePlay), 'error');
-    return;
-  }
-  var src = rec.blobUrl || rec.url || '';
-  if (src && (/^blob:/i.test(src) || /^data:/i.test(src) || /^https?:/i.test(src))) {
-    if (/drive\.google\.com/i.test(src)) {
-      note('Drive page quota. PLAY Drive box se file laata hai — dubara try.', 'error');
-      return;
-    }
-    v.style.display = 'block';
-    v.src = src;
-    v.play().catch(function() {});
-    note('', '');
-    return;
-  }
-  closeProofPop();
-  note((title || 'Video') + ' play ke liye file nahi.', 'error');
 }
 
 function showLibrary(r) {
@@ -1487,18 +1315,12 @@ function showLibrary(r) {
   var dEl = $('proofDispatch');
   var pEl = $('proofPhotos');
   var rEl = $('proofReturn');
-  function need(kind) {
-    note('Is AWB ki ' + kind + ' abhi nahi bani.', 'error');
-  }
+  function need(kind) { note('Is AWB ki ' + kind + ' abhi nahi bani.', 'error'); }
   var oid = String(r.orderId || '').trim() || '—';
   var awbLine = String(r.awb || n || '').trim() || '—';
   var dateLine = String(r.date || '').trim() || '—';
-  if (dEl) {
-    dEl.innerHTML = proofPlayerHtml('DISPATCH', dOk, 'libDispVid', 'libHeadDlDispatch', 'libCloseDispatch');
-  }
-  if (rEl) {
-    rEl.innerHTML = proofPlayerHtml('RETURN', rOk, 'libRetVid', 'libHeadDlReturn', 'libCloseReturn');
-  }
+  if (dEl) dEl.innerHTML = proofPlayerHtml('DISPATCH', dOk, 'libDispVid', 'libHeadDlDispatch', 'libCloseDispatch');
+  if (rEl) rEl.innerHTML = proofPlayerHtml('RETURN', rOk, 'libRetVid', 'libHeadDlReturn', 'libCloseReturn');
   if (pEl) {
     pEl.innerHTML =
       '<b class="proofTitle">IMAGES</b>' +
@@ -1586,12 +1408,6 @@ function isFramed() {
   try { return window.self !== window.top; } catch (e) { return true; }
 }
 
-function packingPageBase() {
-  if (isLocalDemo()) return String(location.href || '').split('#')[0].split('?')[0];
-  if (API_URL) return String(API_URL).split('#')[0].split('?')[0];
-  return String(location.href || '').split('#')[0].split('?')[0];
-}
-
 async function refreshCameras() {
   try {
     if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) return;
@@ -1644,6 +1460,11 @@ function stopStream() {
   if ($('cameraFrame')) $('cameraFrame').srcObject = null;
 }
 
+function evenDim(n) {
+  n = Math.max(2, Math.round(n));
+  return n - (n % 2);
+}
+
 async function startCamera() {
   hideReviewClip();
   if (isFramed()) {
@@ -1656,13 +1477,20 @@ async function startCamera() {
   stopStream();
   cameraReady = false;
   var id = $('cameraSelect').value || selectedCameraId;
+  var hd = {
+    width: { ideal: QUALITY.liveW, min: 640 },
+    height: { ideal: QUALITY.liveH, min: 360 },
+    frameRate: { ideal: 30, min: 15 }
+  };
   var attempts = [];
-  attempts.push({ video: true, audio: false });
   if (id) {
+    attempts.push({ video: Object.assign({ deviceId: { exact: id } }, hd), audio: false });
+    attempts.push({ video: { deviceId: { exact: id }, width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30 } }, audio: false });
     attempts.push({ video: { deviceId: { exact: id } }, audio: false });
-    attempts.push({ video: { deviceId: { exact: id }, width: { ideal: 640 }, height: { ideal: 360 } }, audio: false });
   }
-  attempts.push({ video: { width: { ideal: 640 }, height: { ideal: 360 }, frameRate: { ideal: 12 } }, audio: false });
+  attempts.push({ video: hd, audio: false });
+  attempts.push({ video: { width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30 } }, audio: false });
+  attempts.push({ video: true, audio: false });
   var lastErr = null;
   var i;
   for (i = 0; i < attempts.length; i++) {
@@ -1689,7 +1517,11 @@ function attachCameraStream_(s) {
   $('cameraPanel').style.display = 'flex';
   cameraReady = true;
   startStampClock();
-  $('cameraState').textContent = 'Camera ready ✓';
+  var track = s.getVideoTracks()[0];
+  var set = track && track.getSettings ? track.getSettings() : {};
+  var w = set.width || v.videoWidth || 0;
+  var h = set.height || v.videoHeight || 0;
+  $('cameraState').textContent = w && h ? ('Camera ready ✓ ' + w + '×' + h) : 'Camera ready ✓';
   refreshCameras().catch(function() {});
 }
 
@@ -1722,7 +1554,7 @@ function cameraError(e) {
   var n = (e && e.name) || '';
   var msg = e && e.message ? String(e.message) : '';
   if (isFramed() || /packing camera tab/i.test(msg))
-    return 'Camera Sheet box mein nahi chalti. Chhota popup → Open packing camera. DISPATCH MANAGEMENT doosri window mein khulega — camera wahan andar rahega.';
+    return 'Camera Sheet box mein nahi chalti. Chhota popup → Open packing camera.';
   if (n === 'NotAllowedError' || n === 'PermissionDeniedError' || /permission|not allowed|denied/i.test(msg))
     return 'Chrome lock icon → Camera → Allow. Packing camera tab (GitHub Pages) mein Allow karo, Sheet box mein nahi.';
   if (n === 'NotFoundError') return 'No camera was found on this device.';
@@ -1808,9 +1640,7 @@ function scan() {
     recorderStopping = true;
     $('awb').value = '';
     waitingOrder = {
-      found: true,
-      awb: n,
-      orderId: n,
+      found: true, awb: n, orderId: n,
       videoType: mode === 'RETURN' ? 'RETURN' : 'DISPATCH',
       checking: true
     };
@@ -1840,9 +1670,7 @@ function lookupAwb(n, m) {
   if ((m === 'DISPATCH' || m === 'RETURN') && recorder && recorder.state === 'recording') {
     recorderStopping = true;
     waitingOrder = {
-      found: true,
-      awb: n,
-      orderId: n,
+      found: true, awb: n, orderId: n,
       videoType: m === 'RETURN' ? 'RETURN' : 'DISPATCH',
       checking: true
     };
@@ -1906,12 +1734,8 @@ function lookupAwb(n, m) {
       }
       applyFastScan({
         ok: true, found: true, awb: n, orderId: n,
-        dispatchVideo: null,
-        returnVideo: null,
-        returnImages: localPhotos(n),
-        sheetSlow: true,
-        notOnSheet: true,
-        guessed: true
+        dispatchVideo: null, returnVideo: null, returnImages: localPhotos(n),
+        sheetSlow: true, notOnSheet: true, guessed: true
       }, n, m, started);
       note('Sheet check slow. DOWNLOAD cards yahin hain — SCAN dobara try karo.', 'error');
       return;
@@ -1934,17 +1758,10 @@ function applyFastScan(r, n, m, started) {
   if (!r.found) {
     if (m === 'RETURN' || m === 'LIBRARY') {
       r = {
-        ok: true,
-        found: true,
-        awb: n,
-        orderId: r.orderId || n,
-        dispatchVideo: r.dispatchVideo || null,
-        returnVideo: r.returnVideo || null,
-        returnImages: r.returnImages || [],
-        terminal: false,
-        duplicate: false,
-        notOnSheet: true,
-        guessed: true
+        ok: true, found: true, awb: n, orderId: r.orderId || n,
+        dispatchVideo: r.dispatchVideo || null, returnVideo: r.returnVideo || null,
+        returnImages: r.returnImages || [], terminal: false, duplicate: false,
+        notOnSheet: true, guessed: true
       };
     } else {
       abortRecordingFor(n, true);
@@ -2029,11 +1846,7 @@ function applyFastScan(r, n, m, started) {
   }
 }
 
-function handleScan(r) {
-  applyFastScan(r, r && r.awb, mode, 0);
-}
-
-function showDispatch(r, needsLiveWindow) {
+function showDispatch(r) {
   r = r || {};
   var folder = r.folderUrl || (r.dispatchVideo && (r.dispatchVideo.folderUrl || r.dispatchVideo.rootFolderUrl)) || r.driveRootUrl || '';
   $('empty').style.display = 'none';
@@ -2051,25 +1864,11 @@ function showDispatch(r, needsLiveWindow) {
       : '');
 }
 
-function localPhotos(awb) {
-  var n = normalizeAwb(awb);
-  if (!localProofPhotos[n]) localProofPhotos[n] = [];
-  return localProofPhotos[n];
-}
-
 function flashCapture() {
   var f = $('camFlash');
   if (!f) return;
   f.className = 'on';
   setTimeout(function() { f.className = ''; }, 140);
-}
-
-function setSnapBusy(on, label) {
-  var b = $('snapBtn');
-  if (!b) return;
-  b.classList.toggle('busy', !!on);
-  b.disabled = !!on;
-  b.textContent = label || 'CAPTURE PHOTO';
 }
 
 function setReturnCameraButtons(recording) {
@@ -2125,9 +1924,7 @@ function showProof(r, skipIdle) {
     syncReturnReadyButtons();
     return;
   }
-  lineStatus(
-    'AWB ' + esc(r.awb || '') + (r.orderId ? (' · ' + esc(r.orderId)) : '')
-  );
+  lineStatus('AWB ' + esc(r.awb || '') + (r.orderId ? (' · ' + esc(r.orderId)) : ''));
   renderPhotoBook(r.awb);
   renderReturnClip(proofRec);
   if (!skipIdle && !(recorder && recorder.state === 'recording')) openLiveReturnCamera();
@@ -2163,10 +1960,7 @@ function startReturnRecording(r) {
   }
   blockRecordAwb = '';
   startRecording({
-    awb: r.awb,
-    orderId: r.orderId,
-    status: r.status,
-    videoType: 'RETURN'
+    awb: r.awb, orderId: r.orderId, status: r.status, videoType: 'RETURN'
   });
 }
 
@@ -2187,15 +1981,12 @@ function capturePhoto() {
       hideReviewClip();
       if (!cameraReady) {
         try { await startCamera(); }
-        catch (camErr) {
-          $('cameraPanel').style.display = 'flex';
-        }
+        catch (camErr) { $('cameraPanel').style.display = 'flex'; }
       }
       flashCapture();
       var v = $('cameraFrame');
-      var w = Math.min(960, (v && v.videoWidth) || 960);
-      var h = Math.min(540, (v && v.videoHeight) || 540);
-      if (!w || !h) { w = 960; h = 540; }
+      var w = evenDim((v && v.videoWidth) || QUALITY.liveW);
+      var h = evenDim((v && v.videoHeight) || QUALITY.liveH);
       var c = document.createElement('canvas');
       c.width = w;
       c.height = h;
@@ -2204,12 +1995,9 @@ function capturePhoto() {
       ctx.fillRect(0, 0, w, h);
       try { if (v) ctx.drawImage(v, 0, 0, w, h); } catch (drawErr) {}
       paintCornerStamps(ctx, w, h, p);
-      var thumb = c.toDataURL('image/jpeg', 0.72);
+      var thumb = c.toDataURL('image/jpeg', QUALITY.jpegQ);
       var rec = {
-        url: thumb,
-        thumb: thumb,
-        blob: null,
-        local: true,
+        url: thumb, thumb: thumb, blob: null, local: true,
         fileName: (orderId || 'NA') + '_' + normalizeAwb(awb) + '_RETURN_IMG_' + Date.now() + '.jpg'
       };
       localPhotos(awb).push(rec);
@@ -2222,17 +2010,14 @@ function capturePhoto() {
       if (lastScan && normalizeAwb(lastScan.awb) === normalizeAwb(awb)) {
         lastScan.returnImages = localPhotos(awb);
       }
-      note('Photo ' + count + ' dikh rahi hai. RECORD VIDEO se video start hogi.', 'ok');
+      note('Photo ' + count + ' · ' + w + '×' + h + '. RECORD VIDEO se video start hogi.', 'ok');
       syncReturnReadyButtons();
       c.toBlob(function(blob) {
         if (blob && blob.size) rec.blob = blob;
         queueUpload({
-          awb: awb,
-          orderId: orderId,
-          status: p.status || '',
-          videoType: 'RETURN_IMG'
+          awb: awb, orderId: orderId, status: p.status || '', videoType: 'RETURN_IMG'
         }, blob || rec.blob);
-      }, 'image/jpeg', 0.72);
+      }, 'image/jpeg', QUALITY.jpegQ);
     } catch (e) {
       note(cameraError(e), 'error');
     }
@@ -2241,7 +2026,7 @@ function capturePhoto() {
 
 function chooseMime() {
   var types = [
-    'video/webm;codecs=vp8,opus',
+    'video/webm;codecs=vp9',
     'video/webm;codecs=vp8',
     'video/webm',
     'video/mp4'
@@ -2258,20 +2043,25 @@ function startPackStream() {
   stopPackStream();
   var src = $('cameraFrame');
   if (!src || !stream) return stream;
+  var vw = src.videoWidth || QUALITY.recMaxW;
+  var vh = src.videoHeight || QUALITY.recMaxH;
+  var scale = Math.min(1, QUALITY.recMaxW / vw, QUALITY.recMaxH / vh);
   var canvas = document.createElement('canvas');
-  canvas.width = 640;
-  canvas.height = 360;
+  canvas.width = evenDim(vw * scale);
+  canvas.height = evenDim(vh * scale);
   var ctx = canvas.getContext('2d', { alpha: false });
   function draw() {
     try {
-      ctx.drawImage(src, 0, 0, 640, 360);
-      paintCornerStamps(ctx, 640, 360, lastScan || currentSession);
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(src, 0, 0, canvas.width, canvas.height);
+      paintCornerStamps(ctx, canvas.width, canvas.height, lastScan || currentSession);
     } catch (e) {}
   }
   draw();
-  packTimer = setInterval(draw, 90);
+  packTimer = setInterval(draw, Math.round(1000 / QUALITY.recFps));
   if (!canvas.captureStream) return stream;
-  recordStream = canvas.captureStream(12);
+  recordStream = canvas.captureStream(QUALITY.recFps);
   stream.getAudioTracks().forEach(function(t) {
     try { recordStream.addTrack(t); } catch (e2) {}
   });
@@ -2315,10 +2105,11 @@ async function startRecording(r) {
   var recStream = startPackStream() || stream;
   var mime = chooseMime();
   recorderMime = mime;
+  var recOpts = { videoBitsPerSecond: QUALITY.videoBps, audioBitsPerSecond: QUALITY.audioBps };
   try {
     recorder = mime
-      ? new MediaRecorder(recStream, { mimeType: mime, videoBitsPerSecond: 110000, audioBitsPerSecond: 12000 })
-      : new MediaRecorder(recStream, { videoBitsPerSecond: 110000, audioBitsPerSecond: 12000 });
+      ? new MediaRecorder(recStream, Object.assign({ mimeType: mime }, recOpts))
+      : new MediaRecorder(recStream, recOpts);
   } catch (e) {
     try { recorder = new MediaRecorder(recStream); }
     catch (e2) {
@@ -2357,13 +2148,12 @@ async function startRecording(r) {
     $('stopBtn').style.display = 'inline-block';
     if ($('shotCount')) $('shotCount').style.display = 'none';
     $('cameraLabel').textContent = 'RETURN VIDEO';
-    note('Recording ' + currentSession.awb + '. Scan the next AWB anytime — save continues in the background.', 'ok');
   } else {
     $('snapBtn').style.display = 'none';
     $('stopBtn').style.display = 'inline-block';
     $('cameraLabel').textContent = 'MAKE DISPATCH VIDEO';
-    note('Recording ' + currentSession.awb + '. Scan the next AWB anytime — save continues in the background.', 'ok');
   }
+  note('Recording ' + currentSession.awb + '. Scan the next AWB anytime — save continues in the background.', 'ok');
   $('live').style.display = 'inline';
   $('timer').textContent = '00:00';
   updateTimer();
@@ -2477,9 +2267,7 @@ function queueUpload(s, blob) {
     if (!(recorder && recorder.state === 'recording')) showSaving(s);
   }
   uploadQueue++;
-  if (kind !== 'RETURN_IMG') {
-    $('cameraState').textContent = 'Saving…';
-  }
+  if (kind !== 'RETURN_IMG') $('cameraState').textContent = 'Saving…';
   if (isLocalDemo()) {
     uploadQueue = Math.max(0, uploadQueue - 1);
     var key = normalizeAwb(s.awb);
@@ -2500,10 +2288,6 @@ function queueUpload(s, blob) {
           lastScan = savedRet;
           showProof(savedRet);
         }
-      } else if (mode === 'LIBRARY') {
-        lastScan = lastScan || demoOrder(s.awb, 'RETURN');
-        lastScan.returnVideo = scanMemo[key].returnVideo;
-        showLibrary(lastScan);
       }
     } else if (kind === 'RETURN_IMG') {
       $('cameraState').textContent = 'Photo saved ✓';
@@ -2595,16 +2379,9 @@ function submitUpload(payload) {
             awb: payload.awb,
             orderId: payload.orderId || (scanMemo[dn] && scanMemo[dn].orderId) || '',
             returnDuplicate: true,
-            returnVideo: {
-              fileId: res.fileId || 'drive',
-              fileName: res.fileName || '',
-              url: res.url || '',
-              demo: !!res.demo
-            }
+            returnVideo: { fileId: res.fileId || 'drive', fileName: res.fileName || '', url: res.url || '', demo: !!res.demo }
           });
-          if (mode === 'RETURN' &&
-              !(recorder && recorder.state === 'recording' && currentSession &&
-                normalizeAwb(currentSession.awb) !== dn)) {
+          if (mode === 'RETURN' && !(recorder && recorder.state === 'recording' && currentSession && normalizeAwb(currentSession.awb) !== dn)) {
             showAlreadyRecorded(scanMemo[dn]);
             if ($('recReturnBtn')) $('recReturnBtn').style.display = 'none';
           }
@@ -2614,12 +2391,7 @@ function submitUpload(payload) {
             awb: payload.awb,
             orderId: payload.orderId || (scanMemo[dn] && scanMemo[dn].orderId) || '',
             duplicate: true,
-            dispatchVideo: {
-              fileId: res.fileId || 'drive',
-              fileName: res.fileName || '',
-              url: res.url || '',
-              demo: !!res.demo
-            }
+            dispatchVideo: { fileId: res.fileId || 'drive', fileName: res.fileName || '', url: res.url || '', demo: !!res.demo }
           });
           if (mode === 'DISPATCH') showAlreadyRecorded(scanMemo[dn]);
         }
@@ -2632,9 +2404,7 @@ function submitUpload(payload) {
       if (String(type).toUpperCase() === 'DISPATCH' && res.fileId) {
         var sn = normalizeAwb(payload.awb);
         scanMemo[sn] = Object.assign({}, scanMemo[sn] || lastScan || {}, {
-          awb: payload.awb,
-          orderId: payload.orderId || '',
-          duplicate: true,
+          awb: payload.awb, orderId: payload.orderId || '', duplicate: true,
           dispatchVideo: { fileId: res.fileId, fileName: res.fileName, url: res.url, demo: !!res.demo }
         });
         lockDispatchAwb(payload.awb);
@@ -2778,6 +2548,7 @@ try {
   }
   $('awb').focus();
 })();
+
 </script>
 </body>
 </html>
