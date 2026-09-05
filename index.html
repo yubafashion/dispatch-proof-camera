@@ -1,11 +1,11 @@
 <!doctype html>
-<!-- FILE 2 + FILE 3 : Camera UI V185 HD — Code.gs is alag file -->
+<!-- FILE 2 + FILE 3 : Camera UI V186 HD — Code.gs is alag file -->
 <html>
 <head>
 <meta charset="utf-8">
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
-<title>DISPATCH PROOF V185</title>
+<title>DISPATCH PROOF V186</title>
 <style>
 *{box-sizing:border-box}
 html,body{margin:0;width:100%;height:100%;overflow:hidden;font-family:Arial,sans-serif;background:#111;color:#202124}
@@ -103,7 +103,7 @@ a.green{display:inline-flex;align-items:center;justify-content:center;height:36p
 
 </style>
 <script>
-window.DP_VER = 'V185';
+window.DP_VER = 'V186';
 window.DP_PAGE = 'https://yubafashion.github.io/dispatch-proof-camera/';
 window.dpReady = false;
 window.onerror = function (msg, src, line) {
@@ -114,7 +114,7 @@ window.onerror = function (msg, src, line) {
 </script>
 </head>
 <body>
-<div id="boot" style="padding:10px 12px;font-family:Arial,sans-serif;font-weight:800;background:#202124;color:#fff">DISPATCH PROOF V185 — teen tabs. Agar yeh line ke neeche khali hai to Camera.html Save + Deploy New version.</div>
+<div id="boot" style="padding:10px 12px;font-family:Arial,sans-serif;font-weight:800;background:#202124;color:#fff">DISPATCH PROOF V186 — teen tabs. Agar yeh line ke neeche khali hai to Camera.html Save + Deploy New version.</div>
 <div id="jsErr"></div>
 <div class="app">
   <div class="top">
@@ -147,7 +147,7 @@ window.onerror = function (msg, src, line) {
     <div id="frameBanner" class="frameBanner">
       Keep this sheet box open. The packing camera opens in a new tab.
       <br>
-      <a class="green" id="frameLiveBtn" href="https://yubafashion.github.io/dispatch-proof-camera/?v=V185" target="DP_CAM_V185" rel="opener">Open packing camera</a>
+      <a class="green" id="frameLiveBtn" href="https://yubafashion.github.io/dispatch-proof-camera/?v=V186" target="DP_CAM_V186" rel="opener">Open packing camera</a>
     </div>
     <div id="info" class="info"></div>
     <div id="cameraPanel" class="cameraPanel">
@@ -533,6 +533,11 @@ var bridgePending = {};
 var bridgeSeq = 0;
 var bridgeListening = false;
 
+function workerDead() {
+  workerReady = false;
+  workerSource = null;
+}
+
 function onBridgeMessage(ev) {
   var d = ev.data;
   if (!d || d.dp !== 1) return;
@@ -550,6 +555,17 @@ function onBridgeMessage(ev) {
   }
 }
 
+function attachExecWorker() {
+  if (!API_URL || document.getElementById('dpWorkerFrame')) return;
+  var f = document.createElement('iframe');
+  f.id = 'dpWorkerFrame';
+  f.title = 'Drive save';
+  f.setAttribute('aria-hidden', 'true');
+  f.style.cssText = 'position:fixed;width:1px;height:1px;opacity:0;border:0;left:0;top:0;pointer-events:none';
+  f.src = API_URL + (API_URL.indexOf('?') >= 0 ? '&' : '?') + 'bridge=1&worker=1&t=' + Date.now();
+  document.body.appendChild(f);
+}
+
 function pingSheetBox() {
   if (!bridgeListening) {
     window.addEventListener('message', onBridgeMessage);
@@ -560,17 +576,29 @@ function pingSheetBox() {
       window.opener.postMessage({ dp: 1, hello: 1 }, '*');
     }
   } catch (e1) {}
+  try {
+    var f = document.getElementById('dpWorkerFrame');
+    if (f && f.contentWindow) f.contentWindow.postMessage({ dp: 1, hello: 1 }, '*');
+  } catch (e2) {}
 }
 
 function sheetBoxHint() {
   return 'Google Sheet tab mein DISPATCH CAMERA Drive box khula rakho. Band mat karo.';
 }
 
+function isRecordingNow() {
+  try {
+    if (recorder && (recorder.state === 'recording' || recorder.state === 'paused')) return true;
+  } catch (e1) {}
+  return !!(currentSession && recordStartedAt && timerHandle && !recorderStopping);
+}
+
 function ensureWorker() {
   return new Promise(function(resolve, reject) {
     pingSheetBox();
+    attachExecWorker();
     if (workerReady && workerSource) { resolve(); return; }
-    if (isLocalDemo() && !(window.opener && !window.opener.closed)) {
+    if (isLocalDemo() && !(window.opener && !window.opener.closed) && !API_URL) {
       resolve();
       return;
     }
@@ -581,12 +609,56 @@ function ensureWorker() {
         clearInterval(t);
         setDriveState('ok');
         resolve();
-      } else if (++n > 24) {
+      } else if (++n > 48) {
         clearInterval(t);
-        setDriveState('need');
+        if (!workerReady) setDriveState('need');
         reject(new Error(sheetBoxHint()));
       }
     }, 250);
+  });
+}
+
+function httpPostCall(action, payload, timeoutMs) {
+  return new Promise(function(resolve, reject) {
+    if (!API_URL) {
+      reject(new Error('Drive API missing'));
+      return;
+    }
+    var act = String(action || '').toUpperCase();
+    var body = new URLSearchParams();
+    body.set('dpAction', act);
+    if (act === 'CHUNK') body.set('phase', 'chunk');
+    else if (act === 'FINISH') body.set('phase', 'finish');
+    else if (act === 'UPLOAD') {
+      try { body.set('payload', JSON.stringify(payload || {})); } catch (e0) {}
+    }
+    Object.keys(payload || {}).forEach(function(k) {
+      if (payload[k] == null) return;
+      if (act === 'UPLOAD') return;
+      body.set(k, String(payload[k]));
+    });
+    var ctrl = typeof AbortController === 'function' ? new AbortController() : null;
+    var timer = setTimeout(function() {
+      try { if (ctrl) ctrl.abort(); } catch (e1) {}
+      reject(new Error(act + ' timeout'));
+    }, timeoutMs || 60000);
+    var opts = {
+      method: 'POST',
+      mode: 'cors',
+      credentials: 'omit',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+      body: body.toString()
+    };
+    if (ctrl) opts.signal = ctrl.signal;
+    fetch(API_URL, opts).then(function(r) {
+      return r.json();
+    }).then(function(j) {
+      clearTimeout(timer);
+      resolve(j);
+    }).catch(function(err) {
+      clearTimeout(timer);
+      reject(err);
+    });
   });
 }
 
@@ -595,6 +667,7 @@ function workerCall(action, payload, timeoutMs) {
     return new Promise(function(resolve, reject) {
       var target = workerSource;
       if (!target) {
+        workerDead();
         reject(new Error('Drive save window band ho gayi.'));
         return;
       }
@@ -613,6 +686,7 @@ function workerCall(action, payload, timeoutMs) {
       } catch (err) {
         delete bridgePending[id];
         clearTimeout(timer);
+        workerDead();
         reject(err);
       }
     });
@@ -754,7 +828,7 @@ function demoOrder(awb, videoMode) {
 function gsRun(action, payload, timeoutMs) {
   var act = String(action || '').toUpperCase();
   if (isLocalDemo() && (act === 'HEALTH' || act === 'PING') && !(workerReady && workerSource)) {
-    return Promise.resolve({ ok: true, version: 'V185', found: true, demo: true });
+    return Promise.resolve({ ok: true, version: 'V186', found: true, demo: true });
   }
   if (isLocalDemo() && (act === 'UPLOAD' || act === 'FINISH' || act === 'CHUNK' || act === 'MARK_PENDING' || act === 'CLEAR_PENDING') && !(workerReady && workerSource)) {
     return Promise.resolve({ ok: true, fileId: 'demo', fileName: (payload && payload.fileName) || 'demo.webm', demo: true });
@@ -773,11 +847,14 @@ function gsRun(action, payload, timeoutMs) {
     if (isLocalDemo() && !(workerReady && workerSource) && !API_URL) {
       return Promise.resolve(demoOrder(payload && payload.awb, payload && payload.mode));
     }
-    if (workerReady && workerSource) {
-      return workerCall('SCAN', data, Math.max(wait, 20000)).catch(function(err) {
-        if (API_URL) return jsonpCall('SCAN', data, wait);
+    if (API_URL) {
+      return jsonpCall('SCAN', data, wait).catch(function(err) {
+        if (workerReady && workerSource) return workerCall('SCAN', data, Math.max(wait, 20000));
         throw err;
       });
+    }
+    if (workerReady && workerSource) {
+      return workerCall('SCAN', data, Math.max(wait, 20000));
     }
     if (window.google && google.script && google.script.run) {
       return gsRunNative('SCAN', payload, wait);
@@ -810,8 +887,12 @@ function gsRun(action, payload, timeoutMs) {
   if (window.google && google.script && google.script.run) {
     return gsRunNative(action, payload, timeoutMs);
   }
-  if (act === 'CHUNK' || act === 'FINISH' || act === 'UPLOAD' || act === 'PLAY' || act === 'PLAY_PART' || act === 'MARK_PENDING' || act === 'CLEAR_PENDING') {
-    return workerCall(act, payload, timeoutMs || 180000);
+  if (act === 'CHUNK' || act === 'FINISH' || act === 'UPLOAD' || act === 'MARK_PENDING' || act === 'CLEAR_PENDING') {
+    var waitUp = timeoutMs || 180000;
+    return workerCall(act, payload, waitUp).catch(function(err) {
+      if (API_URL) return httpPostCall(act, payload || {}, waitUp);
+      throw err;
+    });
   }
   if (act === 'HEALTH' || act === 'PING') {
     return jsonpCall(act, payload || {}, timeoutMs || 8000);
@@ -1705,7 +1786,7 @@ function liveHref(r) {
     ? String(location.href || '').split('#')[0].split('?')[0]
     : (window.DP_PAGE || 'https://yubafashion.github.io/dispatch-proof-camera/');
   var join = page.indexOf('?') >= 0 ? '&' : '?';
-  var u = page + join + 'v=' + encodeURIComponent(window.DP_VER || 'V185') + '&t=' + Date.now();
+  var u = page + join + 'v=' + encodeURIComponent(window.DP_VER || 'V186') + '&t=' + Date.now();
   if (API_URL) u += '&api=' + encodeURIComponent(API_URL);
   if (awb) u += '&awb=' + encodeURIComponent(awb);
   return u;
@@ -1719,7 +1800,7 @@ function packingPopupFeatures() {
 }
 
 function openLiveWindow(r) {
-  window.open(liveHref(r || lastScan), 'DP_CAM_' + (window.DP_VER || 'V185'), packingPopupFeatures());
+  window.open(liveHref(r || lastScan), 'DP_CAM_' + (window.DP_VER || 'V186'), packingPopupFeatures());
   note('Packing popup desktop ke beech. Sheet box Drive ke liye khula rakho.', 'ok');
   return true;
 }
@@ -1755,6 +1836,8 @@ function connectSheet(quiet) {
     setDriveState('ok');
     return Promise.resolve({ ok: true, demo: true });
   }
+  attachExecWorker();
+  pingSheetBox();
   return workerCall('HEALTH', {}, 12000).then(function(r) {
     if (r && (r.ok || r.found)) {
       setDriveState('ok');
@@ -1804,13 +1887,13 @@ function scan() {
     return;
   }
   var n = normalizeAwb(v);
-  if ((mode === 'DISPATCH' || mode === 'RETURN') && recorder && recorder.state === 'recording' &&
+  if ((mode === 'DISPATCH' || mode === 'RETURN') && isRecordingNow() &&
       currentSession && normalizeAwb(currentSession.awb) === n) {
     stopRecording();
     note('This AWB is saving to Drive. Scan the next parcel.', 'ok');
     return;
   }
-  if ((mode === 'DISPATCH' || mode === 'RETURN') && recorder && recorder.state === 'recording') {
+  if ((mode === 'DISPATCH' || mode === 'RETURN') && isRecordingNow()) {
     recorderStopping = true;
     $('awb').value = '';
     waitingOrder = {
@@ -1841,7 +1924,7 @@ function lookupAwb(n, m) {
   var started = 0;
   if (blockRecordAwb && blockRecordAwb !== n) blockRecordAwb = '';
 
-  if ((m === 'DISPATCH' || m === 'RETURN') && recorder && recorder.state === 'recording') {
+  if ((m === 'DISPATCH' || m === 'RETURN') && isRecordingNow()) {
     recorderStopping = true;
     waitingOrder = {
       found: true, awb: n, orderId: n,
@@ -2295,8 +2378,13 @@ function startLiveUpload(s, mime, fileName) {
     wait: []
   };
   gsRun('MARK_PENDING', { awb: s.awb, orderId: s.orderId }, 8000).catch(function() {});
-  var n = 0;
-  for (n = 0; n < 6; n++) liveUploadWorker(liveUpload);
+  ensureWorker().then(function() {
+    if (!liveUpload || liveUpload.failed) return;
+    var n = 0;
+    for (n = 0; n < 3; n++) liveUploadWorker(liveUpload);
+  }).catch(function() {
+    if (liveUpload) liveUpload.deferToStop = true;
+  });
 }
 
 function liveWake(u) {
@@ -2384,7 +2472,7 @@ function finishLiveUpload() {
     liveWake(u);
     var workers = [];
     var n;
-    for (n = 0; n < 6; n++) workers.push(liveUploadWorker(u));
+    for (n = 0; n < 3; n++) workers.push(liveUploadWorker(u));
     return Promise.all(workers);
   }).then(function() {
     if (u.failed || !u.pieces.length) return null;
@@ -2972,6 +3060,7 @@ try {
     else keepIdleCamera();
   }
   pingSheetBox();
+  attachExecWorker();
   setInterval(pingSheetBox, 2000);
   if (isLocalDemo()) pingDrive();
   else {
