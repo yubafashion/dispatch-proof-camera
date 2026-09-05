@@ -1020,7 +1020,9 @@ function shareProofMedia(r) {
 }
 
 function b64ToBytes(b64) {
-  var bin = atob(String(b64 || '').replace(/[^A-Za-z0-9+\/=]/g, ''));
+  var s = String(b64 || '').replace(/-/g, '+').replace(/_/g, '/').replace(/[^A-Za-z0-9+\/=]/g, '');
+  while (s.length % 4) s += '=';
+  var bin = atob(s);
   var out = new Uint8Array(bin.length);
   var i;
   for (i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
@@ -1055,21 +1057,27 @@ function mergeKeptMedia(n, r) {
   return r;
 }
 
-async function fetchPlayParts(cacheKey, parts) {
+async function fetchPlayParts(cacheKey, parts, extra) {
+  extra = extra || {};
   var slots = new Array(parts);
   var next = 0;
   var done = 0;
   async function pump() {
     while (next < parts) {
       var i = next++;
-      var part = await gsRun('PLAY_PART', { cacheKey: cacheKey, index: String(i) }, 30000);
+      var part = await gsRun('PLAY_PART', {
+        cacheKey: cacheKey || '',
+        index: String(i),
+        fileId: extra.fileId || '',
+        chunkBytes: extra.chunkBytes ? String(extra.chunkBytes) : ''
+      }, 30000);
       if (!part || !part.data) throw new Error('Play chunk ' + (i + 1) + ' missing');
       slots[i] = part.data;
       done++;
-      $('cameraState').textContent = 'Play ' + done + '/' + parts;
+      $('cameraState').textContent = 'Download ' + done + '/' + parts;
     }
   }
-  var n = Math.min(8, Math.max(1, parts));
+  var n = Math.min(6, Math.max(1, parts));
   var jobs = [];
   var p;
   for (p = 0; p < n; p++) jobs.push(pump());
@@ -1081,21 +1089,20 @@ async function fetchDriveMedia(rec, quiet) {
   rec = rec || {};
   if (rec.blob) return rec;
   if (rec.blobUrl && /^blob:/i.test(rec.blobUrl)) return rec;
+  rec.fileId = extractDriveFileId(rec.fileId || rec.url || rec.downloadUrl) || rec.fileId;
   if (!rec.fileId || !isDriveFileId(rec.fileId)) return rec;
   if (!quiet) note('Video Drive se aa rahi hai…', 'ok');
-  var meta = await gsRun('PLAY', { fileId: rec.fileId }, 120000);
+  var meta = await gsRun('PLAY', { fileId: rec.fileId, bytes: '1', inline: '1' }, 180000);
   if (!meta || meta.ok === false) throw new Error((meta && meta.message) || 'PLAY fail');
   rec.fileName = meta.fileName || rec.fileName;
   rec.mime = meta.mime || rec.mime || 'video/webm';
-  if (meta.streamUrl && !meta.base64 && !meta.cacheKey) {
-    rec.playUrl = meta.streamUrl;
-    rec.blobUrl = meta.streamUrl;
-    return rec;
-  }
   var raw = '';
   if (meta.base64) raw = meta.base64;
-  else if (meta.cacheKey && meta.parts) {
-    raw = await fetchPlayParts(meta.cacheKey, Number(meta.parts));
+  else if (meta.parts) {
+    raw = await fetchPlayParts(meta.cacheKey || '', Number(meta.parts), {
+      fileId: rec.fileId,
+      chunkBytes: meta.chunkBytes
+    });
   } else {
     throw new Error(meta.message || 'Play data nahi mili');
   }
@@ -1389,24 +1396,24 @@ async function downloadClip(rec, fallbackName) {
     saveBlobFile(await resb.blob(), name);
     return;
   }
-  var streamUrl = rec.playUrl || proofStreamUrl(rec.fileId);
-  if (streamUrl) {
-    var a = document.createElement('a');
-    a.href = streamUrl;
-    a.download = name;
-    a.target = '_blank';
-    a.rel = 'noopener';
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
+  if (rec.blobUrl && /^https?:/i.test(rec.blobUrl) && !/drive\.google\.com/i.test(rec.blobUrl) &&
+      !/script\.google\.com/i.test(rec.blobUrl)) {
+    var resh = await fetch(rec.blobUrl);
+    saveBlobFile(await resh.blob(), name);
     return;
   }
-  if (rec.fileId && isDriveFileId(rec.fileId) && !rec.blob) {
+  rec.fileId = extractDriveFileId(rec.fileId || rec.url || rec.downloadUrl) || rec.fileId;
+  if (rec.fileId && isDriveFileId(rec.fileId)) {
+    note('Download start…', 'ok');
     rec = await fetchDriveMedia(rec);
     lastProofPlayRec = rec;
-    if (rec.blob) { saveBlobFile(rec.blob, rec.fileName || name); return; }
+    if (rec.blob) {
+      saveBlobFile(rec.blob, rec.fileName || name);
+      note('Download start.', 'ok');
+      return;
+    }
   }
-  note('Download file nahi mili.', 'error');
+  note('Download file nahi mili. Sheet box khula rakho.', 'error');
 }
 
 function closeProofPop() {
